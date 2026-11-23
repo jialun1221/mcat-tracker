@@ -150,7 +150,12 @@ const CARS_STYLES=["Opinion / argument","Conversational","Factual / scientific",
 const DISC_MIGRATE={"Art & architecture":"Art","Theater & dance":"Theater","Cultural studies":"Diverse cultures (humanities)","Anthropology & archaeology":"Anthropology"};
 const discGroup=d=>CARS_DISC["Humanities"].includes(d)?"Humanities":CARS_DISC["Social sciences"].includes(d)?"Social sciences":"";
 const CARS_DISC_ALL=Object.values(CARS_DISC).flat();
-const CARS_QT=["Main idea","Author's attitude","Inference","Application","Paragraph function","Detail","Strengthen / weaken","Analogy"];
+const CARS_SKILLS=[["Foundations of Comprehension","30%",["Main idea","Detail","Meaning in context","Author's attitude","Paragraph function"]],
+ ["Reasoning Within the Text","30%",["Inference","Support for a claim","Argument structure"]],
+ ["Reasoning Beyond the Text","40%",["Application","Analogy","Strengthen / weaken"]]];
+const CARS_QT=CARS_SKILLS.flatMap(x=>x[2]);
+const skillOf=qt=>(CARS_SKILLS.find(x=>x[2].includes(qt))||[""])[0];
+const qtChips=(attr,sel,wrap)=>`<div class="stack tight" ${wrap}>${CARS_SKILLS.map(([g,pct,l])=>`<div class="stack tight" style="gap:4px"><span class="muted" style="font-size:.78rem">${g} · ${pct}</span><div class="chips">${l.map(x=>`<button type="button" class="chip" ${attr}="${esc(x)}" aria-pressed="${sel===x}">${esc(x)}</button>`).join("")}</div></div>`).join("")}</div>`;
 const CARS_TRAPS={attrib:"Misattributed a viewpoint",scope:"Answer went beyond the passage",detail:"Took a detail as the main idea",extreme:"Fell for extreme wording",qualifier:"Missed a qualifier or negation",wrongq:"True statement, wrong question",other:"Other"};
 const TRAP_TASK={
   attrib:"In your next passage, tag every opinion with whose it is (author, critic, cited scholar) before answering.",
@@ -694,7 +699,8 @@ function carsAnalysis(){
   timed.forEach(p=>{const g=discGroup(p.disc);if(g&&p.outOf){(grp[g]=grp[g]||{n:0,sc:0,of:0});grp[g].n++;grp[g].sc+=+p.score;grp[g].of+=+p.outOf;}
     (p.styles||[]).forEach(x=>{(sty[x]=sty[x]||{n:0,sc:0,of:0});sty[x].n++;if(p.outOf){sty[x].sc+=+p.score;sty[x].of+=+p.outOf;}});});
   const styles=Object.entries(sty).map(([k,o])=>({k,n:o.n,pct:o.of?o.sc/o.of:null})).sort((a,b)=>(a.pct??1)-(b.pct??1));
-  return {timed,snags,qtypes,ds,traps:trapStats(),grp,styles};
+  const sk={}; S.cq.forEach(q=>{const g=skillOf(q.qtype);if(g)sk[g]=(sk[g]||0)+1;});
+  return {timed,snags,qtypes,ds,traps:trapStats(),grp,styles,sk};
 }
 function sentenceList(){ return S.passages.flatMap(p=>(p.hardSentences||"").split(/\n+/).map(s=>s.trim()).filter(Boolean).map(s=>({s,p}))).slice(-12).reverse(); }
 function vCars(v){
@@ -710,6 +716,7 @@ function vCars(v){
       <div class="stack tight"><span class="label">Passage types you miss most</span>${weak.length?`<ul class="list">${weak.map(d=>`<li><div class="main"><b>${esc(d.k)}</b><div class="muted" style="font-size:.82rem">${d.n?`${d.n} passage${d.n>1?"s":""}`:"from full lengths"}${d.pct!=null?` · avg ${Math.round(d.pct*100)}%`:""}${d.avgMin?` · ${d.avgMin.toFixed(1)} min`:""} · ${d.miss} missed</div></div></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
       <div class="stack tight"><span class="label">Where you get stuck</span>${A.snags.length?`<ul class="list">${A.snags.slice(0,4).map(([k,c])=>`<li><span>${esc(k)}</span><span class="num muted">${c} of ${n}</span></li>`).join("")}</ul>`:`<p class="muted">Tag "where I got stuck" when logging a passage.</p>`}</div>
       <div class="stack tight"><span class="label">Question types you miss</span>${A.qtypes.length?`<ul class="list">${A.qtypes.slice(0,4).map(([k,c])=>`<li><span>${esc(k)}</span><span class="num muted">${c}</span></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
+      <div class="stack tight"><span class="label">By AAMC skill</span>${Object.keys(A.sk).length?(()=>{const tot=Object.values(A.sk).reduce((a,b)=>a+b,0);return `<ul class="list">${CARS_SKILLS.map(([g,pct])=>`<li><span>${g}</span><span class="num muted">${A.sk[g]||0} missed · ${Math.round((A.sk[g]||0)/tot*100)}% of misses (test ${pct})</span></li>`).join("")}</ul>`;})():`<p class="muted">—</p>`}</div>
       <div class="stack tight"><span class="label">Humanities vs. social sciences</span>${Object.keys(A.grp).length?`<ul class="list">${["Humanities","Social sciences"].filter(g=>A.grp[g]).map(g=>`<li><span>${g}</span><span class="num muted">${Math.round(A.grp[g].sc/A.grp[g].of*100)}% · ${A.grp[g].n} passage${A.grp[g].n>1?"s":""}</span></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
       <div class="stack tight"><span class="label">By style</span>${A.styles.length?`<ul class="list">${A.styles.slice(0,4).map(x=>`<li><span>${esc(x.k)}</span><span class="num muted">${x.pct!=null?Math.round(x.pct*100)+"% · ":""}${x.n} passage${x.n>1?"s":""}</span></li>`).join("")}</ul>`:`<p class="muted">Tag a style when logging a passage.</p>`}</div>
       <div class="stack tight"><span class="label">Traps</span>${A.traps.length?`<ul class="list">${A.traps.slice(0,4).map(t=>`<li><span>${esc(CARS_TRAPS[t.k])}</span><span class="num muted">${t.n} in ${t.np} passage${t.np>1?"s":""}</span></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
@@ -747,7 +754,7 @@ function passagePrompt(p){
   return `I'm an MCAT student working on CARS. Help me analyze this ${p.disc} passage I did poorly on${p.outOf?` (${p.score}/${p.outOf}${p.minutes?`, ${p.minutes} min`:""})`:""}. Don't quiz me; explain.
 
 ${p.text?`PASSAGE:\n${p.text}\n`:`(Title: ${p.title||"untitled"}${p.url?`, link: ${p.url}`:""})\n`}
-${(p.snags||[]).length?`Where I got stuck: ${p.snags.join("; ")}.\n`:""}${p.hardSentences?`Sentences I didn't understand:\n${p.hardSentences}\n`:""}${qs.length?`Questions I missed: ${qs.map(q=>`${q.qtype}${(q.traps||[]).length?" ("+q.traps.map(t=>CARS_TRAPS[t]).join(", ")+")":""}${q.lure?" — "+q.lure:""}`).join("; ")}.\n`:""}
+${(p.snags||[]).length?`Where I got stuck: ${p.snags.join("; ")}.\n`:""}${p.hardSentences?`Sentences I didn't understand:\n${p.hardSentences}\n`:""}${qs.length?`Questions I missed: ${qs.map(q=>`${q.qtype}${skillOf(q.qtype)?" ["+skillOf(q.qtype)+"]":""}${(q.traps||[]).length?" ("+q.traps.map(t=>CARS_TRAPS[t]).join(", ")+")":""}${q.lure?" — "+q.lure:""}`).join("; ")}.\n`:""}
 Please give me:
 1. The main idea in one sentence.
 2. The job of each paragraph in a few words.
@@ -868,7 +875,7 @@ function vFLDetail(v,id){
       el.innerHTML=`<div class="stack">
         <div class="fields"><label class="f">Q#<input id="fm-qn" inputmode="numeric" value="${esc(FM.qn)}" placeholder="optional"></label>
         <label class="f">Passage type<select id="fm-disc"><option value="">—</option>${Object.entries(CARS_DISC).map(([g,l])=>`<optgroup label="${g}">${l.map(x=>`<option ${x===FM.disc?"selected":""}>${esc(x)}</option>`).join("")}</optgroup>`).join("")}</select></label></div>
-        <div class="stack tight"><span class="label req">Question type</span>${chips("qtype",CARS_QT.map(x=>[x,x]),FM.qtype)}</div>
+        <div class="stack tight"><span class="label req">Question type</span>${qtChips("data-k",FM.qtype,'data-grp="qtype"')}</div>
         <div class="stack tight"><span class="label">Result</span>${chips("result",[["wrong","Wrong"],["guess","Guessed right"]],FM.result)}</div>
         <div class="stack tight"><span class="label">Trap</span>${chips("traps",Object.entries(CARS_TRAPS),FM.traps,true)}</div>
         <label class="f">What happened<input id="fm-note" value="${esc(FM.note)}" placeholder="e.g. picked the critic's view"></label>
@@ -894,7 +901,7 @@ function vFLDetail(v,id){
     const d=$("#fm-disc");if(d)d.onchange=e=>FM.disc=e.target.value;
     el.onclick=e=>{const c=e.target.closest("[data-k]");if(!c)return;const g=c.closest("[data-grp]").dataset.grp,k=c.dataset.k;
       if(Array.isArray(FM[g]))FM[g]=FM[g].includes(k)?FM[g].filter(x=>x!==k):[...FM[g],k];else FM[g]=k;
-      c.parentElement.querySelectorAll("[data-k]").forEach(x=>x.setAttribute("aria-pressed",Array.isArray(FM[g])?FM[g].includes(x.dataset.k):FM[g]===x.dataset.k));
+      c.closest("[data-grp]").querySelectorAll("[data-k]").forEach(x=>x.setAttribute("aria-pressed",Array.isArray(FM[g])?FM[g].includes(x.dataset.k):FM[g]===x.dataset.k));
       if(g==="subject"&&el._auto)el._auto();};
     $("#fm-add").onclick=()=>{
       const t=todayS();
@@ -975,7 +982,7 @@ function vLogCQ(v,a){
   v.innerHTML=`<div class="panel stack">
     <h2>${ed?"Edit CARS question":"Log a CARS question"}</h2>
     <label class="f">Passage<select id="q-p"><option value="">Not linked to a passage</option>${ps.map(p=>`<option value="${p.id}" ${p.id===Q.passageId?"selected":""}>${esc(shortD(p.date)+" · "+(p.title||p.disc)+(p.outOf?` · ${p.score}/${p.outOf}`:""))}</option>`).join("")}</select></label>
-    <div class="stack tight"><span class="label req">Question type</span><div class="chips" id="q-qt">${CARS_QT.map(x=>`<button type="button" class="chip" data-v="${esc(x)}" aria-pressed="${Q.qtype===x}">${esc(x)}</button>`).join("")}</div></div>
+    <div class="stack tight"><span class="label req">Question type</span>${qtChips("data-v",Q.qtype,'id="q-qt"')}</div>
     <div class="stack tight"><span class="label req">Result</span><div class="chips" id="q-res"><button type="button" class="chip" data-v="wrong" aria-pressed="${Q.result==="wrong"}">Wrong</button><button type="button" class="chip" data-v="guess" aria-pressed="${Q.result==="guess"}">Guessed right</button></div></div>
     <div class="stack tight"><span class="label">What tripped you (trap)</span><div class="chips" id="q-tr">${Object.entries(CARS_TRAPS).map(([k,l])=>`<button type="button" class="chip" data-v="${k}" aria-pressed="${Q.traps.includes(k)}">${l}</button>`).join("")}</div></div>
     <label class="f">Text that supports the right answer (optional)<textarea id="q-ev" placeholder="e.g. Para 3: 'Some critics insist…' is the critics, not the author">${esc(Q.evidence)}</textarea></label>
