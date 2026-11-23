@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MCAT Gap Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a quiet study desk. One narrow working column, action first: retest → priority topic → CARS. */
+:root{
+  --bg:#efedea; --panel:#faf9f7; --sunk:#e7e4e0; --ink:#1e1c1a; --ink-2:#4e4a45; --ink-3:#7d776f; --line:#dcd8d2;
+  --accent:#2f5d9e; --accent-ink:#ffffff; --accent-soft:#dfe6f1;
+  --no:#b8402c; --no-soft:#f6e0da; --part:#94660a; --part-soft:#f4e8cc; --yes:#2c7a4f; --yes-soft:#dcefe2;
+  --display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#171615; --panel:#211f1d; --sunk:#2a2826; --ink:#f0ede8; --ink-2:#c4beb5; --ink-3:#958e84; --line:#37342f;
+  --accent:#8fb0e3; --accent-ink:#141312; --accent-soft:#25303f;
+  --no:#ef8a76; --no-soft:#3d2420; --part:#e2b450; --part-soft:#3a3020; --yes:#6cc893; --yes-soft:#1d3226; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#171615; --panel:#211f1d; --sunk:#2a2826; --ink:#f0ede8; --ink-2:#c4beb5; --ink-3:#958e84; --line:#37342f;
+  --accent:#8fb0e3; --accent-ink:#141312; --accent-soft:#25303f;
+  --no:#ef8a76; --no-soft:#3d2420; --part:#e2b450; --part-soft:#3a3020; --yes:#6cc893; --yes-soft:#1d3226; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:920px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 96px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:1.45rem;font-weight:700} h2{font-size:1.12rem;font-weight:700} h3{font-size:.98rem;font-weight:600}
+p{margin:0}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-3)} .sub{color:var(--ink-2);font-size:.9rem}
+.label{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);font-weight:600}
+header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.count{font-size:.85rem;color:var(--ink-2)} .count b{font-family:var(--display);font-size:1.25rem;color:var(--ink)}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:2px;overflow-x:auto;padding-block:8px;margin-bottom:16px;border-bottom:1px solid var(--line);scrollbar-width:none}
+nav.tabs button{flex:0 0 auto;border:0;background:none;color:var(--ink-2);font:600 .88rem var(--body);padding:7px 11px;border-radius:8px;cursor:pointer;position:relative}
+nav.tabs button[aria-selected="true"]{background:var(--panel);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+nav.tabs .dot{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:.7rem;line-height:18px;text-align:center}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0}
+.stack{display:flex;flex-direction:column;gap:12px} .stack.tight{gap:6px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.between{justify-content:space-between}
+.grid2{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.btn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:600 .88rem var(--body);padding:8px 14px;border-radius:8px;cursor:pointer}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.big{padding:11px 18px;font-size:.95rem}
+.btn.small{padding:4px 10px;font-size:.8rem}
+.btn.link{border:0;background:none;padding:2px 0;color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.btn.danger{color:var(--no);border-color:var(--no)}
+.fab{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:6;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.notice{background:var(--accent-soft);border-radius:10px;padding:10px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px;font-size:.9rem}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:20;max-width:calc(100% - 32px)}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.8rem;font-weight:600;color:var(--ink-2);min-width:0}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+input[type=checkbox]{width:auto}
+textarea{min-height:64px;resize:vertical}
+.fields{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink-2);font:500 .83rem var(--body);padding:5px 11px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip.sugg{border-style:dashed;color:var(--ink)}
+.req::after{content:" *";color:var(--no)}
+.sec-title{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.step{font-family:var(--mono);font-size:.72rem;color:var(--ink-3)}
+.why{font-size:.85rem;color:var(--ink-2);border-left:3px solid var(--line);padding-left:10px}
+.status{display:inline-flex;align-items:center;gap:4px;font:600 .72rem var(--body);border-radius:999px;padding:2px 9px;white-space:nowrap}
+.status.no{background:var(--no-soft);color:var(--no)} .status.part{background:var(--part-soft);color:var(--part)} .status.yes{background:var(--yes-soft);color:var(--yes)} .status.plain{background:var(--sunk);color:var(--ink-2)} .status.acc{background:var(--accent-soft);color:var(--accent)}
+.list{list-style:none;margin:0;padding:0}
+.list>li{padding-block:10px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:space-between;align-items:flex-start}
+.list>li:first-child{border-top:0}
+.list .main{min-width:0;flex:1}
+.qcard{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px;white-space:pre-wrap}
+.rate{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.rate button{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:12px 8px;font:600 .92rem var(--body);cursor:pointer;color:var(--ink)}
+.rate button[data-s="no"]{border-color:var(--no);color:var(--no)} .rate button[data-s="partial"]{border-color:var(--part);color:var(--part)} .rate button[data-s="yes"]{border-color:var(--yes);color:var(--yes)}
+.rate small{display:block;font-weight:500;color:var(--ink-3);font-size:.74rem}
+.sugglist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;margin-top:4px;overflow:hidden}
+.sugglist button{text-align:left;border:0;border-top:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 10px;font:inherit;cursor:pointer}
+.sugglist button:first-child{border-top:0}
+.sugglist button:hover,.sugglist button:focus-visible{background:var(--accent-soft)}
+details>summary{cursor:pointer;font-weight:600;font-size:.88rem;color:var(--ink-2)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:var(--panel);color:var(--ink-2);font:600 .82rem var(--body);padding:6px 12px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.prompt{font-family:var(--mono);font-size:.76rem;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;white-space:pre-wrap;max-height:160px;overflow:auto}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
+.tablewrap{overflow-x:auto}
+.empty{border:1px dashed var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.88rem}
+.kv dt{color:var(--ink-3)} .kv dd{margin:0;white-space:pre-wrap;min-width:0}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="row" style="gap:12px"><h1>MCAT Gap Tracker</h1></div>
+    <div class="count"><b class="num" id="daysLeft">–</b> <span id="daysLabel">days to test day</span></div>
+  </header>
+  <div id="sampleNote" class="notice" hidden>
+    <span>You're looking at <b>example records</b>. The first record you save replaces them.</span>
+    <button class="btn small" id="clearSample">Clear examples now</button>
+  </div>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <main id="view"></main>
+</div>
+<button class="btn primary big fab" id="fab">+ Log a question</button>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+/* ================= constants ================= */
+const SUBJECTS=["Biology","Biochemistry","General Chemistry","Organic Chemistry","Physics","Psychology","Sociology","Research & stats"];
+const SCI_SOURCES=["UWorld","AAMC","Jack Westin","Other"];
+const REASONS={gap:"Knowledge gap",mixup:"Confused similar concepts",misread:"Misread stem or figure",calc:"Math or units",time:"Time pressure",other:"Other"};
+const REASON_ACTION={
+  gap:"Re-learn it from your content source, then write the rule in one sentence from memory.",
+  mixup:"Write a two-column contrast of the two concepts you mixed up, then do 2 questions that test the difference.",
+  misread:"Do 2 questions on this topic and underline what the stem or figure actually asks before answering.",
+  calc:"Redo the calculation with units written on every line, then do 1 similar question.",
+  time:"Do 2 timed questions on this topic and note the step where you slowed down.",
+  other:"Re-read your note on this question, then do 2 questions on the topic."};
+const CARS_SOURCES=["Jack Westin","UWorld","AAMC","JSTOR Daily","Aeon","Other"];
+const CARS_DISC={"Humanities":["Philosophy","Ethics","Literature","Art & architecture","Music","Theater & dance","Religion","Popular culture","Cultural studies"],
+ "Social sciences":["History","Economics","Political science","Anthropology & archaeology","Linguistics","Psychology","Sociology","Education","Geography","Population health"]};
+const CARS_DISC_ALL=Object.values(CARS_DISC).flat();
+const CARS_QT=["Main idea","Author's attitude","Inference","Application","Paragraph function","Detail","Strengthen / weaken","Analogy"];
+const CARS_TRAPS={attrib:"Misattributed a viewpoint",scope:"Answer went beyond the passage",detail:"Took a detail as the main idea",extreme:"Fell for extreme wording",qualifier:"Missed a qualifier or negation",wrongq:"True statement, wrong question",other:"Other"};
+const TRAP_TASK={
+  attrib:"In your next passage, tag every opinion with whose it is (author, critic, cited scholar) before answering.",
+  scope:"For each answer you pick, point to the exact line that supports it. No line, no pick.",
+  detail:"Before the questions, write the main idea in one sentence. Check main-idea answers against that sentence.",
+  extreme:"Circle absolute words (always, never, only) in answer choices and check whether the author is that strong.",
+  qualifier:"Underline qualifiers and negations (not, except, some, may) in the stem and the passage as you read.",
+  wrongq:"Restate each question in your own words before reading the choices.",
+  other:"Re-read your notes on the missed questions and do one timed passage."};
+const CARS_SNAGS=["Missed how paragraphs connect","Mixed up author's view and a cited view","Lost the main argument","Slow on dense sentences","Re-read too much","Ran short on time"];
+const READ_TASKS=["After reading, write one sentence: what is the author arguing against? Then mark two phrases that show the author's attitude.",
+ "Label each paragraph's job in five words or fewer (claim, example, counterpoint, concession).",
+ "Find one place where the author cites someone else's view. Write whose view it is and whether the author agrees.",
+ "Write the main idea in one sentence before re-reading anything, then check it against the last paragraph."];
+const SITES=[["Aeon","aeon.co"],["JSTOR Daily","daily.jstor.org"],["Arts & Letters Daily","aldaily.com"],["The Conversation","theconversation.com"],["Psyche","psyche.co"]];
+
+/* ================= dates ================= */
+const DAY=864e5;
+const iso=d=>{const x=new Date(d);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");};
+const parseD=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d);};
+const todayS=()=>iso(new Date());
+const addDays=(s,n)=>iso(new Date(parseD(s).getTime()+n*DAY+3600e3*3)); // +3h guards DST
+const diffDays=(a,b)=>Math.round((parseD(a)-parseD(b))/DAY);
+const fmtD=s=>s?parseD(s).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}):"";
+const shortD=s=>s?parseD(s).toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
+function weekStartS(s){const d=parseD(s);const k=(d.getDay()+6)%7;return addDays(s,-k);}
+function relDue(s){const n=diffDays(s,todayS());return n<0?`overdue ${-n}d`:n===0?"today":n===1?"tomorrow":fmtD(s);}
+
+/* ================= storage ================= */
+const KEY="mcat-tracker-v2", OLD_KEY="mcat-gap-tracker-v1";
+const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
+function blank(){return {v:2,settings:{testDate:"2027-02-12",iv:{no:1,partial:2,yes:5},style:"quick"},topics:[],items:[],wins:[],passages:[],cq:[],weeks:{},legacy:{blocks:[],reads:{}},sample:false};}
+let S;
+function load(){
+  try{const raw=localStorage.getItem(KEY);if(raw){S=Object.assign(blank(),JSON.parse(raw));S.settings=Object.assign(blank().settings,S.settings);S.settings.iv=Object.assign({no:1,partial:2,yes:5},S.settings.iv);return;}}catch(e){}
+  S=blank();
+  try{const old=JSON.parse(localStorage.getItem(OLD_KEY)||"null");
+    if(old){S.legacy.blocks=(old.blocks||[]).filter(b=>!b.sample);S.legacy.reads=old.reads||{};S.settings.testDate=(old.settings&&old.settings.testDate)||S.settings.testDate;}}catch(e){}
+  if(!S.legacy.blocks.length) seedSample();
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){toast("Couldn't save in this browser. Check that site storage is allowed.");}}
+function leaveSample(){ if(!S.sample) return; const keep={settings:S.settings,legacy:S.legacy}; S=Object.assign(blank(),keep); }
+
+/* ================= example records ================= */
+function seedSample(){
+  const t=todayS(); S.sample=true;
+  const tp=(name,subject)=>{const o={id:uid(),name,subject,created:addDays(t,-6)};S.topics.push(o);return o.id;};
+  const ion=tp("anion-exchange chromatography","Biochemistry"), mm=tp("Michaelis-Menten: Km vs Vmax","Biochemistry"), nern=tp("Nernst equation","General Chemistry"), op=tp("negative reinforcement vs punishment","Psychology");
+  S.items.push(
+   {id:uid(),subject:"Biochemistry",topicId:ion,result:"wrong",source:"UWorld",qref:"#18422",reasons:["mixup"],thought:"Thought a negatively charged protein binds a negatively charged resin.",nextTime:"First find the protein's net charge from pH vs pI, then pick the resin with the opposite charge.",doneDate:addDays(t,-4),reviewDate:addDays(t,-4),cards:[{id:uid(),q:"Buffer pH 8.5. Protein A has pI 6.0. Will it stick to a DEAE (positively charged) column?",a:"Yes. pH > pI so protein A is negative and binds the positive DEAE (anion-exchange) resin."}],cardIdx:0,due:addDays(t,-1),needsNewQ:false,attempts:[{date:addDays(t,-3),cardId:null,answer:"",self:"no",next:addDays(t,-2)},{date:addDays(t,-2),cardId:null,answer:"",self:"partial",next:t}],sample:true},
+   {id:uid(),subject:"Biochemistry",topicId:ion,result:"guess",source:"AAMC",qref:"SB Bio #12",reasons:["mixup"],thought:"Guessed between CM and DEAE.",nextTime:"",doneDate:addDays(t,-1),reviewDate:addDays(t,-1),cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[]},
+   {id:uid(),subject:"Biochemistry",topicId:mm,result:"wrong",source:"UWorld",qref:"#20511",reasons:["gap"],thought:"Said a competitive inhibitor lowers Vmax.",nextTime:"Competitive: Km up, Vmax same. Noncompetitive: Vmax down, Km same.",doneDate:addDays(t,-1),reviewDate:addDays(t,-1),cards:[{id:uid(),q:"An inhibitor's effect disappears at very high [S]. What happens to Km and Vmax?",a:"It's competitive: apparent Km increases, Vmax unchanged."}],cardIdx:0,due:t,needsNewQ:false,attempts:[]},
+   {id:uid(),subject:"General Chemistry",topicId:nern,result:"wrong",source:"Jack Westin",qref:"",reasons:["calc"],thought:"Flipped Q.",nextTime:"",doneDate:addDays(t,-2),reviewDate:addDays(t,-2),cards:[{id:uid(),q:"Zn|Zn²⁺(0.01 M)||Cu²⁺(1 M)|Cu. Is E higher or lower than E°?",a:"Higher. Q = [Zn²⁺]/[Cu²⁺] = 0.01 < 1, so ln Q < 0 and E > E°."}],cardIdx:0,due:t,needsNewQ:false,attempts:[]},
+   {id:uid(),subject:"Psychology",topicId:op,result:"guess",source:"AAMC",qref:"FL2 P/S #33",reasons:["mixup"],thought:"",nextTime:"Reinforcement always increases behavior. Negative = something removed.",doneDate:addDays(t,-8),reviewDate:addDays(t,-8),cards:[{id:uid(),q:"Taking aspirin removes a headache, so you take aspirin more often. Name it.",a:"Negative reinforcement."}],cardIdx:0,due:addDays(t,3),needsNewQ:true,attempts:[{date:addDays(t,-2),cardId:null,answer:"",self:"yes",next:addDays(t,3)}]});
+  S.items.forEach(it=>{it.created=it.reviewDate;it.attempts.forEach(a=>a.cardId=it.cards[0]&&it.cards[0].id);});
+  S.wins.push({id:uid(),topicId:op,date:addDays(t,-1),source:"UWorld",qref:"#19003",note:"Got a new reinforcement question right without hesitating."});
+  const p1={id:uid(),date:addDays(t,-5),source:"Jack Westin",title:"Daily CARS: Kant and the sublime",url:"",disc:"Philosophy",minutes:11,score:3,outOf:6,readingOnly:false,snags:["Mixed up author's view and a cited view"],notes:""};
+  const p2={id:uid(),date:addDays(t,-2),source:"UWorld",title:"",url:"",disc:"Philosophy",minutes:10,score:4,outOf:6,readingOnly:false,snags:["Missed how paragraphs connect"],notes:""};
+  const p3={id:uid(),date:addDays(t,-1),source:"Aeon",title:"Essay on museums and memory",url:"",disc:"Art & architecture",minutes:14,score:null,outOf:null,readingOnly:true,snags:[],notes:"Author argues against treating museums as neutral."};
+  S.passages.push(p1,p2,p3);
+  S.cq.push({id:uid(),passageId:p1.id,date:p1.date,qtype:"Author's attitude",result:"wrong",traps:["attrib"],evidence:"Para 3: 'Some critics insist…' is not the author.",lure:"The choice repeated words from the critics' sentence."},
+            {id:uid(),passageId:p2.id,date:p2.date,qtype:"Inference",result:"wrong",traps:["attrib"],evidence:"",lure:"Picked the view the author was summarizing, not holding."},
+            {id:uid(),passageId:p2.id,date:p2.date,qtype:"Main idea",result:"guess",traps:["detail"],evidence:"",lure:""});
+}
+
+/* ================= helpers ================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2800);}
+async function copy(text,ok){try{await navigator.clipboard.writeText(text);toast(ok||"Copied");}catch(e){toast("Copy was blocked. Select the text and copy it yourself.");}}
+const norm=s=>String(s).toLowerCase().replace(/[^a-z0-9À-￿]+/g,"");
+const topicById=id=>S.topics.find(t=>t.id===id);
+const tname=id=>(topicById(id)||{name:"(deleted topic)"}).name;
+function findOrCreateTopic(name,subject){
+  const n=norm(name); let t=S.topics.find(x=>norm(x.name)===n);
+  if(!t){t={id:uid(),name:name.trim(),subject,created:todayS()};S.topics.push(t);}
+  return t.id;
+}
+const lastAttempt=it=>it.attempts.length?it.attempts[it.attempts.length-1]:null;
+const SELF={no:"Couldn't",partial:"Partly",yes:"Got it"};
+const SELF_CLS={no:"no",partial:"part",yes:"yes"};
+const resultLabel=r=>r==="wrong"?"Wrong":"Guessed right";
+function srcLabel(o){return [o.source,o.qref].filter(Boolean).join(" ");}
+
+/* ---- queue ---- */
+function dueItems(){const t=todayS();return S.items.filter(it=>it.due&&it.due<=t&&!it.needsNewQ&&it.cards[it.cardIdx]).sort((a,b)=>a.due<b.due?-1:a.due>b.due?1:tierOfTopic(a.topicId)-tierOfTopic(b.topicId));}
+function needsNewItems(){const t=todayS();return S.items.filter(it=>it.needsNewQ&&it.due&&it.due<=t);}
+function noCardItems(){return S.items.filter(it=>!it.cards.length);}
+
+/* ---- topic priority: still shaky after retest > repeated across questions > first miss ---- */
+function topicInfo(id){
+  const items=S.items.filter(i=>i.topicId===id);
+  const wins=S.wins.filter(w=>w.topicId===id);
+  const attempts=items.flatMap(i=>i.attempts.map(a=>({...a,item:i}))).sort((a,b)=>a.date<b.date?-1:1);
+  const last=attempts[attempts.length-1]||null;
+  const lastMiss=items.map(i=>i.doneDate).sort().pop()||"";
+  const winAfter=wins.some(w=>w.date>=lastMiss);
+  let tier=3, why="First miss on this topic";
+  if(items.some(i=>{const l=lastAttempt(i);return l&&l.self==="no";})){tier=1;why="Still couldn't answer it on a retest";}
+  else if(items.length>=2){tier=2;why=`Missed or guessed on ${items.length} different questions`;}
+  if(tier===3&&last&&last.self==="yes") {tier=4;why="Answered correctly on the last retest";}
+  if(winAfter&&tier>1){tier=5;why="Answered a new question correctly since the last miss";}
+  const dues=items.map(i=>i.due).filter(Boolean).sort();
+  return {id,items,wins,attempts,last,tier,why,firstDue:dues[0]||"9999",created:items.map(i=>i.created).sort()[0]||""};
+}
+const tierOfTopic=id=>topicInfo(id).tier;
+function priorityTopics(){
+  const ids=[...new Set(S.items.map(i=>i.topicId))];
+  return ids.map(topicInfo).filter(x=>x.tier<=3).sort((a,b)=>a.tier-b.tier||(a.firstDue<b.firstDue?-1:a.firstDue>b.firstDue?1:0)||(a.created<b.created?-1:1));
+}
+function evidenceLine(info){
+  const rc={};info.items.forEach(i=>(i.reasons||[]).forEach(r=>rc[r]=(rc[r]||0)+1));
+  const rs=Object.entries(rc).sort((a,b)=>b[1]-a[1]).map(([k,n])=>REASONS[k]+(n>1?` ×${n}`:"")).join(", ");
+  const srcs=info.items.map(srcLabel).filter(Boolean).join(", ");
+  const last=info.last?` Last retest: ${SELF[info.last.self].toLowerCase()} (${shortD(info.last.date)}).`:"";
+  return `${info.items.length} record${info.items.length>1?"s":""}${rs?" · "+rs:""}${srcs?" · "+srcs:""}.${last}`;
+}
+function practiceAction(info){
+  const withNext=info.items.filter(i=>i.nextTime&&i.nextTime.trim()).sort((a,b)=>a.created<b.created?1:-1)[0];
+  if(withNext) return {text:withNext.nextTime.trim(),from:"from your own note"};
+  const rc={};info.items.forEach(i=>(i.reasons||[]).forEach(r=>rc[r]=(rc[r]||0)+1));
+  const top=Object.entries(rc).sort((a,b)=>b[1]-a[1])[0];
+  return {text:REASON_ACTION[top?top[0]:"other"],from:top?`because the main reason was "${REASONS[top[0]].toLowerCase()}"`:"default step"};
+}
+
+/* ---- CARS ---- */
+const cqPassage=q=>S.passages.find(p=>p.id===q.passageId);
+function trapStats(fromDate){
+  const out={};S.cq.filter(q=>!fromDate||q.date>=fromDate).forEach(q=>(q.traps||[]).forEach(t=>{(out[t]=out[t]||{n:0,passages:new Set(),qs:[]});out[t].n++;out[t].qs.push(q);out[t].passages.add(q.passageId||("q"+q.id));}));
+  return Object.entries(out).map(([k,o])=>({k,n:o.n,np:o.passages.size,qs:o.qs})).sort((a,b)=>b.np-a.np||b.n-a.n);
+}
+function discStats(){
+  const d={};S.passages.filter(p=>!p.readingOnly).forEach(p=>{const o=d[p.disc]=d[p.disc]||{n:0,min:[],sc:0,of:0,miss:0};o.n++;if(p.minutes)o.min.push(+p.minutes);if(p.outOf){o.sc+=+p.score;o.of+=+p.outOf;}});
+  S.cq.forEach(q=>{const p=cqPassage(q);if(p&&d[p.disc])d[p.disc].miss++;});
+  return Object.entries(d).map(([k,o])=>({k,n:o.n,avgMin:o.min.length?o.min.reduce((a,c)=>a+c,0)/o.min.length:null,pct:o.of?o.sc/o.of:null,miss:o.miss}));
+}
+function todaysReading(){
+  const ds=discStats().filter(x=>x.n>0).sort((a,b)=>(a.pct??1)-(b.pct??1)||b.miss-a.miss).slice(0,3).map(x=>x.k);
+  const pool=ds.length?ds:CARS_DISC_ALL; const n=Math.floor(parseD(todayS()).getTime()/DAY);
+  const traps=trapStats(); const task=traps.length?TRAP_TASK[traps[0].k]:READ_TASKS[n%READ_TASKS.length];
+  return {disc:pool[n%pool.length],fromWeak:ds.length>0,pool,task,trap:traps[0]};
+}
+const siteLinks=disc=>{const q=encodeURIComponent(disc.replace("&","and"));return SITES.map(([n,s])=>`<a class="btn small" target="_blank" rel="noopener" href="https://www.google.com/search?q=site%3A${s}+${q}">${n}</a>`).join("");};
+
+/* ================= routing ================= */
+const TABS=[["today","Today"],["log","Log"],["retest","Retest"],["cars","CARS"],["weekly","Weekly review"],["records","Records"],["settings","Settings"]];
+let view="today", viewArg=null;
+function go(v,arg){if(v==="retest"&&(!R||R.i>=R.queue.length))R=null;view=v;viewArg=arg??null;try{const h=TABS.some(t=>t[0]===v)?"#"+v:"";if(h&&location.hash!==h)history.replaceState(null,"",h);}catch(e){}render();window.scrollTo({top:0});}
+function render(){
+  const left=diffDays(S.settings.testDate,todayS());
+  $("#daysLeft").textContent=Math.max(0,left);
+  $("#daysLabel").textContent=left>=0?`days to test day · ${shortD(S.settings.testDate)}`:"test day has passed";
+  $("#sampleNote").hidden=!S.sample;
+  const due=dueItems().length;
+  const active=view==="topic"?"records":view==="logcars"?"cars":view;
+  $("#tabs").innerHTML=TABS.map(([k,l])=>`<button role="tab" aria-selected="${k===active}" data-tab="${k}">${l}${k==="retest"&&due?`<span class="dot num">${due}</span>`:""}</button>`).join("");
+  $("#fab").hidden=(view==="log"||view==="retest");
+  const old=$("#view");const v=old.cloneNode(false);old.replaceWith(v);
+  ({today:vToday,log:vLog,retest:vRetest,cars:vCars,logcars:vLogCars,weekly:vWeekly,records:vRecords,topic:vTopic,settings:vSettings})[view](v);
+}
+$("#tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b)go(b.dataset.tab);});
+$("#fab").onclick=()=>go("log");
+$("#clearSample").onclick=()=>{leaveSample();save();render();toast("Examples cleared.");};
+
+/* ================= TODAY ================= */
+function vToday(v){
+  const due=dueItems(), needNew=needsNewItems(), pri=priorityTopics()[0], cr=todaysReading();
+  const wk=S.weeks[weekStartS(todayS())]; const focus=wk&&wk.focus;
+  const sessionN=Math.min(3,due.length);
+  v.innerHTML=`<div class="stack" style="gap:16px">
+  ${focus?`<div class="notice" style="margin:0"><span><span class="label">This week's focus</span><br>${esc(focus)}</span><button class="btn small" data-go="weekly">Weekly review</button></div>`:""}
+  <section class="panel stack" aria-labelledby="h-rt">
+    <div class="sec-title"><h2 id="h-rt"><span class="step">1</span> Today's retests</h2><span class="muted num" style="font-size:.85rem">${due.length} due</span></div>
+    ${due.length?`<p class="why">Do these before random practice. Each one checks a point you reviewed earlier, asked in a new way, with the answer hidden.</p>
+      <ul class="list">${due.slice(0,3).map(it=>`<li><div class="main"><b>${esc(tname(it.topicId))}</b><div class="muted" style="font-size:.82rem">${esc(it.subject)} · due ${relDue(it.due)}${lastAttempt(it)?` · last time: ${SELF[lastAttempt(it).self].toLowerCase()}`:" · first retest"}</div></div>${lastAttempt(it)?`<span class="status ${SELF_CLS[lastAttempt(it).self]}">${SELF[lastAttempt(it).self]}</span>`:`<span class="status acc">New</span>`}</li>`).join("")}</ul>
+      <div class="row"><button class="btn primary big" data-go="retest">Start retest (${sessionN})</button>${due.length>3?`<span class="muted" style="font-size:.85rem">${due.length-3} more after these</span>`:""}</div>`
+    :`<div class="empty"><b>No retests due today.</b><span class="sub">${(()=>{const nx=S.items.filter(i=>!i.needsNewQ&&i.due>todayS()).map(i=>i.due).sort()[0];return nx?`Next one is due ${relDue(nx)}.`:"Retests appear here the day after you add a retest question to a record.";})()} Start your practice set, then log the 1–3 questions most worth reviewing.</span>
+      <div class="row"><button class="btn primary" data-go="log">Log a question</button>${noCardItems().length?`<button class="btn" data-go="records">Add retest questions (${noCardItems().length} record${noCardItems().length===1?"":"s"} without one)</button>`:""}</div></div>`}
+    ${needNew.length?`<div class="stack tight"><span class="label">Needs a new question</span><p class="sub">You got these right. To confirm, the next retest should use a different question. Write one to keep them in the queue.</p>
+      <div class="chips">${needNew.map(it=>`<button class="chip sugg" data-addcard="${it.id}">+ ${esc(tname(it.topicId))}</button>`).join("")}</div></div>`:""}
+  </section>
+  <section class="panel stack" aria-labelledby="h-pr">
+    <div class="sec-title"><h2 id="h-pr"><span class="step">2</span> Priority topic</h2>${pri?`<span class="status ${pri.tier===1?"no":pri.tier===2?"part":"plain"}">${pri.tier===1?"Still shaky":pri.tier===2?"Repeated":"First miss"}</span>`:""}</div>
+    ${pri?(()=>{const act=practiceAction(pri);return `<div><h3 style="font-size:1.15rem">${esc(tname(pri.id))}</h3><p class="why" style="margin-top:6px"><b>Why:</b> ${esc(pri.why)}. ${esc(evidenceLine(pri))}</p></div>
+      <div class="qcard"><span class="label">Practice</span><br>${esc(act.text)}<br><span class="muted" style="font-size:.78rem">Suggested ${esc(act.from)}.</span></div>
+      <div class="row"><button class="btn primary" data-topic="${pri.id}">Open topic and all ${pri.items.length} record${pri.items.length>1?"s":""}</button><button class="btn" data-win="${pri.id}">I got a new one right</button></div>`;})()
+    :`<div class="empty"><b>No priority topic yet.</b><span class="sub">Log a wrong or guessed question and it will show up here with a practice step.</span><button class="btn" data-go="log">Log a question</button></div>`}
+  </section>
+  <section class="panel stack" aria-labelledby="h-cars">
+    <div class="sec-title"><h2 id="h-cars"><span class="step">3</span> CARS</h2><span class="status plain">${esc(cr.disc)}</span></div>
+    <p class="why"><b>Why:</b> ${cr.fromWeak?`${esc(cr.disc)} is one of your lowest-scoring passage types (${esc(cr.pool.join(", "))}).`:"Not enough timed passages logged yet, so this rotates through every passage type."}${cr.trap?` Your most repeated trap is "${esc(CARS_TRAPS[cr.trap.k].toLowerCase())}", seen in ${cr.trap.np} passage${cr.trap.np>1?"s":""}.`:""}</p>
+    <div class="qcard"><span class="label">Task</span><br>Read one ${esc(cr.disc)} essay or passage. ${esc(cr.task)}</div>
+    <div class="row">${siteLinks(cr.disc)}</div>
+    <div class="row"><button class="btn primary" data-logread="${esc(cr.disc)}">Log what I read</button><button class="btn" data-go="cars">Open CARS</button></div>
+  </section></div>`;
+  bindCommon(v);
+}
+function bindCommon(v){
+  v.addEventListener("click",e=>{
+    const g=e.target.closest("[data-go]");if(g){go(g.dataset.go);return;}
+    const t=e.target.closest("[data-topic]");if(t){go("topic",t.dataset.topic);return;}
+    const w=e.target.closest("[data-win]");if(w){go("log",{mode:"win",topicId:w.dataset.win});return;}
+    const c=e.target.closest("[data-addcard]");if(c){go("topic",{itemId:c.dataset.addcard});return;}
+    const r=e.target.closest("[data-logread]");if(r){go("logcars",{mode:"passage",readingOnly:true,disc:r.dataset.logread,source:"Aeon"});return;}
+    const ed=e.target.closest("[data-edit]");if(ed){go("log",{mode:"q",editId:ed.dataset.edit});return;}
+  });
+}
+
+/* ================= LOG (science) ================= */
+let F=null;
+function freshForm(){return {subject:"",topic:"",result:"",source:"",qref:"",doneDate:todayS(),reasons:[],thought:"",nextTime:"",rq:"",ra:""};}
+function vLog(v){
+  const arg=viewArg||{}; const mode=arg.mode||"q";
+  if(mode==="win") return vWin(v,arg.topicId);
+  let editing=null;
+  if(arg.editId){editing=S.items.find(i=>i.id===arg.editId);}
+  if(!F||F._for!==(arg.editId||"new")){
+    F=freshForm();F._for=arg.editId||"new";
+    if(editing)Object.assign(F,{subject:editing.subject,topic:tname(editing.topicId),result:editing.result,source:editing.source,qref:editing.qref,doneDate:editing.doneDate,reasons:[...(editing.reasons||[])],thought:editing.thought,nextTime:editing.nextTime});
+  }
+  const full=S.settings.style==="full";
+  const recentSubj=S.items.length?S.items[S.items.length-1].subject:"";
+  v.innerHTML=`<div class="panel stack">
+    <div class="sec-title"><h2>${editing?"Edit record":"Log a question"}</h2>
+      <div class="row">${editing?"":`<div class="seg" role="group" aria-label="Form style"><button type="button" data-style="quick" aria-pressed="${!full}">Quick</button><button type="button" data-style="full" aria-pressed="${full}">Full review</button></div>`}</div></div>
+    ${editing?"":`<div class="row" style="font-size:.85rem"><span class="muted">Got a new question right on an old weak topic?</span><button class="btn link" data-mode="win">Log it here</button></div>`}
+    <div class="stack tight"><span class="label req">Subject</span><div class="chips" id="l-subj">${SUBJECTS.map(s=>`<button type="button" class="chip" data-subj="${esc(s)}" aria-pressed="${F.subject===s}">${esc(s)}</button>`).join("")}</div></div>
+    <label class="f"><span class="req">Topic (keep the original English term)</span><input id="l-topic" autocomplete="off" placeholder="e.g. anion-exchange chromatography" value="${esc(F.topic)}"></label>
+    <div id="l-sugg"></div>
+    <div class="stack tight"><span class="label req">Result</span><div class="chips" id="l-res"><button type="button" class="chip" data-res="wrong" aria-pressed="${F.result==="wrong"}">Wrong</button><button type="button" class="chip" data-res="guess" aria-pressed="${F.result==="guess"}">Guessed right / 50-50</button></div></div>
+    <details id="l-more" ${full||editing?"open":""}><summary>More details (optional)</summary>
+      <div class="stack" style="margin-top:10px">
+        <div class="fields"><label class="f">Source<select id="l-src"><option value="">Not specified</option>${SCI_SOURCES.map(s=>`<option ${s===F.source?"selected":""}>${s}</option>`).join("")}</select></label>
+          <label class="f">Question ID<input id="l-qref" placeholder="#18422" value="${esc(F.qref)}"></label>
+          <label class="f">Date done<input type="date" id="l-date" value="${esc(F.doneDate)}"></label></div>
+        <div class="stack tight"><span class="label">Why I missed it</span><div class="chips" id="l-rsn">${Object.entries(REASONS).map(([k,l])=>`<button type="button" class="chip" data-rsn="${k}" aria-pressed="${F.reasons.includes(k)}">${l}</button>`).join("")}</div></div>
+        <label class="f">What I was thinking<textarea id="l-thought" placeholder="e.g. Thought a negative protein sticks to a negative resin">${esc(F.thought)}</textarea></label>
+        <label class="f">How to tell next time<textarea id="l-next" placeholder="e.g. First compare pH and pI to get net charge, then pick the opposite-charge resin">${esc(F.nextTime)}</textarea></label>
+      </div></details>
+    ${editing?"":`<details id="l-rt" ${full?"open":""}><summary>Retest question (optional, can add later)</summary>
+      <div class="stack" style="margin-top:10px"><p class="sub">Ask it a new way, not the same question. Only records with a retest question go into the retest queue. First retest: tomorrow.</p>
+        <label class="f">Question<textarea id="l-rq" placeholder="e.g. Buffer pH 8.5, protein pI 6.0. Does it bind a DEAE column?">${esc(F.rq)}</textarea></label>
+        <label class="f">Answer and short explanation<textarea id="l-ra" placeholder="e.g. Yes. pH > pI, so it's negative and binds the positive DEAE resin.">${esc(F.ra)}</textarea></label></div></details>`}
+    <div class="row"><button class="btn primary big" id="l-save">${editing?"Save changes":"Save"}</button>${editing?`<button class="btn" id="l-cancel">Cancel</button>`:`<button class="btn" id="l-clear">Clear</button>`}<span class="muted" style="font-size:.8rem">* required</span></div>
+  </div>`;
+  if(!F.subject&&recentSubj&&!editing){} // keep explicit choice
+  const bindIn=(sel,key)=>{const el=$(sel);if(el)el.oninput=e=>F[key]=e.target.value;};
+  bindIn("#l-qref","qref");bindIn("#l-date","doneDate");bindIn("#l-thought","thought");bindIn("#l-next","nextTime");bindIn("#l-rq","rq");bindIn("#l-ra","ra");
+  $("#l-src").onchange=e=>F.source=e.target.value;
+  $("#l-topic").oninput=e=>{F.topic=e.target.value;sugg();};
+  $("#l-topic").onfocus=sugg;
+  v.onclick=e=>{
+    const s=e.target.closest("[data-subj]");if(s){F.subject=s.dataset.subj;$("#l-subj").querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c.dataset.subj===F.subject));sugg();return;}
+    const r=e.target.closest("[data-res]");if(r){F.result=r.dataset.res;$("#l-res").querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c.dataset.res===F.result));return;}
+    const k=e.target.closest("[data-rsn]");if(k){const x=k.dataset.rsn;F.reasons=F.reasons.includes(x)?F.reasons.filter(y=>y!==x):[...F.reasons,x];k.setAttribute("aria-pressed",F.reasons.includes(x));return;}
+    const p=e.target.closest("[data-pick]");if(p){const t=topicById(p.dataset.pick);F.topic=t.name;$("#l-topic").value=t.name;if(!F.subject){F.subject=t.subject;$("#l-subj").querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c.dataset.subj===F.subject));}$("#l-sugg").innerHTML="";return;}
+    const st=e.target.closest("[data-style]");if(st){S.settings.style=st.dataset.style;save();vLog(v);return;}
+    const m=e.target.closest("[data-mode]");if(m){go("log",{mode:"win"});return;}
+  };
+  const cl=$("#l-clear");if(cl)cl.onclick=()=>{F=null;vLog(v);};
+  const cc=$("#l-cancel");if(cc)cc.onclick=()=>{F=null;go("topic",editing.topicId);};
+  $("#l-save").onclick=()=>saveItem(editing);
+}
+function sugg(){
+  const q=norm(F.topic), el=$("#l-sugg"); if(!el) return;
+  if(!S.topics.length){el.innerHTML="";return;}
+  let list=S.topics.map(t=>{const n=norm(t.name);const score=!q?1:n===q?0:n.includes(q)||q.includes(n)?1:q.length>=3&&n.includes(q.slice(0,3))?2:9;return {t,score};}).filter(x=>x.score<9);
+  if(F.subject) list.sort((a,b)=>(a.t.subject===F.subject?0:1)-(b.t.subject===F.subject?0:1));
+  list.sort((a,b)=>a.score-b.score); list=list.slice(0,5);
+  const exact=list.find(x=>x.score===0);
+  el.innerHTML=list.length?`<div class="stack tight"><span class="muted" style="font-size:.78rem">${exact?"Matches an existing topic. It will be added there.":q?"Existing topics. Pick one to avoid splitting the same point:":"Your topics:"}</span><div class="chips">${list.map(x=>`<button type="button" class="chip sugg" data-pick="${x.t.id}">${esc(x.t.name)} <span class="muted" style="font-size:.72rem">${esc(x.t.subject)}</span></button>`).join("")}</div></div>`:"";
+}
+function saveItem(editing){
+  if(!F.subject) return toast("Pick a subject.");
+  if(!F.topic.trim()) return toast("Add the topic, e.g. anion-exchange chromatography.");
+  if(!F.result) return toast("Pick Wrong or Guessed right.");
+  if((F.rq.trim()&&!F.ra.trim())||(!F.rq.trim()&&F.ra.trim())) return toast("A retest needs both a question and an answer.");
+  if(S.sample&&!editing) leaveSample();
+  const topicId=findOrCreateTopic(F.topic,F.subject); const t=todayS();
+  if(editing){Object.assign(editing,{subject:F.subject,topicId,result:F.result,source:F.source,qref:F.qref.trim(),doneDate:F.doneDate||t,reasons:F.reasons,thought:F.thought.trim(),nextTime:F.nextTime.trim(),updated:t});
+    save();F=null;toast("Record updated.");go("topic",topicId);return;}
+  const it={id:uid(),subject:F.subject,topicId,result:F.result,source:F.source,qref:F.qref.trim(),reasons:F.reasons,thought:F.thought.trim(),nextTime:F.nextTime.trim(),doneDate:F.doneDate||t,reviewDate:t,created:t,cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[]};
+  if(F.rq.trim()) addCard(it,F.rq,F.ra);
+  S.items.push(it);save();F=null;
+  toast(it.due?`Saved. First retest ${relDue(it.due)}.`:"Saved. Add a retest question any time to queue it.");
+  render();
+}
+function addCard(it,q,a){
+  it.cards.push({id:uid(),q:q.trim(),a:a.trim(),created:todayS()});
+  if(it.needsNewQ){it.needsNewQ=false;it.cardIdx=it.cards.length-1;}
+  else if(!it.due){it.cardIdx=it.cards.length-1;it.due=addDays(todayS(),1);}
+}
+function vWin(v,topicId){
+  let tid=topicId||"";
+  v.innerHTML=`<div class="panel stack">
+    <h2>Got a new question right</h2>
+    <p class="sub">Use this when you answer a <b>new</b> UWorld / AAMC / Jack Westin question correctly on a topic you used to miss. This is separate from retests, and it's the strongest sign a weak spot is fixed.</p>
+    <label class="f"><span class="req">Topic</span><select id="w-topic"><option value="">Choose one of your topics…</option>${[...S.topics].sort((a,b)=>a.name.localeCompare(b.name)).map(t=>`<option value="${t.id}" ${t.id===tid?"selected":""}>${esc(t.name)}</option>`).join("")}</select></label>
+    <div class="fields"><label class="f">Source<select id="w-src">${SCI_SOURCES.map(s=>`<option>${s}</option>`).join("")}</select></label><label class="f">Question ID<input id="w-qref"></label><label class="f">Date<input type="date" id="w-date" value="${todayS()}"></label></div>
+    <label class="f">Note (optional)<input id="w-note" placeholder="e.g. used the pH vs pI step without hesitating"></label>
+    <div class="row"><button class="btn primary" id="w-save">Save</button><button class="btn" id="w-back">Back</button></div></div>`;
+  $("#w-back").onclick=()=>go("log");
+  $("#w-save").onclick=()=>{const t=$("#w-topic").value;if(!t)return toast("Pick the topic.");
+    S.wins.push({id:uid(),topicId:t,date:$("#w-date").value||todayS(),source:$("#w-src").value,qref:$("#w-qref").value.trim(),note:$("#w-note").value.trim()});save();toast("Logged. Nice work.");go("topic",t);};
+}
+
+/* ================= RETEST ================= */
+let R=null;
+function vRetest(v){
+  if(!R){const q=dueItems();R={queue:q.slice(0,3).map(i=>i.id),i:0,stage:"ask",answer:"",results:[]};}
+  if(R.i>=R.queue.length){
+    const more=dueItems().length;
+    v.innerHTML=`<div class="panel stack">${R.queue.length?`<h2>Retest done</h2>
+      <ul class="list">${R.results.map(r=>`<li><div class="main"><b>${esc(tname(r.topicId))}</b><div class="muted" style="font-size:.82rem">Next: ${r.needNew?"needs a new question first":fmtD(r.next)}</div></div><span class="status ${SELF_CLS[r.self]}">${SELF[r.self]}</span></li>`).join("")}</ul>`
+      :`<div class="empty"><b>Nothing due right now.</b><span class="sub">Retests show up the day after you add a retest question.</span></div>`}
+      <div class="row">${more?`<button class="btn primary" id="r-more">Do ${Math.min(3,more)} more (${more} due)</button>`:""}<button class="btn ${more?"":"primary"}" data-go="today">Back to Today</button></div></div>`;
+    bindCommon(v);
+    const m=$("#r-more");if(m)m.onclick=()=>{R=null;render();};
+    return;
+  }
+  const it=S.items.find(x=>x.id===R.queue[R.i]); if(!it){R.i++;return vRetest(v);}
+  const card=it.cards[it.cardIdx]; const iv=S.settings.iv;
+  v.innerHTML=`<div class="panel stack">
+    <div class="sec-title"><span class="label">Retest ${R.i+1} of ${R.queue.length}</span><span class="muted" style="font-size:.82rem">${esc(it.subject)}</span></div>
+    <h2>${esc(tname(it.topicId))}</h2>
+    <div class="qcard">${esc(card.q)}</div>
+    ${R.stage==="ask"?`<label class="f">Your answer (closed book)<textarea id="r-ans" placeholder="Write your reasoning in a line or two">${esc(R.answer)}</textarea></label>
+      <div class="row"><button class="btn primary" id="r-submit">Submit answer</button><button class="btn" id="r-show">Show answer</button><button class="btn link" id="r-skip">Skip for now</button></div>`
+    :`${R.answer?`<div class="stack tight"><span class="label">Your answer</span><div>${esc(R.answer)}</div></div>`:""}
+      <div class="stack tight"><span class="label">Answer</span><div class="qcard" style="background:var(--yes-soft)">${esc(card.a)}</div></div>
+      ${it.nextTime?`<div class="why"><b>Your rule:</b> ${esc(it.nextTime)}</div>`:""}
+      ${R.stage==="rate"?`<span class="label">How did you do?</span>
+      <div class="rate"><button data-s="no">Couldn't<small>again in ${iv.no} day${iv.no>1?"s":""}</small></button><button data-s="partial">Partly<small>again in ${iv.partial} days</small></button><button data-s="yes">Got it<small>new question in ${iv.yes} days</small></button></div>`
+      :`<div class="notice" style="margin:0"><span>${R.last.needNew?`Saved as <b>${SELF[R.last.self]}</b>. Next check on ${fmtD(R.last.next)} needs a different question. Add one from the topic page.`:`Saved as <b>${SELF[R.last.self]}</b>. Next retest: <b>${fmtD(R.last.next)}</b>.`}</span></div>
+      <div class="row"><button class="btn primary" id="r-next">${R.i+1<R.queue.length?"Next retest":"Finish"}</button>${R.last.needNew?`<button class="btn" id="r-addq">Add a new question now</button>`:""}</div>`}`}
+  </div>`;
+  if(R.stage==="ask"){
+    $("#r-ans").oninput=e=>R.answer=e.target.value;
+    $("#r-submit").onclick=()=>{if(!R.answer.trim())return toast("Write an answer first, or use Show answer.");R.stage="rate";vRetest(v);};
+    $("#r-show").onclick=()=>{R.stage="rate";vRetest(v);};
+    $("#r-skip").onclick=()=>{R.i++;R.stage="ask";R.answer="";vRetest(v);};
+  } else if(R.stage==="rate"){
+    v.querySelectorAll(".rate button").forEach(b=>b.onclick=()=>{
+      const self=b.dataset.s, t=todayS(), next=addDays(t,iv[self]);
+      it.attempts.push({date:t,cardId:card.id,answer:R.answer.trim(),self,next});
+      let needNew=false;
+      if(self==="yes"){ if(it.cardIdx+1<it.cards.length) it.cardIdx++; else {it.needsNewQ=true;needNew=true;} }
+      it.due=next; save();
+      R.last={self,next,needNew}; R.results.push({topicId:it.topicId,self,next,needNew}); R.stage="saved"; vRetest(v);
+      const d=dueItems().length;const btn=document.querySelector('[data-tab="retest"]');if(btn)btn.innerHTML="Retest"+(d?`<span class="dot num">${d}</span>`:"");
+    });
+  } else {
+    $("#r-next").onclick=()=>{R.i++;R.stage="ask";R.answer="";vRetest(v);};
+    const aq=$("#r-addq");if(aq)aq.onclick=()=>go("topic",{itemId:it.id});
+  }
+}
+
+/* ================= TOPIC ================= */
+function vTopic(v){
+  let id=viewArg, focusItem=null;
+  if(id&&typeof id==="object"){focusItem=id.itemId;id=(S.items.find(i=>i.id===focusItem)||{}).topicId;}
+  const t=topicById(id); if(!t){v.innerHTML=`<p class="muted">That topic was deleted.</p>`;return;}
+  const info=topicInfo(id);
+  v.innerHTML=`<div class="stack" style="gap:16px">
+    <button class="btn link" data-go="records" style="align-self:flex-start">← All records</button>
+    <div class="panel stack">
+      <div class="sec-title"><div><span class="label">${esc(t.subject)}</span><h2 style="font-size:1.3rem">${esc(t.name)}</h2></div>
+        <span class="status ${info.tier===1?"no":info.tier===2?"part":info.tier>=4?"yes":"plain"}">${esc(info.why)}</span></div>
+      <p class="why">${esc(evidenceLine(info))}</p>
+      <div class="qcard"><span class="label">Practice</span><br>${esc(practiceAction(info).text)}</div>
+      <div class="row"><button class="btn" data-win="${id}">I got a new one right</button><button class="btn" id="t-rename">Rename topic</button></div>
+      <div id="t-renamebox" hidden class="row"><input id="t-name" value="${esc(t.name)}" style="max-width:340px"><button class="btn small primary" id="t-rsave">Save name</button></div>
+    </div>
+    ${info.items.sort((a,b)=>a.doneDate<b.doneDate?1:-1).map(it=>itemCard(it,it.id===focusItem)).join("")}
+    <div class="panel stack"><h2>Correct on new questions</h2>
+      ${info.wins.length?`<ul class="list">${info.wins.map(w=>`<li><div class="main"><b>${esc(srcLabel(w)||"New question")}</b><div class="muted" style="font-size:.82rem">${fmtD(w.date)}${w.note?" · "+esc(w.note):""}</div></div><span class="status yes">Independent</span></li>`).join("")}</ul>`:`<p class="muted">None yet. When you get a new bank question right on this topic, log it here. It counts more than a retest.</p>`}</div>
+  </div>`;
+  bindCommon(v);
+  $("#t-rename").onclick=()=>{$("#t-renamebox").hidden=false;$("#t-name").focus();};
+  $("#t-rsave").onclick=()=>{const n=$("#t-name").value.trim();if(!n)return;const dup=S.topics.find(x=>x.id!==id&&norm(x.name)===norm(n));
+    if(dup){S.items.forEach(i=>{if(i.topicId===id)i.topicId=dup.id;});S.wins.forEach(w=>{if(w.topicId===id)w.topicId=dup.id;});S.topics=S.topics.filter(x=>x.id!==id);save();toast("Merged into the existing topic with that name.");go("topic",dup.id);return;}
+    t.name=n;save();render();toast("Renamed.");};
+  v.addEventListener("click",e=>{
+    const a=e.target.closest("[data-cardform]");if(a){const box=document.getElementById("cf-"+a.dataset.cardform);box.hidden=false;box.querySelector("textarea").focus();return;}
+    const s=e.target.closest("[data-cardsave]");if(s){const iid=s.dataset.cardsave,box=document.getElementById("cf-"+iid);const q=box.querySelector(".cq").value,an=box.querySelector(".ca").value;
+      if(!q.trim()||!an.trim())return toast("Add both a question and an answer.");const it=S.items.find(i=>i.id===iid);addCard(it,q,an);save();toast(`Retest added. Due ${relDue(it.due)}.`);render();return;}
+    const d=e.target.closest("[data-delask]");if(d){d.hidden=true;d.nextElementSibling.hidden=false;return;}
+    const dn=e.target.closest("[data-delno]");if(dn){dn.parentElement.hidden=true;dn.parentElement.previousElementSibling.hidden=false;return;}
+    const dy=e.target.closest("[data-delyes]");if(dy){S.items=S.items.filter(i=>i.id!==dy.dataset.delyes);if(!S.items.some(i=>i.topicId===id)&&!S.wins.some(w=>w.topicId===id))S.topics=S.topics.filter(x=>x.id!==id);save();toast("Record deleted.");if(topicById(id))render();else go("records");}
+  });
+  if(focusItem){const el=document.getElementById("cf-"+focusItem);if(el){el.hidden=false;el.scrollIntoView({block:"center"});}}
+}
+function itemCard(it,open){
+  const card=it.cards[it.cardIdx];
+  const status=it.needsNewQ?`<span class="status part">Needs a new question</span>`:it.due?`<span class="status acc">Retest ${relDue(it.due)}</span>`:`<span class="status plain">No retest yet</span>`;
+  return `<div class="panel stack">
+    <div class="sec-title"><div><b>${resultLabel(it.result)}</b> <span class="muted">· ${esc(srcLabel(it)||"no source")} · done ${shortD(it.doneDate)} · reviewed ${shortD(it.reviewDate)}</span></div>${status}</div>
+    <dl class="kv">${(it.reasons||[]).length?`<dt>Why</dt><dd>${it.reasons.map(r=>REASONS[r]).join(", ")}</dd>`:""}${it.thought?`<dt>I thought</dt><dd>${esc(it.thought)}</dd>`:""}${it.nextTime?`<dt>Next time</dt><dd>${esc(it.nextTime)}</dd>`:""}</dl>
+    ${it.cards.length?`<details><summary>Retest questions (${it.cards.length}) and history (${it.attempts.length})</summary><div class="stack" style="margin-top:8px">
+      ${it.cards.map((c,i)=>`<div class="qcard"><span class="label">Q${i+1}${i===it.cardIdx&&!it.needsNewQ?" · current":""}</span><br>${esc(c.q)}<br><span class="muted">Answer: ${esc(c.a)}</span></div>`).join("")}
+      ${it.attempts.length?`<div class="tablewrap"><table><thead><tr><th>Retest date</th><th>Result</th><th>Next due</th></tr></thead><tbody>${it.attempts.map(a=>`<tr><td class="num">${shortD(a.date)}</td><td><span class="status ${SELF_CLS[a.self]}">${SELF[a.self]}</span></td><td class="num">${shortD(a.next)}</td></tr>`).join("")}</tbody></table></div>`:""}</div></details>`:""}
+    <div class="row"><button class="btn small ${it.needsNewQ||!it.cards.length?"primary":""}" data-cardform="${it.id}">${it.cards.length?"Add another retest question":"Add retest question"}</button><button class="btn small" data-edit="${it.id}">Edit</button>
+      <button class="btn small" data-delask>Delete…</button><span class="row" hidden><button class="btn small danger" data-delyes="${it.id}">Delete this record</button><button class="btn small" data-delno>Keep</button></span></div>
+    <div id="cf-${it.id}" class="stack" ${open?"":"hidden"}><p class="sub">Ask the same point a new way (for example, a different pH and pI).</p>
+      <label class="f">Question<textarea class="cq"></textarea></label><label class="f">Answer and short explanation<textarea class="ca"></textarea></label>
+      <button class="btn primary small" data-cardsave="${it.id}" style="align-self:flex-start">Save retest question</button></div>
+  </div>`;
+}
+
+/* ================= CARS ================= */
+let quiz={disc:null,types:null};
+function vCars(v){
+  const cr=todaysReading(), traps=trapStats(), ds=discStats().sort((a,b)=>(b.avgMin??0)-(a.avgMin??0));
+  const timed=S.passages.filter(p=>!p.readingOnly), reads=S.passages.filter(p=>p.readingOnly);
+  const legacyReads=Object.keys(S.legacy.reads||{}).length;
+  if(!quiz.disc)quiz.disc=cr.disc; if(!quiz.types)quiz.types=["Main idea","Inference"];
+  v.innerHTML=`<div class="stack" style="gap:16px">
+  <div class="row"><button class="btn primary" data-lc="passage">+ Log a passage</button><button class="btn" data-lc="q">+ Log a CARS question</button><button class="btn" data-logread="${esc(cr.disc)}">+ Log an article I read</button></div>
+  <section class="panel stack"><div class="sec-title"><h2>Next practice task</h2>${cr.trap?`<span class="status no">${esc(CARS_TRAPS[cr.trap.k])}</span>`:""}</div>
+    ${cr.trap?`<p class="why"><b>Why:</b> seen in ${cr.trap.np} passage${cr.trap.np>1?"s":""} (${cr.trap.n} question${cr.trap.n>1?"s":""}). ${cr.trap.np<3?"Small sample so far, so treat it as a lead to test, not a verdict.":""}</p>
+      <div class="qcard">${esc(TRAP_TASK[cr.trap.k])}</div>`:`<div class="empty"><b>No CARS question traps logged yet.</b><span class="sub">After a passage, log the 1–2 questions you missed or guessed and pick the trap. Repeated traps become your next task.</span></div>`}
+  </section>
+  <section class="panel stack"><div class="sec-title"><h2>Today's reading</h2><span class="status plain">${esc(cr.disc)}</span></div>
+    <p class="why">${cr.fromWeak?`One of your lowest-scoring passage types: ${esc(cr.pool.join(", "))}. A different one each day.`:"Rotating through all passage types until you log a few timed passages."}</p>
+    <div class="qcard"><span class="label">Reading task</span><br>${esc(cr.task)}</div>
+    <div class="row">${siteLinks(cr.disc)}</div>
+    <p class="muted" style="font-size:.82rem">Articles read: <b class="num">${reads.length+legacyReads}</b>. These count separately and never affect your accuracy.</p>
+  </section>
+  <div class="grid2">
+  <section class="panel stack"><h2>Where you read slowly</h2>
+    ${ds.length?`<div class="tablewrap"><table><thead><tr><th>Passage type</th><th>Passages</th><th>Avg time</th><th>Score</th></tr></thead><tbody>${ds.map(d=>`<tr><td>${esc(d.k)}</td><td class="num">${d.n}</td><td class="num">${d.avgMin?d.avgMin.toFixed(1)+" min":"—"}</td><td class="num">${d.pct!=null?Math.round(d.pct*100)+"%":"—"}</td></tr>`).join("")}</tbody></table></div>
+      <p class="muted" style="font-size:.8rem">Based on ${timed.length} timed passage${timed.length===1?"":"s"}. Counts are shown as-is so you can judge how much to trust them.</p>`:`<p class="muted">Log a timed passage with its time and score to see this.</p>`}</section>
+  <section class="panel stack"><h2>Repeated traps</h2>
+    ${traps.length?`<ul class="list">${traps.map(t=>`<li><div class="main"><b>${esc(CARS_TRAPS[t.k])}</b><div class="muted" style="font-size:.82rem">in ${t.np} passage${t.np>1?"s":""} · ${t.n} question${t.n>1?"s":""} · ${esc([...new Set(t.qs.map(q=>q.qtype))].join(", "))}</div></div></li>`).join("")}</ul>`:`<p class="muted">No traps logged yet.</p>`}</section>
+  </div>
+  <section class="panel stack"><h2>Recent passages</h2>${passageList(S.passages.slice().sort((a,b)=>a.date<b.date?1:-1).slice(0,8))}</section>
+  <section class="panel stack"><h2>Quiz me in Claude</h2><p class="sub">Copy this prompt into a chat with Claude for an AAMC-style passage and questions, one at a time.</p>
+    <div class="fields"><label class="f">Passage type<select id="qz-disc">${CARS_DISC_ALL.map(x=>`<option ${x===quiz.disc?"selected":""}>${esc(x)}</option>`).join("")}</select></label></div>
+    <div class="chips" id="qz-types">${CARS_QT.map(x=>`<button type="button" class="chip" data-qt="${esc(x)}" aria-pressed="${quiz.types.includes(x)}">${esc(x)}</button>`).join("")}</div>
+    <div class="prompt" id="qz-prompt"></div>
+    <div class="row"><button class="btn" id="qz-copy">Copy prompt</button><a class="btn" href="https://claude.ai/new" target="_blank" rel="noopener">Open Claude</a></div></section>
+  </div>`;
+  bindCommon(v);
+  const prompt=()=>`I'm studying for MCAT CARS and reading is my weak spot. Write an original passage of about 550 words in the style of an AAMC CARS ${quiz.disc} passage: dense, opinionated, with an author who argues a position and cites at least one view they disagree with.
+
+Then quiz me with 6 multiple-choice questions (A–D), one at a time, focusing on: ${quiz.types.join(", ")||"a normal CARS mix"}. Wait for my answer before the next question. After each answer, say if I was right, explain why each wrong choice is wrong, and quote the line that supports the answer.${cr.trap?` I often fall for this trap: "${CARS_TRAPS[cr.trap.k].toLowerCase()}". Include at least two wrong choices that use it.`:""}
+
+At the end, give the main idea in one sentence and tell me which question type I struggled with.`;
+  const upd=()=>$("#qz-prompt").textContent=prompt(); upd();
+  $("#qz-disc").onchange=e=>{quiz.disc=e.target.value;upd();};
+  $("#qz-types").onclick=e=>{const c=e.target.closest("[data-qt]");if(!c)return;const k=c.dataset.qt;quiz.types=quiz.types.includes(k)?quiz.types.filter(x=>x!==k):[...quiz.types,k];c.setAttribute("aria-pressed",quiz.types.includes(k));upd();};
+  $("#qz-copy").onclick=()=>copy(prompt(),"Prompt copied. Paste it into Claude.");
+  v.addEventListener("click",e=>{const l=e.target.closest("[data-lc]");if(l)go("logcars",{mode:l.dataset.lc});const pe=e.target.closest("[data-pedit]");if(pe)go("logcars",{mode:"passage",editId:pe.dataset.pedit});const qa=e.target.closest("[data-padd]");if(qa)go("logcars",{mode:"q",passageId:qa.dataset.padd});});
+}
+function passageList(list){
+  if(!list.length) return `<p class="muted">No passages logged yet.</p>`;
+  return `<ul class="list">${list.map(p=>{const qs=S.cq.filter(q=>q.passageId===p.id);return `<li><div class="main">
+    <b>${esc(p.title||p.disc+" passage")}</b> ${p.readingOnly?`<span class="status plain">Reading only</span>`:""}
+    <div class="muted" style="font-size:.82rem">${shortD(p.date)} · ${esc(p.source)} · ${esc(p.disc)}${p.minutes?` · ${p.minutes} min`:""}${p.outOf?` · <b class="num">${p.score}/${p.outOf}</b>`:""}${p.url?` · <a href="${esc(p.url)}" target="_blank" rel="noopener">link</a>`:""}</div>
+    ${(p.snags||[]).length?`<div style="font-size:.84rem">Stuck: ${esc(p.snags.join("; "))}</div>`:""}${p.notes?`<div class="sub" style="font-size:.84rem">${esc(p.notes)}</div>`:""}
+    ${qs.map(q=>`<div style="font-size:.84rem;margin-top:4px">• <b>${esc(q.qtype)}</b> (${q.result==="wrong"?"wrong":"guessed"}): ${esc((q.traps||[]).map(t=>CARS_TRAPS[t]).join(", ")||"no trap tagged")}${q.lure?` <span class="muted">— ${esc(q.lure)}</span>`:""} <button class="btn link" data-cqedit="${q.id}">edit</button></div>`).join("")}
+    </div><div class="stack tight">${p.readingOnly?"":`<button class="btn small" data-padd="${p.id}">+ Question</button>`}<button class="btn small" data-pedit="${p.id}">Edit</button></div></li>`;}).join("")}</ul>`;
+}
+document.addEventListener("click",e=>{const c=e.target.closest("[data-cqedit]");if(c)go("logcars",{mode:"q",editId:c.dataset.cqedit});});
+
+function vLogCars(v){
+  const a=viewArg||{};
+  if(a.mode==="q") return vLogCQ(v,a);
+  const ed=a.editId?S.passages.find(p=>p.id===a.editId):null;
+  const P=ed?{...ed}:{date:todayS(),source:a.source||"Jack Westin",title:"",url:"",disc:a.disc||"Philosophy",minutes:"",score:"",outOf:"",readingOnly:!!a.readingOnly,snags:[],notes:""};
+  v.innerHTML=`<div class="panel stack">
+    <h2>${ed?"Edit passage":a.readingOnly?"Log an article I read":"Log a CARS passage"}</h2>
+    <label class="row" style="font-size:.88rem;gap:8px"><input type="checkbox" id="p-ro" ${P.readingOnly?"checked":""}> Reading only (JSTOR / Aeon article, no questions). It won't count toward accuracy.</label>
+    <div class="fields"><label class="f">Date<input type="date" id="p-date" value="${esc(P.date)}"></label>
+      <label class="f">Source<select id="p-src">${CARS_SOURCES.map(s=>`<option ${s===P.source?"selected":""}>${s}</option>`).join("")}</select></label>
+      <label class="f"><span class="req">Passage type</span><select id="p-disc">${Object.entries(CARS_DISC).map(([g,l])=>`<optgroup label="${g}">${l.map(x=>`<option ${x===P.disc?"selected":""}>${esc(x)}</option>`).join("")}</optgroup>`).join("")}</select></label></div>
+    <div class="fields"><label class="f">Title<input id="p-title" value="${esc(P.title)}"></label><label class="f">Link<input id="p-url" type="url" value="${esc(P.url)}" placeholder="https://"></label></div>
+    <div class="fields" id="p-scorebox" ${P.readingOnly?"hidden":""}><label class="f">Time (min)<input type="number" min="0" step="0.5" id="p-min" value="${esc(P.minutes)}"></label>
+      <label class="f">Correct<input type="number" min="0" id="p-score" value="${esc(P.score??"")}" placeholder="3"></label><label class="f">Out of<input type="number" min="1" id="p-of" value="${esc(P.outOf??"")}" placeholder="6"></label></div>
+    <div class="stack tight"><span class="label">Where reading got stuck (optional)</span><div class="chips" id="p-snags">${CARS_SNAGS.map(s=>`<button type="button" class="chip" data-sn="${esc(s)}" aria-pressed="${P.snags.includes(s)}">${esc(s)}</button>`).join("")}</div></div>
+    <label class="f">${P.readingOnly?"Reading notes":"Notes"} (optional)<textarea id="p-notes" placeholder="e.g. The author argues against… Attitude words: 'naïvely', 'merely'">${esc(P.notes)}</textarea></label>
+    <div class="row"><button class="btn primary" id="p-save">${ed?"Save changes":"Save passage"}</button><button class="btn" data-go="cars">Cancel</button>${ed?`<button class="btn danger" id="p-del">Delete…</button><button class="btn danger" id="p-del2" hidden>Delete passage and its questions</button>`:""}</div></div>`;
+  bindCommon(v);
+  $("#p-ro").onchange=e=>{$("#p-scorebox").hidden=e.target.checked;};
+  $("#p-snags").onclick=e=>{const c=e.target.closest("[data-sn]");if(!c)return;const s=c.dataset.sn;P.snags=P.snags.includes(s)?P.snags.filter(x=>x!==s):[...P.snags,s];c.setAttribute("aria-pressed",P.snags.includes(s));};
+  if(ed){$("#p-del").onclick=()=>{$("#p-del").hidden=true;$("#p-del2").hidden=false;};$("#p-del2").onclick=()=>{S.passages=S.passages.filter(p=>p.id!==ed.id);S.cq=S.cq.filter(q=>q.passageId!==ed.id);save();toast("Passage deleted.");go("cars");};}
+  $("#p-save").onclick=()=>{
+    const ro=$("#p-ro").checked, sc=$("#p-score").value, of=$("#p-of").value;
+    if(!ro&&(sc!==""||of!=="")&&(of===""||sc===""||+sc>+of||+sc<0)) return toast("Score should look like 3 out of 6.");
+    if(S.sample&&!ed) leaveSample();
+    const rec=Object.assign(ed||{id:uid()},{date:$("#p-date").value||todayS(),source:$("#p-src").value,title:$("#p-title").value.trim(),url:$("#p-url").value.trim(),disc:$("#p-disc").value,readingOnly:ro,
+      minutes:ro?null:(+$("#p-min").value||null),score:ro||sc===""?null:+sc,outOf:ro||of===""?null:+of,snags:P.snags,notes:$("#p-notes").value.trim()});
+    if(!ed)S.passages.push(rec); save();
+    toast(ro?"Reading logged.":"Passage saved."); if(!ro&&!ed) go("logcars",{mode:"q",passageId:rec.id}); else go("cars");
+  };
+}
+function vLogCQ(v,a){
+  const ed=a.editId?S.cq.find(q=>q.id===a.editId):null;
+  const Q=ed?{...ed,traps:[...(ed.traps||[])]}:{passageId:a.passageId||"",qtype:"",result:"wrong",traps:[],evidence:"",lure:"",date:todayS()};
+  const ps=S.passages.filter(p=>!p.readingOnly).sort((x,y)=>x.date<y.date?1:-1).slice(0,15);
+  v.innerHTML=`<div class="panel stack">
+    <h2>${ed?"Edit CARS question":"Log a CARS question"}</h2>
+    <label class="f">Passage<select id="q-p"><option value="">Not linked to a passage</option>${ps.map(p=>`<option value="${p.id}" ${p.id===Q.passageId?"selected":""}>${esc(shortD(p.date)+" · "+(p.title||p.disc)+(p.outOf?` · ${p.score}/${p.outOf}`:""))}</option>`).join("")}</select></label>
+    <div class="stack tight"><span class="label req">Question type</span><div class="chips" id="q-qt">${CARS_QT.map(x=>`<button type="button" class="chip" data-v="${esc(x)}" aria-pressed="${Q.qtype===x}">${esc(x)}</button>`).join("")}</div></div>
+    <div class="stack tight"><span class="label req">Result</span><div class="chips" id="q-res"><button type="button" class="chip" data-v="wrong" aria-pressed="${Q.result==="wrong"}">Wrong</button><button type="button" class="chip" data-v="guess" aria-pressed="${Q.result==="guess"}">Guessed right</button></div></div>
+    <div class="stack tight"><span class="label">What tripped you (trap)</span><div class="chips" id="q-tr">${Object.entries(CARS_TRAPS).map(([k,l])=>`<button type="button" class="chip" data-v="${k}" aria-pressed="${Q.traps.includes(k)}">${l}</button>`).join("")}</div></div>
+    <label class="f">Text that supports the right answer (optional)<textarea id="q-ev" placeholder="e.g. Para 3: 'Some critics insist…' is the critics, not the author">${esc(Q.evidence)}</textarea></label>
+    <label class="f">Why the wrong choice pulled me in (optional)<textarea id="q-lure" placeholder="e.g. It reused words from the passage">${esc(Q.lure)}</textarea></label>
+    <div class="row"><button class="btn primary" id="q-save">${ed?"Save changes":"Save question"}</button>${ed?"":`<button class="btn" id="q-save2">Save and log another</button>`}<button class="btn" data-go="cars">Done</button>${ed?`<button class="btn danger" id="q-del">Delete</button>`:""}</div></div>`;
+  bindCommon(v);
+  const single=(sel,key)=>$(sel).onclick=e=>{const c=e.target.closest("[data-v]");if(!c)return;Q[key]=c.dataset.v;$(sel).querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===Q[key]));};
+  single("#q-qt","qtype");single("#q-res","result");
+  $("#q-tr").onclick=e=>{const c=e.target.closest("[data-v]");if(!c)return;const k=c.dataset.v;Q.traps=Q.traps.includes(k)?Q.traps.filter(x=>x!==k):[...Q.traps,k];c.setAttribute("aria-pressed",Q.traps.includes(k));};
+  const doSave=again=>{
+    if(!Q.qtype)return toast("Pick the question type.");
+    if(S.sample&&!ed)leaveSample();
+    const pid=$("#q-p").value; const p=S.passages.find(x=>x.id===pid);
+    const rec=Object.assign(ed||{id:uid()},{passageId:pid,qtype:Q.qtype,result:Q.result,traps:Q.traps,evidence:$("#q-ev").value.trim(),lure:$("#q-lure").value.trim(),date:p?p.date:(Q.date||todayS())});
+    if(!ed)S.cq.push(rec);save();toast("Question saved.");
+    if(again)go("logcars",{mode:"q",passageId:pid});else go("cars");
+  };
+  $("#q-save").onclick=()=>doSave(false);const s2=$("#q-save2");if(s2)s2.onclick=()=>doSave(true);
+  const del=$("#q-del");if(del)del.onclick=()=>{S.cq=S.cq.filter(q=>q.id!==ed.id);save();toast("Deleted.");go("cars");};
+}
+
+/* ================= WEEKLY ================= */
+let weekOffset=0;
+function vWeekly(v){
+  const ws=addDays(weekStartS(todayS()),-7*weekOffset), we=addDays(ws,6), nextWs=addDays(ws,7);
+  const inW=d=>d>=ws&&d<=we;
+  const W=S.weeks[ws]=S.weeks[ws]||{};
+  const items=S.items.filter(i=>inW(i.doneDate)), attempts=S.items.flatMap(i=>i.attempts.filter(a=>inW(a.date)).map(a=>({...a,item:i})));
+  // Q1: topics missed 2+ times this week, or still not known on a retest this week
+  const tmap={};items.forEach(i=>{(tmap[i.topicId]=tmap[i.topicId]||{items:[],bad:[]}).items.push(i);});
+  attempts.filter(a=>a.self!=="yes").forEach(a=>{(tmap[a.item.topicId]=tmap[a.item.topicId]||{items:[],bad:[]}).bad.push(a);});
+  const q1=Object.entries(tmap).map(([id,o])=>({id,o,score:o.items.length+o.bad.filter(a=>a.self==="no").length*2+o.bad.length})).filter(x=>x.o.items.length>=2||x.o.bad.length).sort((a,b)=>b.score-a.score).slice(0,2);
+  // Q2: trap repeated across different passages this week
+  const cqW=S.cq.filter(q=>inW(q.date)), pW=S.passages.filter(p=>inW(p.date));
+  const tr={};cqW.forEach(q=>(q.traps||[]).forEach(t=>{(tr[t]=tr[t]||{p:new Set(),qs:[]});tr[t].p.add(q.passageId||q.id);tr[t].qs.push(q);}));
+  const q2=Object.entries(tr).map(([k,o])=>({k,np:o.p.size,qs:o.qs})).filter(x=>x.np>=2).sort((a,b)=>b.np-a.np)[0];
+  // Q3: former weak topics answered correctly on a new question this week
+  const q3=S.wins.filter(w=>inW(w.date)&&S.items.some(i=>i.topicId===w.topicId&&i.doneDate<=w.date));
+  const total=+W.total||0;
+  const cands=[...q1.map(x=>tname(x.id)),q2?`CARS: ${CARS_TRAPS[q2.k]}`:null].filter(Boolean);
+  const nextFocus=(S.weeks[nextWs]||{}).focus||"";
+  const recLink=i=>`<button class="btn link" data-topic="${i.topicId}">${esc(srcLabel(i)||"record")} (${shortD(i.doneDate)})</button>`;
+  v.innerHTML=`<div class="stack" style="gap:16px">
+  <div class="row between"><h2>Week of ${shortD(ws)} – ${shortD(we)}</h2><div class="seg"><button type="button" data-wk="1">← Earlier</button><button type="button" data-wk="-1" ${weekOffset===0?"disabled":""}>Later →</button></div></div>
+  <p class="sub">This week: ${items.length} question record${items.length===1?"":"s"}, ${attempts.length} retest${attempts.length===1?"":"s"}, ${pW.filter(p=>!p.readingOnly).length} timed passage${pW.filter(p=>!p.readingOnly).length===1?"":"s"}, ${cqW.length} CARS question${cqW.length===1?"":"s"}, ${pW.filter(p=>p.readingOnly).length} article${pW.filter(p=>p.readingOnly).length===1?"":"s"} read.</p>
+  <section class="panel stack"><h3>1. Which topics kept costing points, or still weren't known after a retest?</h3>
+    ${q1.length?`<ul class="list">${q1.map(x=>`<li><div class="main"><b>${esc(tname(x.id))}</b><div class="sub" style="font-size:.85rem">${x.o.items.length?`${x.o.items.length} miss${x.o.items.length>1?"es":""} this week: ${x.o.items.map(recLink).join(", ")}. `:""}${x.o.bad.length?`Retests not solid: ${x.o.bad.map(a=>`${SELF[a.self].toLowerCase()} on ${shortD(a.date)}`).join(", ")}.`:""}</div></div><button class="btn small" data-topic="${x.id}">Open</button></li>`).join("")}</ul>`
+    :`<p class="muted">Nothing repeated yet. This week has ${items.length} record${items.length===1?"":"s"} and ${attempts.filter(a=>a.self!=="yes").length} unsolid retest${attempts.filter(a=>a.self!=="yes").length===1?"":"s"}. A topic shows up here after 2 misses or one shaky retest.</p>`}</section>
+  <section class="panel stack"><h3>2. Which CARS trap showed up in different passages?</h3>
+    ${q2?`<div><b>${esc(CARS_TRAPS[q2.k])}</b><div class="sub" style="font-size:.85rem">In ${q2.np} passages: ${q2.qs.map(q=>{const p=cqPassage(q);return esc(`${q.qtype} (${p?(p.title||p.disc)+", "+shortD(p.date):shortD(q.date)})`);}).join("; ")}.</div></div><div class="qcard"><span class="label">Practice</span><br>${esc(TRAP_TASK[q2.k])}</div>`
+    :`<p class="muted">No trap has repeated across different passages yet. ${cqW.length} CARS question${cqW.length===1?"":"s"} logged from ${new Set(cqW.map(q=>q.passageId).filter(Boolean)).size} passage${new Set(cqW.map(q=>q.passageId).filter(Boolean)).size===1?"":"s"} this week.</p>
+      ${cqW.length?`<ul class="list">${cqW.map(q=>{const p=cqPassage(q);return `<li><div class="main"><b>${esc((q.traps||[]).map(t=>CARS_TRAPS[t]).join(", ")||"No trap tagged")}</b><div class="sub" style="font-size:.85rem">${esc(q.qtype)} · ${q.result==="wrong"?"wrong":"guessed"} · ${esc(p?(p.title||p.disc+" passage")+", "+(p.outOf?p.score+"/"+p.outOf+", ":"")+(p.minutes?p.minutes+" min, ":"")+shortD(p.date):shortD(q.date))}</div>${q.lure?`<div class="muted" style="font-size:.82rem">${esc(q.lure)}</div>`:""}</div><button class="btn small" data-cqedit="${q.id}">Open</button></li>`;}).join("")}</ul>`:""}`}</section>
+  <section class="panel stack"><h3>3. Which old weak spot did you get right on a new question?</h3>
+    ${q3.length?`<ul class="list">${q3.map(w=>`<li><div class="main"><b>${esc(tname(w.topicId))}</b><div class="sub" style="font-size:.85rem">${esc(srcLabel(w)||"New question")} on ${shortD(w.date)}. Earlier misses: ${S.items.filter(i=>i.topicId===w.topicId).length}.${w.note?" "+esc(w.note):""}</div></div><span class="status yes">Fixed?</span></li>`).join("")}</ul>`
+    :`<p class="muted">None logged this week. When you answer a new bank question right on an old weak topic, use "I got a new one right" so it shows here.</p>`}</section>
+  <section class="panel stack"><h3>Totals (optional)</h3>
+    <div class="fields"><label class="f">Total questions answered this week<input type="number" min="0" id="w-total" value="${total||""}" placeholder="e.g. 320"></label></div>
+    <p class="sub">${total?`You logged ${items.length} review-worthy question${items.length===1?"":"s"} out of ${total} answered (${(items.length/total*100).toFixed(1)}%). This is a review rate, not your score.`:"Add your total to see what share of questions you logged. No rate is calculated without it."}</p></section>
+  <section class="panel stack"><h3>Pick next week's priority</h3>
+    <div class="chips" id="w-cands">${cands.map(c=>`<button type="button" class="chip" data-focus="${esc(c)}" aria-pressed="${nextFocus===c}">${esc(c)}</button>`).join("")}</div>
+    <div class="row"><input id="w-focus" placeholder="Or write your own" value="${esc(nextFocus)}" style="max-width:420px"><button class="btn primary" id="w-fsave">Save priority</button></div>
+    <p class="muted" style="font-size:.82rem">It shows at the top of Today during the week of ${shortD(nextWs)}.</p></section>
+  </div>`;
+  bindCommon(v);
+  v.querySelectorAll("[data-wk]").forEach(b=>b.onclick=()=>{weekOffset=Math.max(0,weekOffset+(+b.dataset.wk));render();});
+  $("#w-total").onchange=e=>{W.total=+e.target.value||0;save();render();};
+  $("#w-cands").onclick=e=>{const c=e.target.closest("[data-focus]");if(c)$("#w-focus").value=c.dataset.focus;};
+  $("#w-fsave").onclick=()=>{(S.weeks[nextWs]=S.weeks[nextWs]||{}).focus=$("#w-focus").value.trim();save();toast("Saved for next week.");render();};
+}
+
+/* ================= RECORDS ================= */
+let recTab="q";
+function vRecords(v){
+  const groups=S.topics.map(t=>({t,info:topicInfo(t.id)})).filter(g=>g.info.items.length||g.info.wins.length).sort((a,b)=>a.info.tier-b.info.tier||a.t.name.localeCompare(b.t.name));
+  v.innerHTML=`<div class="stack" style="gap:16px">
+   <div class="seg" role="group"><button type="button" data-rt="q" aria-pressed="${recTab==="q"}">Questions (${S.items.length})</button><button type="button" data-rt="c" aria-pressed="${recTab==="c"}">CARS (${S.passages.length})</button><button type="button" data-rt="o" aria-pressed="${recTab==="o"}">Older logs (${S.legacy.blocks.length})</button></div>
+   ${recTab==="q"?`<section class="panel stack"><h2>By topic</h2>${groups.length?`<ul class="list">${groups.map(({t,info})=>`<li><div class="main"><button class="btn link" data-topic="${t.id}" style="font-weight:600;text-align:left">${esc(t.name)}</button><div class="muted" style="font-size:.82rem">${esc(t.subject)} · ${info.items.length} record${info.items.length===1?"":"s"}${info.wins.length?` · ${info.wins.length} correct on new questions`:""} · ${esc(info.why)}</div></div>
+      <span class="status ${info.tier===1?"no":info.tier===2?"part":info.tier>=4?"yes":"plain"}">${["","Still shaky","Repeated","First miss","Improving","Fixed?"][info.tier]}</span></li>`).join("")}</ul>`:`<div class="empty"><b>No records yet.</b><button class="btn primary" data-go="log">Log a question</button></div>`}</section>`:""}
+   ${recTab==="c"?`<section class="panel stack"><h2>CARS passages</h2>${passageList(S.passages.slice().sort((a,b)=>a.date<b.date?1:-1))}${S.cq.filter(q=>!q.passageId).length?`<h3>Questions not linked to a passage</h3><ul class="list">${S.cq.filter(q=>!q.passageId).map(q=>`<li><div class="main">${esc(q.qtype)} · ${esc((q.traps||[]).map(t=>CARS_TRAPS[t]).join(", "))}</div><button class="btn small" data-cqedit="${q.id}">Edit</button></li>`).join("")}</ul>`:""}</section>`:""}
+   ${recTab==="o"?`<section class="panel stack"><h2>Older block logs</h2><p class="sub">From the earlier version of this tracker. Kept read-only.</p>${S.legacy.blocks.length?`<div class="tablewrap"><table><thead><tr><th>Date</th><th>Source</th><th>Section</th><th>Score</th><th>Missed</th></tr></thead><tbody>${S.legacy.blocks.map(b=>`<tr><td class="num">${shortD(b.date)}</td><td>${esc(b.source)}</td><td>${esc(b.section)}</td><td class="num">${b.correct}/${b.total}</td><td>${(b.misses||[]).length} tagged${(b.misses||[]).some(m=>m.qtype)?": "+esc([...new Set(b.misses.map(m=>m.qtype).filter(Boolean))].join(", ")):""}</td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">No older logs.</p>`}</section>`:""}
+  </div>`;
+  bindCommon(v);
+  v.querySelectorAll("[data-rt]").forEach(b=>b.onclick=()=>{recTab=b.dataset.rt;render();});
+  v.addEventListener("click",e=>{const pe=e.target.closest("[data-pedit]");if(pe)go("logcars",{mode:"passage",editId:pe.dataset.pedit});const qa=e.target.closest("[data-padd]");if(qa)go("logcars",{mode:"q",passageId:qa.dataset.padd});});
+}
+
+/* ================= SETTINGS ================= */
+let confirmReset=false;
+function vSettings(v){
+  const iv=S.settings.iv;
+  v.innerHTML=`<div class="grid2">
+  <section class="panel stack"><h2>Test date and retest spacing</h2>
+    <label class="f">Test date<input type="date" id="s-date" value="${esc(S.settings.testDate)}"></label>
+    <p class="sub">After a retest, the next one is scheduled this many days later. The first retest is always the day after you add the question.</p>
+    <div class="fields"><label class="f">Couldn't<input type="number" min="1" id="s-no" value="${iv.no}"></label><label class="f">Partly<input type="number" min="1" id="s-part" value="${iv.partial}"></label><label class="f">Got it (new question)<input type="number" min="1" id="s-yes" value="${iv.yes}"></label></div>
+    <button class="btn primary" id="s-save" style="align-self:flex-start">Save</button></section>
+  <section class="panel stack"><h2>Backup</h2>
+    <p class="sub">Records live only in this browser on this device. Back up weekly. The same backup moves your data to your phone.</p>
+    <div class="row"><button class="btn primary" id="s-export">Download backup</button><button class="btn" id="s-copy">Copy backup text</button></div>
+    <label class="f">Restore from a backup file<input type="file" id="s-file" accept=".json,application/json"></label>
+    <details><summary>Or paste backup text</summary><div class="stack" style="margin-top:8px"><textarea id="s-paste"></textarea><button class="btn small" id="s-import" style="align-self:flex-start">Restore pasted backup</button></div></details></section>
+  <section class="panel stack"><h2>Start fresh</h2><p class="sub">Deletes every record in this browser. Download a backup first.</p>
+    ${confirmReset?`<div class="row"><button class="btn danger" id="s-yes2">Yes, delete everything</button><button class="btn" id="s-no2">Cancel</button></div>`:`<button class="btn danger" id="s-reset" style="align-self:flex-start">Delete all data…</button>`}</section></div>`;
+  $("#s-save").onclick=()=>{S.settings.testDate=$("#s-date").value||"2027-02-12";S.settings.iv={no:Math.max(1,+$("#s-no").value||1),partial:Math.max(1,+$("#s-part").value||2),yes:Math.max(1,+$("#s-yes").value||5)};save();render();toast("Saved.");};
+  const data=()=>JSON.stringify({app:"mcat-tracker",version:2,exported:new Date().toISOString(),...S});
+  $("#s-export").onclick=()=>{try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data()],{type:"application/json"}));a.download="mcat-tracker-backup-"+todayS()+".json";document.body.appendChild(a);a.click();a.remove();toast("If no file appeared, use Copy backup text instead.");}catch(e){toast("Download was blocked. Use Copy backup text.");}};
+  $("#s-copy").onclick=()=>copy(data(),"Backup copied. Paste it into a note or email to yourself.");
+  const restore=txt=>{try{const o=JSON.parse(txt);
+      if(o.version===2||o.items){S=Object.assign(blank(),o);delete S.app;delete S.exported;delete S.version;}
+      else if(Array.isArray(o.blocks)){S.legacy.blocks=o.blocks.filter(b=>!b.sample);S.legacy.reads=o.reads||{};}
+      else throw 0; S.v=2; save();render();toast("Backup restored.");}catch(e){toast("That doesn't look like a tracker backup. Check you copied all of it.");}};
+  $("#s-file").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>restore(r.result);r.readAsText(f);};
+  $("#s-import").onclick=()=>restore($("#s-paste").value);
+  if(confirmReset){$("#s-yes2").onclick=()=>{const leg=S.legacy;S=blank();S.legacy=leg;confirmReset=false;save();render();toast("All records deleted.");};$("#s-no2").onclick=()=>{confirmReset=false;render();};}
+  else $("#s-reset").onclick=()=>{confirmReset=true;render();};
+}
+
+/* ================= boot ================= */
+load();
+const h0=(location.hash||"").slice(1); if(TABS.some(t=>t[0]===h0)) view=h0;
+window.addEventListener("hashchange",()=>{const k=location.hash.slice(1);if(TABS.some(t=>t[0]===k)&&k!==view)go(k);});
+if(view==="retest") R=null;
+render();
+</script>
+</body>
+</html>
