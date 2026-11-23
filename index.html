@@ -156,7 +156,7 @@ const TRAP_TASK={
   qualifier:"Underline qualifiers and negations (not, except, some, may) in the stem and the passage as you read.",
   wrongq:"Restate each question in your own words before reading the choices.",
   other:"Re-read your notes on the missed questions and do one timed passage."};
-const CARS_SNAGS=["Missed how paragraphs connect","Mixed up author's view and a cited view","Lost the main argument","Slow on dense sentences","Re-read too much","Ran short on time"];
+const CARS_SNAGS=["Finding the main idea","Following the argument","Author's view vs. others' views","How paragraphs connect","Long or complex sentences","Unfamiliar words","Abstract topic","Ran out of time"];
 const READ_TASKS=["After reading, write one sentence: what is the author arguing against? Then mark two phrases that show the author's attitude.",
  "Label each paragraph's job in five words or fewer (claim, example, counterpoint, concession).",
  "Find one place where the author cites someone else's view. Write whose view it is and whether the author agrees.",
@@ -263,7 +263,7 @@ function relDue(s){const n=diffDays(s,todayS());return n<0?`overdue ${-n}d`:n===
 /* ================= storage ================= */
 const KEY="mcat-tracker-v2", OLD_KEY="mcat-gap-tracker-v1";
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
-function blank(){return {v:2,settings:{testDate:"2027-02-12",iv:{no:1,partial:2,yes:5},style:"quick"},topics:[],items:[],wins:[],passages:[],cq:[],weeks:{},legacy:{blocks:[],reads:{}},sample:false};}
+function blank(){return {v:2,settings:{testDate:"2027-02-12",iv:{no:1,partial:2,yes:5},style:"quick"},topics:[],items:[],wins:[],passages:[],cq:[],weeks:{},legacy:{blocks:[],reads:{}},fls:[],sample:false};}
 let S;
 function load(){
   try{const raw=localStorage.getItem(KEY);if(raw){S=Object.assign(blank(),JSON.parse(raw));S.settings=Object.assign(blank().settings,S.settings);S.settings.iv=Object.assign({no:1,partial:2,yes:5},S.settings.iv);S.topics.forEach(t=>{if(t.outline===undefined)t.outline=matchOutline(t.name,t.subject);});return;}}catch(e){}
@@ -289,8 +289,8 @@ function seedSample(){
   S.items.forEach(it=>{it.created=it.reviewDate;it.attempts.forEach(a=>a.cardId=it.cards[0]&&it.cards[0].id);});
   S.topics.forEach(x=>x.outline=matchOutline(x.name,x.subject));
   S.wins.push({id:uid(),topicId:op,date:addDays(t,-1),source:"UWorld",note:"Got a new reinforcement question right without hesitating."});
-  const p1={id:uid(),date:addDays(t,-5),source:"Jack Westin",title:"Daily CARS: Kant and the sublime",url:"",disc:"Philosophy",minutes:11,score:3,outOf:6,readingOnly:false,snags:["Mixed up author's view and a cited view"],notes:""};
-  const p2={id:uid(),date:addDays(t,-2),source:"UWorld",title:"",url:"",disc:"Philosophy",minutes:10,score:4,outOf:6,readingOnly:false,snags:["Missed how paragraphs connect"],notes:""};
+  const p1={id:uid(),date:addDays(t,-5),source:"Jack Westin",title:"Daily CARS: Kant and the sublime",url:"",disc:"Philosophy",minutes:11,score:3,outOf:6,readingOnly:false,snags:["Author's view vs. others' views","Long or complex sentences"],notes:"",hardSentences:"The assumption, long held by its critics, that the sublime must terrify is not without its defenders."};
+  const p2={id:uid(),date:addDays(t,-2),source:"UWorld",title:"",url:"",disc:"Philosophy",minutes:10,score:4,outOf:6,readingOnly:false,snags:["Following the argument","Long or complex sentences"],notes:""};
   const p3={id:uid(),date:addDays(t,-1),source:"Aeon",title:"Essay on museums and memory",url:"",disc:"Art & architecture",minutes:14,score:null,outOf:null,readingOnly:true,snags:[],notes:"Author argues against treating museums as neutral."};
   S.passages.push(p1,p2,p3);
   S.cq.push({id:uid(),passageId:p1.id,date:p1.date,qtype:"Author's attitude",result:"wrong",traps:["attrib"],evidence:"Para 3: 'Some critics insist…' is not the author.",lure:"The choice repeated words from the critics' sentence."},
@@ -367,7 +367,7 @@ function trapStats(fromDate){
 }
 function discStats(){
   const d={};S.passages.filter(p=>!p.readingOnly).forEach(p=>{const o=d[p.disc]=d[p.disc]||{n:0,min:[],sc:0,of:0,miss:0};o.n++;if(p.minutes)o.min.push(+p.minutes);if(p.outOf){o.sc+=+p.score;o.of+=+p.outOf;}});
-  S.cq.forEach(q=>{const p=cqPassage(q);if(p&&d[p.disc])d[p.disc].miss++;});
+  S.cq.forEach(q=>{const p=cqPassage(q);const k=p?p.disc:q.disc;if(k)(d[k]=d[k]||{n:0,min:[],sc:0,of:0,miss:0}).miss++;});
   return Object.entries(d).map(([k,o])=>({k,n:o.n,avgMin:o.min.length?o.min.reduce((a,c)=>a+c,0)/o.min.length:null,pct:o.of?o.sc/o.of:null,miss:o.miss}));
 }
 function todaysReading(){
@@ -379,7 +379,7 @@ function todaysReading(){
 const siteLinks=disc=>{const q=encodeURIComponent(disc.replace("&","and"));return SITES.map(([n,s])=>`<a class="btn small" target="_blank" rel="noopener" href="https://www.google.com/search?q=site%3A${s}+${q}">${n}</a>`).join("");};
 
 /* ================= routing ================= */
-const TABS=[["today","Today"],["log","Log"],["retest","Retest"],["map","Heatmap"],["cars","CARS"],["weekly","Weekly review"],["records","Records"],["settings","Settings"]];
+const TABS=[["today","Today"],["log","Log"],["fl","Full lengths"],["retest","Retest"],["map","Heatmap"],["cars","CARS"],["weekly","Weekly review"],["records","Records"]];
 let view="today", viewArg=null;
 function go(v,arg){if(v==="retest"&&(!R||R.i>=R.queue.length))R=null;view=v;viewArg=arg??null;try{const h=TABS.some(t=>t[0]===v)?"#"+v:"";if(h&&location.hash!==h)history.replaceState(null,"",h);}catch(e){}render();window.scrollTo({top:0});}
 function render(){
@@ -392,7 +392,7 @@ function render(){
   $("#tabs").innerHTML=TABS.map(([k,l])=>`<button role="tab" aria-selected="${k===active}" data-tab="${k}">${l}${k==="retest"&&due?`<span class="dot num">${due}</span>`:""}</button>`).join("");
   $("#fab").hidden=(view==="log"||view==="retest");
   const old=$("#view");const v=old.cloneNode(false);old.replaceWith(v);
-  ({today:vToday,log:vLog,retest:vRetest,cars:vCars,logcars:vLogCars,weekly:vWeekly,records:vRecords,topic:vTopic,settings:vSettings,map:vMap})[view](v);
+  ({today:vToday,log:vLog,retest:vRetest,cars:vCars,logcars:vLogCars,weekly:vWeekly,records:vRecords,topic:vTopic,settings:vSettings,map:vMap,fl:vFL})[view](v);
 }
 $("#tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b)go(b.dataset.tab);});
 $("#fab").onclick=()=>go("log");
@@ -644,59 +644,240 @@ function itemCard(it,open){
 }
 
 /* ================= CARS ================= */
-let quiz={disc:null,types:null};
+const SNAG_TIP={
+ "Finding the main idea":"After each paragraph, write a 5-word summary. At the end, combine them into one sentence before looking at questions.",
+ "Following the argument":"Mark each sentence as claim, support, or counterpoint. Find where the author turns (but, however, yet).",
+ "Author's view vs. others' views":"Underline every 'some argue / critics say / it is thought'. Those are not the author. Circle the author's own verdict.",
+ "How paragraphs connect":"Write how each paragraph relates to the one before: continues, contrasts, gives an example, or concludes.",
+ "Long or complex sentences":"Pick 3 long sentences and rewrite each as two short ones: find the main subject and verb first.",
+ "Unfamiliar words":"Guess each hard word from context before checking it. Most CARS words can be read from the sentence around them.",
+ "Abstract topic":"Restate each abstract claim with a concrete example of your own in the margin.",
+ "Ran out of time":"Read one passage with a 10-minute timer and note the paragraph where you slowed down."};
+const SENTENCE_PATTERNS=[
+ ["Concession: \"Although X, Y\"","Although the theory explains early art, it fails for modern work.","The author's point is Y (it fails). X is only what they grant."],
+ ["Contrast: \"not X but Y\" / \"rather\"","The problem is not a lack of data but a lack of theory.","The author believes Y. X is the view being rejected."],
+ ["Double negative","The proposal is not without merit.","Two negatives make a mild positive: it has some merit."],
+ ["Long subject before the verb","The assumption, long held by critics, that art must teach a moral lesson is mistaken.","Find the main verb (is). Strip the middle: The assumption … is mistaken."],
+ ["Interrupting clauses (commas, dashes)","Kant—who never left his hometown—wrote widely on geography.","Bracket out the interruption on first read, then add it back."],
+ ["Reported views","Some historians contend that the war was inevitable.","This is not the author's view. Look for the author's reaction after it."],
+ ["Hedges and qualifiers","This is arguably the most important factor in some cases.","The claim is limited. Answers that sound absolute (always, only) are likely wrong."],
+ ["\"This\" pointing back","This view, however, ignores the role of patrons.","Name exactly what \"this view\" refers to before going on."],
+ ["Inverted order","Only later did scholars recognize its value.","Rewrite in normal order: Scholars recognized its value only later."]];
+function carsAnalysis(){
+  const timed=S.passages.filter(p=>!p.readingOnly);
+  const sn={}; timed.forEach(p=>(p.snags||[]).forEach(x=>sn[x]=(sn[x]||0)+1));
+  const snags=Object.entries(sn).sort((a,b)=>b[1]-a[1]);
+  const qt={}; S.cq.forEach(q=>qt[q.qtype]=(qt[q.qtype]||0)+1);
+  const qtypes=Object.entries(qt).sort((a,b)=>b[1]-a[1]);
+  const ds=discStats().filter(d=>d.n>0||d.miss>0).sort((a,b)=>(a.pct??1)-(b.pct??1)||b.miss-a.miss);
+  return {timed,snags,qtypes,ds,traps:trapStats()};
+}
+function sentenceList(){ return S.passages.flatMap(p=>(p.hardSentences||"").split(/\n+/).map(s=>s.trim()).filter(Boolean).map(s=>({s,p}))).slice(-12).reverse(); }
 function vCars(v){
-  const cr=todaysReading(), traps=trapStats(), ds=discStats().sort((a,b)=>(b.avgMin??0)-(a.avgMin??0));
-  const timed=S.passages.filter(p=>!p.readingOnly), reads=S.passages.filter(p=>p.readingOnly);
-  const legacyReads=Object.keys(S.legacy.reads||{}).length;
-  if(!quiz.disc)quiz.disc=cr.disc; if(!quiz.types)quiz.types=["Main idea","Inference"];
+  const A=carsAnalysis(), cr=todaysReading();
+  const reads=S.passages.filter(p=>p.readingOnly).length+Object.keys(S.legacy.reads||{}).length;
+  const weak=A.ds.slice(0,3), topSnag=A.snags[0];
+  const n=A.timed.length;
+  const hs=sentenceList();
   v.innerHTML=`<div class="stack" style="gap:16px">
-  <div class="row"><button class="btn primary" data-lc="passage">+ Log a passage</button><button class="btn" data-lc="q">+ Log a CARS question</button><button class="btn" data-logread="${esc(cr.disc)}">+ Log an article I read</button></div>
-  <section class="panel stack"><div class="sec-title"><h2>Next practice task</h2>${cr.trap?`<span class="status no">${esc(CARS_TRAPS[cr.trap.k])}</span>`:""}</div>
-    ${cr.trap?`<p class="why">${cr.trap.np} passage${cr.trap.np>1?"s":""}, ${cr.trap.n} question${cr.trap.n>1?"s":""}.</p>
-      <div class="qcard">${esc(TRAP_TASK[cr.trap.k])}</div>`:`<div class="empty"><b>No traps logged yet.</b></div>`}
+  <div class="row"><button class="btn primary" data-lc="passage">+ Log a passage</button><button class="btn" data-lc="q">+ Log a question</button><button class="btn" data-logread="${esc(cr.disc)}">+ Log an article I read</button></div>
+  <section class="panel stack"><div class="sec-title"><h2>Your pattern</h2><span class="muted" style="font-size:.82rem">${n} passage${n===1?"":"s"} · ${S.cq.length} missed question${S.cq.length===1?"":"s"} · ${reads} article${reads===1?"":"s"} read</span></div>
+    ${n||S.cq.length?`<div class="grid2">
+      <div class="stack tight"><span class="label">Passage types you miss most</span>${weak.length?`<ul class="list">${weak.map(d=>`<li><div class="main"><b>${esc(d.k)}</b><div class="muted" style="font-size:.82rem">${d.n?`${d.n} passage${d.n>1?"s":""}`:"from full lengths"}${d.pct!=null?` · avg ${Math.round(d.pct*100)}%`:""}${d.avgMin?` · ${d.avgMin.toFixed(1)} min`:""} · ${d.miss} missed</div></div></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
+      <div class="stack tight"><span class="label">Where you get stuck</span>${A.snags.length?`<ul class="list">${A.snags.slice(0,4).map(([k,c])=>`<li><span>${esc(k)}</span><span class="num muted">${c} of ${n}</span></li>`).join("")}</ul>`:`<p class="muted">Tag "where I got stuck" when logging a passage.</p>`}</div>
+      <div class="stack tight"><span class="label">Question types you miss</span>${A.qtypes.length?`<ul class="list">${A.qtypes.slice(0,4).map(([k,c])=>`<li><span>${esc(k)}</span><span class="num muted">${c}</span></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
+      <div class="stack tight"><span class="label">Traps</span>${A.traps.length?`<ul class="list">${A.traps.slice(0,4).map(t=>`<li><span>${esc(CARS_TRAPS[t.k])}</span><span class="num muted">${t.n} in ${t.np} passage${t.np>1?"s":""}</span></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
+    </div>`:`<p class="muted">Log a passage to see your pattern.</p>`}
   </section>
-  <section class="panel stack"><div class="sec-title"><h2>Today's reading</h2><span class="status plain">${esc(cr.disc)}</span></div>
-        <div class="qcard">${esc(cr.task)}</div>
-    <div class="row">${siteLinks(cr.disc)}</div>
-    <p class="muted" style="font-size:.82rem">Articles read: <b class="num">${reads.length+legacyReads}</b></p>
+  <section class="panel stack"><h2>Read next</h2>
+    ${topSnag?`<div class="qcard"><span class="label">Practice for "${esc(topSnag[0])}"</span><br>${esc(SNAG_TIP[topSnag[0]]||READ_TASKS[0])}</div>`:""}
+    <ul class="list">${(weak.length?weak.map(d=>d.k):[cr.disc]).map(k=>`<li><div class="main stack tight"><b>${esc(k)}</b><div class="row">${siteLinks(k)}</div></div></li>`).join("")}</ul>
   </section>
-  <div class="grid2">
-  <section class="panel stack"><h2>Where you read slowly</h2>
-    ${ds.length?`<div class="tablewrap"><table><thead><tr><th>Passage type</th><th>Passages</th><th>Avg time</th><th>Score</th></tr></thead><tbody>${ds.map(d=>`<tr><td>${esc(d.k)}</td><td class="num">${d.n}</td><td class="num">${d.avgMin?d.avgMin.toFixed(1)+" min":"—"}</td><td class="num">${d.pct!=null?Math.round(d.pct*100)+"%":"—"}</td></tr>`).join("")}</tbody></table></div>
-      <p class="muted" style="font-size:.8rem">${timed.length} timed passage${timed.length===1?"":"s"}</p>`:`<p class="muted">No timed passages yet.</p>`}</section>
-  <section class="panel stack"><h2>Repeated traps</h2>
-    ${traps.length?`<ul class="list">${traps.map(t=>`<li><div class="main"><b>${esc(CARS_TRAPS[t.k])}</b><div class="muted" style="font-size:.82rem">in ${t.np} passage${t.np>1?"s":""} · ${t.n} question${t.n>1?"s":""} · ${esc([...new Set(t.qs.map(q=>q.qtype))].join(", "))}</div></div></li>`).join("")}</ul>`:`<p class="muted">No traps logged yet.</p>`}</section>
-  </div>
-  <section class="panel stack"><h2>Recent passages</h2>${passageList(S.passages.slice().sort((a,b)=>a.date<b.date?1:-1).slice(0,8))}</section>
-  <section class="panel stack"><h2>Quiz me in Claude</h2>
-    <div class="fields"><label class="f">Passage type<select id="qz-disc">${CARS_DISC_ALL.map(x=>`<option ${x===quiz.disc?"selected":""}>${esc(x)}</option>`).join("")}</select></label></div>
-    <div class="chips" id="qz-types">${CARS_QT.map(x=>`<button type="button" class="chip" data-qt="${esc(x)}" aria-pressed="${quiz.types.includes(x)}">${esc(x)}</button>`).join("")}</div>
-    <div class="prompt" id="qz-prompt"></div>
-    <div class="row"><button class="btn" id="qz-copy">Copy prompt</button><a class="btn" href="https://claude.ai/new" target="_blank" rel="noopener">Open Claude</a></div></section>
+  <section class="panel stack"><h2>Hard sentences</h2>
+    ${hs.length?`<ul class="list">${hs.map(({s,p})=>`<li><div class="main">${esc(s)}<div class="muted" style="font-size:.8rem">${esc(p.title||p.disc)}</div></div><button class="btn small" data-hs="${esc(s)}">Copy for breakdown</button></li>`).join("")}</ul>`:`<p class="muted">Paste sentences you didn't understand when you log a passage. They'll collect here.</p>`}
+    <details><summary>Common CARS sentence patterns</summary><ul class="list" style="margin-top:6px">${SENTENCE_PATTERNS.map(([t,ex,how])=>`<li><div class="main"><b>${esc(t)}</b><div style="font-size:.88rem;font-style:italic;margin-top:2px">${esc(ex)}</div><div class="sub">${esc(how)}</div></div></li>`).join("")}</ul></details>
+  </section>
+  <section class="panel stack"><h2>Passages</h2>${passageList(S.passages.slice().sort((a,b)=>a.date<b.date?1:-1).slice(0,10))}</section>
   </div>`;
   bindCommon(v);
-  const prompt=()=>`I'm studying for MCAT CARS and reading is my weak spot. Write an original passage of about 550 words in the style of an AAMC CARS ${quiz.disc} passage: dense, opinionated, with an author who argues a position and cites at least one view they disagree with.
-
-Then quiz me with 6 multiple-choice questions (A–D), one at a time, focusing on: ${quiz.types.join(", ")||"a normal CARS mix"}. Wait for my answer before the next question. After each answer, say if I was right, explain why each wrong choice is wrong, and quote the line that supports the answer.${cr.trap?` I often fall for this trap: "${CARS_TRAPS[cr.trap.k].toLowerCase()}". Include at least two wrong choices that use it.`:""}
-
-At the end, give the main idea in one sentence and tell me which question type I struggled with.`;
-  const upd=()=>$("#qz-prompt").textContent=prompt(); upd();
-  $("#qz-disc").onchange=e=>{quiz.disc=e.target.value;upd();};
-  $("#qz-types").onclick=e=>{const c=e.target.closest("[data-qt]");if(!c)return;const k=c.dataset.qt;quiz.types=quiz.types.includes(k)?quiz.types.filter(x=>x!==k):[...quiz.types,k];c.setAttribute("aria-pressed",quiz.types.includes(k));upd();};
-  $("#qz-copy").onclick=()=>copy(prompt(),"Prompt copied. Paste it into Claude.");
-  v.addEventListener("click",e=>{const l=e.target.closest("[data-lc]");if(l)go("logcars",{mode:l.dataset.lc});const pe=e.target.closest("[data-pedit]");if(pe)go("logcars",{mode:"passage",editId:pe.dataset.pedit});const qa=e.target.closest("[data-padd]");if(qa)go("logcars",{mode:"q",passageId:qa.dataset.padd});});
+  v.addEventListener("click",e=>{
+    const l=e.target.closest("[data-lc]");if(l)go("logcars",{mode:l.dataset.lc});
+    const pe=e.target.closest("[data-pedit]");if(pe)go("logcars",{mode:"passage",editId:pe.dataset.pedit});
+    const qa=e.target.closest("[data-padd]");if(qa)go("logcars",{mode:"q",passageId:qa.dataset.padd});
+    const h=e.target.closest("[data-hs]");if(h)copy(sentencePrompt(h.dataset.hs),"Copied. Paste it into Claude.");
+  });
 }
+function sentencePrompt(s){return `I'm an MCAT student and English sentence structure in CARS passages is hard for me. Break down this sentence:
+
+"${s}"
+
+1. The main subject and main verb.
+2. Each clause or interrupting phrase, and what it attaches to.
+3. A plain-English rewrite in one or two short sentences.
+4. Whose view it states (the author's or someone else's), and any hedge or qualifier.
+Keep it short.`;}
+function passagePrompt(p){
+  const qs=S.cq.filter(q=>q.passageId===p.id);
+  return `I'm an MCAT student working on CARS. Help me analyze this ${p.disc} passage I did poorly on${p.outOf?` (${p.score}/${p.outOf}${p.minutes?`, ${p.minutes} min`:""})`:""}. Don't quiz me; explain.
+
+${p.text?`PASSAGE:\n${p.text}\n`:`(Title: ${p.title||"untitled"}${p.url?`, link: ${p.url}`:""})\n`}
+${(p.snags||[]).length?`Where I got stuck: ${p.snags.join("; ")}.\n`:""}${p.hardSentences?`Sentences I didn't understand:\n${p.hardSentences}\n`:""}${qs.length?`Questions I missed: ${qs.map(q=>`${q.qtype}${(q.traps||[]).length?" ("+q.traps.map(t=>CARS_TRAPS[t]).join(", ")+")":""}${q.lure?" — "+q.lure:""}`).join("; ")}.\n`:""}
+Please give me:
+1. The main idea in one sentence.
+2. The job of each paragraph in a few words.
+3. The author's own view vs. views the author reports.
+4. A plain-English breakdown of the hard sentences.
+5. What I should watch for next time in passages like this.`;}
 function passageList(list){
   if(!list.length) return `<p class="muted">No passages logged yet.</p>`;
   return `<ul class="list">${list.map(p=>{const qs=S.cq.filter(q=>q.passageId===p.id);return `<li><div class="main">
     <b>${esc(p.title||p.disc+" passage")}</b> ${p.readingOnly?`<span class="status plain">Reading only</span>`:""}
-    <div class="muted" style="font-size:.82rem">${shortD(p.date)} · ${esc(p.source)} · ${esc(p.disc)}${p.minutes?` · ${p.minutes} min`:""}${p.outOf?` · <b class="num">${p.score}/${p.outOf}</b>`:""}${p.url?` · <a href="${esc(p.url)}" target="_blank" rel="noopener">link</a>`:""}</div>
+    <div class="muted" style="font-size:.82rem">${shortD(p.date)} · ${esc(p.source)} · ${esc(p.disc)}${p.minutes?` · ${p.minutes} min`:""}${p.outOf?` · <b class="num">${p.score}/${p.outOf}</b>`:""}${p.url?` · <a href="${esc(p.url)}" target="_blank" rel="noopener">link</a>`:""}${p.text?" · text saved":""}</div>
     ${(p.snags||[]).length?`<div style="font-size:.84rem">Stuck: ${esc(p.snags.join("; "))}</div>`:""}${p.notes?`<div class="sub" style="font-size:.84rem">${esc(p.notes)}</div>`:""}
     ${qs.map(q=>`<div style="font-size:.84rem;margin-top:4px">• <b>${esc(q.qtype)}</b> (${q.result==="wrong"?"wrong":"guessed"}): ${esc((q.traps||[]).map(t=>CARS_TRAPS[t]).join(", ")||"no trap tagged")}${q.lure?` <span class="muted">— ${esc(q.lure)}</span>`:""} <button class="btn link" data-cqedit="${q.id}">edit</button></div>`).join("")}
-    </div><div class="stack tight">${p.readingOnly?"":`<button class="btn small" data-padd="${p.id}">+ Question</button>`}<button class="btn small" data-pedit="${p.id}">Edit</button></div></li>`;}).join("")}</ul>`;
+    </div><div class="stack tight">${p.readingOnly?"":`<button class="btn small" data-padd="${p.id}">+ Question</button><button class="btn small" data-pbreak="${p.id}">Copy for analysis</button>`}<button class="btn small" data-pedit="${p.id}">Edit</button></div></li>`;}).join("")}</ul>`;
 }
-document.addEventListener("click",e=>{const c=e.target.closest("[data-cqedit]");if(c)go("logcars",{mode:"q",editId:c.dataset.cqedit});});
+document.addEventListener("click",e=>{const c=e.target.closest("[data-cqedit]");if(c)go("logcars",{mode:"q",editId:c.dataset.cqedit});
+  const b=e.target.closest("[data-pbreak]");if(b){const p=S.passages.find(x=>x.id===b.dataset.pbreak);if(p)copy(passagePrompt(p),"Copied. Paste it into Claude.");}});
+
+/* ================= FULL LENGTHS ================= */
+const FL_NAMES=["AAMC Sample Test","AAMC FL 1","AAMC FL 2","AAMC FL 3","AAMC FL 4","AAMC FL 5","AAMC FL 6","Blueprint FL","UWorld FL","Kaplan FL","Other"];
+const SEC_ORDER=["CP","CARS","BB","PS"]; const SEC_NAME={CP:"Chem/Phys",CARS:"CARS",BB:"Bio/Biochem",PS:"Psych/Soc"};
+const SEC_SUBJ={CP:["General Chemistry","Organic Chemistry","Physics","Biochemistry"],BB:["Biology","Biochemistry","Organic Chemistry"],PS:["Psychology","Sociology","Research & stats"]};
+const flTotal=f=>SEC_ORDER.every(k=>+f.scores[k])?SEC_ORDER.reduce((a,k)=>a+(+f.scores[k]),0):null;
+function vFL(v){
+  const a=viewArg||{};
+  if(a.id) return vFLDetail(v,a.id);
+  if(a.mode==="new"||a.editId) return vFLForm(v,a.editId);
+  const fls=(S.fls||[]).slice().sort((x,y)=>x.date<y.date?1:-1);
+  v.innerHTML=`<div class="stack" style="gap:16px">
+    <div class="row"><button class="btn primary" id="fl-new">+ Log a full length</button></div>
+    <section class="panel stack"><h2>Full-length exams</h2>
+    ${fls.length?`<div class="tablewrap"><table><thead><tr><th>Date</th><th>Exam</th><th>C/P</th><th>CARS</th><th>B/B</th><th>P/S</th><th>Total</th><th>Missed</th></tr></thead><tbody>
+      ${fls.map(f=>`<tr><td class="num">${shortD(f.date)}</td><td><button class="btn link" data-fl="${f.id}">${esc(f.name)}</button></td>${SEC_ORDER.map(k=>`<td class="num">${f.scores[k]||"—"}</td>`).join("")}<td class="num"><b>${flTotal(f)??"—"}</b></td><td class="num">${flMisses(f.id).length}</td></tr>`).join("")}</tbody></table></div>`
+      :`<p class="muted">No full lengths logged yet.</p>`}</section></div>`;
+  $("#fl-new").onclick=()=>go("fl",{mode:"new"});
+  v.addEventListener("click",e=>{const b=e.target.closest("[data-fl]");if(b)go("fl",{id:b.dataset.fl});});
+}
+function flMisses(id){return [...S.items.filter(i=>i.flId===id).map(i=>({kind:"sci",sec:i.flSec,r:i})),...S.cq.filter(q=>q.flId===id).map(q=>({kind:"cars",sec:"CARS",r:q}))];}
+function vFLForm(v,editId){
+  const ed=editId?(S.fls||[]).find(f=>f.id===editId):null;
+  const f=ed||{name:"AAMC FL 1",scores:{CP:"",CARS:"",BB:"",PS:""},notes:""};
+  v.innerHTML=`<div class="panel stack"><h2>${ed?"Edit full length":"Log a full length"}</h2>
+    <label class="f">Exam<select id="f-name">${FL_NAMES.map(n=>`<option ${n===f.name?"selected":""}>${n}</option>`).join("")}${FL_NAMES.includes(f.name)?"":`<option selected>${esc(f.name)}</option>`}</select></label>
+    <div class="fields">${SEC_ORDER.map(k=>`<label class="f">${SEC_NAME[k]}<input type="number" min="118" max="132" id="f-${k}" value="${esc(f.scores[k]||"")}" placeholder="118–132"></label>`).join("")}</div>
+    <label class="f">Notes<textarea id="f-notes" placeholder="e.g. tired by P/S, guessed last CARS passage">${esc(f.notes||"")}</textarea></label>
+    <div class="row"><button class="btn primary" id="f-save">${ed?"Save":"Save and add missed questions"}</button><button class="btn" id="f-cancel">Cancel</button>${ed?`<button class="btn danger" id="f-del">Delete…</button><button class="btn danger" id="f-del2" hidden>Delete exam and its missed questions</button>`:""}</div></div>`;
+  $("#f-cancel").onclick=()=>go("fl",ed?{id:ed.id}:null);
+  $("#f-save").onclick=()=>{
+    const sc={};for(const k of SEC_ORDER){const x=$("#f-"+k).value;if(x&&(+x<118||+x>132))return toast(`${SEC_NAME[k]} score should be 118–132.`);sc[k]=x?+x:"";}
+    if(S.sample&&!ed)leaveSample(); S.fls=S.fls||[];
+    const rec=Object.assign(ed||{id:uid(),date:todayS()},{name:$("#f-name").value,scores:sc,notes:$("#f-notes").value.trim()});
+    if(!ed)S.fls.push(rec); S.items.filter(i=>i.flId===rec.id).forEach(i=>i.source=rec.name); save(); toast("Saved."); go("fl",{id:rec.id});
+  };
+  if(ed){$("#f-del").onclick=()=>{$("#f-del").hidden=true;$("#f-del2").hidden=false;};
+    $("#f-del2").onclick=()=>{S.fls=S.fls.filter(x=>x.id!==ed.id);S.items=S.items.filter(i=>i.flId!==ed.id);S.cq=S.cq.filter(q=>q.flId!==ed.id);save();toast("Deleted.");go("fl");};}
+}
+let FM={sec:"CP",subject:"",topic:"",outline:"",outManual:false,result:"wrong",reasons:[],note:"",qn:"",disc:"",qtype:"",traps:[]};
+function vFLDetail(v,id){
+  const f=(S.fls||[]).find(x=>x.id===id); if(!f){go("fl");return;}
+  const ms=flMisses(id);
+  const bySec=s=>ms.filter(m=>m.sec===s);
+  const catCount={}; ms.filter(m=>m.kind==="sci").forEach(m=>{const t=topicById(m.r.topicId);const o=t&&OUT[t.outline];const k=o?`${o.code} ${o.cat}`:"Not on the map";catCount[k]=(catCount[k]||0)+1;});
+  const topCats=Object.entries(catCount).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  if(!SEC_SUBJ[FM.sec]&&FM.sec!=="CARS")FM.sec="CP";
+  v.innerHTML=`<div class="stack" style="gap:16px">
+    <button class="btn link" data-go="fl" style="align-self:flex-start">← All full lengths</button>
+    <section class="panel stack"><div class="sec-title"><div><h2>${esc(f.name)}</h2><span class="muted" style="font-size:.82rem">${fmtD(f.date)}</span></div><button class="btn small" id="fl-edit">Edit scores</button></div>
+      <div class="tablewrap"><table><thead><tr>${SEC_ORDER.map(k=>`<th>${SEC_NAME[k]}</th>`).join("")}<th>Total</th></tr></thead><tbody><tr>${SEC_ORDER.map(k=>`<td class="num">${f.scores[k]||"—"} <span class="muted">(${bySec(k).length} missed)</span></td>`).join("")}<td class="num"><b>${flTotal(f)??"—"}</b></td></tr></tbody></table></div>
+      ${topCats.length?`<div class="why">Most missed areas: ${topCats.map(([k,c])=>`${esc(k)} (${c})`).join(", ")}</div>`:""}
+      ${f.notes?`<div class="sub">${esc(f.notes)}</div>`:""}
+    </section>
+    <section class="panel stack"><h2>Add a missed question</h2>
+      <div class="seg" id="fm-sec">${SEC_ORDER.map(k=>`<button type="button" data-v="${k}" aria-pressed="${FM.sec===k}">${SEC_NAME[k]}</button>`).join("")}</div>
+      <div id="fm-body"></div>
+    </section>
+    <section class="panel stack"><h2>Missed questions (${ms.length})</h2>
+      ${ms.length?SEC_ORDER.filter(k=>bySec(k).length).map(k=>`<div class="stack tight"><span class="label">${SEC_NAME[k]} · ${bySec(k).length}</span><ul class="list">${bySec(k).sort((a,b)=>(+(a.r.qn||0))-(+(b.r.qn||0))).map(m=>m.kind==="sci"
+        ?`<li><div class="main">${m.r.qn?`<span class="muted num">Q${esc(m.r.qn)}</span> `:""}<button class="btn link" data-topic="${m.r.topicId}" style="font-weight:700">${esc(tname(m.r.topicId))}</button> <span class="muted" style="font-size:.82rem">· ${esc(m.r.subject)} · ${m.r.result==="wrong"?"wrong":"guessed"}${(m.r.reasons||[]).length?" · "+m.r.reasons.map(r=>REASONS[r]).join(", "):""}</span>${m.r.thought?`<div class="sub">${esc(m.r.thought)}</div>`:""}</div><button class="btn small" data-rm-item="${m.r.id}">Remove</button></li>`
+        :`<li><div class="main">${m.r.qn?`<span class="muted num">Q${esc(m.r.qn)}</span> `:""}<b>${esc(m.r.qtype)}</b> <span class="muted" style="font-size:.82rem">· ${esc(m.r.disc||"")} · ${m.r.result==="wrong"?"wrong":"guessed"}${(m.r.traps||[]).length?" · "+m.r.traps.map(t=>CARS_TRAPS[t]).join(", "):""}</span>${m.r.lure?`<div class="sub">${esc(m.r.lure)}</div>`:""}</div><button class="btn small" data-rm-cq="${m.r.id}">Remove</button></li>`).join("")}</ul></div>`).join(""):`<p class="muted">None yet.</p>`}
+    </section></div>`;
+  bindCommon(v);
+  $("#fl-edit").onclick=()=>go("fl",{editId:id});
+  $("#fm-sec").onclick=e=>{const b=e.target.closest("[data-v]");if(!b)return;FM.sec=b.dataset.v;FM.subject="";$("#fm-sec").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===FM.sec));body();};
+  v.addEventListener("click",e=>{
+    const a=e.target.closest("[data-rm-item]");if(a){S.items=S.items.filter(i=>i.id!==a.dataset.rmItem);save();render();return;}
+    const c=e.target.closest("[data-rm-cq]");if(c){S.cq=S.cq.filter(q=>q.id!==c.dataset.rmCq);save();render();}
+  });
+  function body(){
+    const el=$("#fm-body");
+    const chips=(name,list,sel,multi)=>`<div class="chips" data-grp="${name}">${list.map(([k,l])=>`<button type="button" class="chip" data-k="${esc(k)}" aria-pressed="${multi?sel.includes(k):sel===k}">${esc(l)}</button>`).join("")}</div>`;
+    if(FM.sec==="CARS"){
+      el.innerHTML=`<div class="stack">
+        <div class="fields"><label class="f">Q#<input id="fm-qn" inputmode="numeric" value="${esc(FM.qn)}" placeholder="optional"></label>
+        <label class="f">Passage type<select id="fm-disc"><option value="">—</option>${Object.entries(CARS_DISC).map(([g,l])=>`<optgroup label="${g}">${l.map(x=>`<option ${x===FM.disc?"selected":""}>${esc(x)}</option>`).join("")}</optgroup>`).join("")}</select></label></div>
+        <div class="stack tight"><span class="label req">Question type</span>${chips("qtype",CARS_QT.map(x=>[x,x]),FM.qtype)}</div>
+        <div class="stack tight"><span class="label">Result</span>${chips("result",[["wrong","Wrong"],["guess","Guessed right"]],FM.result)}</div>
+        <div class="stack tight"><span class="label">Trap</span>${chips("traps",Object.entries(CARS_TRAPS),FM.traps,true)}</div>
+        <label class="f">What happened<input id="fm-note" value="${esc(FM.note)}" placeholder="e.g. picked the critic's view"></label>
+        <button class="btn primary" id="fm-add" style="align-self:flex-start">Add</button></div>`;
+    } else {
+      el.innerHTML=`<div class="stack">
+        <div class="fields"><label class="f">Q#<input id="fm-qn" inputmode="numeric" value="${esc(FM.qn)}" placeholder="optional"></label></div>
+        <div class="stack tight"><span class="label req">Subject</span>${chips("subject",SEC_SUBJ[FM.sec].map(x=>[x,x]),FM.subject)}</div>
+        <label class="f"><span class="req">Concept</span><input id="fm-topic" list="fm-dl" autocomplete="off" value="${esc(FM.topic)}" placeholder="e.g. anion-exchange chromatography"></label>
+        <datalist id="fm-dl">${S.topics.map(t=>`<option value="${esc(t.name)}">`).join("")}</datalist>
+        <label class="f">Heatmap spot${outlineSelect("fm-out",FM.outline)}</label>
+        <div class="stack tight"><span class="label">Result</span>${chips("result",[["wrong","Wrong"],["guess","Guessed right"]],FM.result)}</div>
+        <div class="stack tight"><span class="label">Why</span>${chips("reasons",Object.entries(REASONS),FM.reasons,true)}</div>
+        <label class="f">What I missed<input id="fm-note" value="${esc(FM.note)}" placeholder="e.g. forgot that pH > pI means negative charge"></label>
+        <button class="btn primary" id="fm-add" style="align-self:flex-start">Add</button></div>`;
+      const auto=()=>{if(FM.outManual)return;const ex=S.topics.find(t=>norm(t.name)===norm(FM.topic));FM.outline=ex&&ex.outline?ex.outline:matchOutline(FM.topic,FM.subject);$("#fm-out").value=FM.outline;};
+      $("#fm-topic").oninput=e=>{FM.topic=e.target.value;auto();};
+      $("#fm-out").onchange=e=>{FM.outline=e.target.value;FM.outManual=true;};
+      el._auto=auto;
+    }
+    $("#fm-qn").oninput=e=>FM.qn=e.target.value.trim();
+    $("#fm-note").oninput=e=>FM.note=e.target.value;
+    const d=$("#fm-disc");if(d)d.onchange=e=>FM.disc=e.target.value;
+    el.onclick=e=>{const c=e.target.closest("[data-k]");if(!c)return;const g=c.closest("[data-grp]").dataset.grp,k=c.dataset.k;
+      if(Array.isArray(FM[g]))FM[g]=FM[g].includes(k)?FM[g].filter(x=>x!==k):[...FM[g],k];else FM[g]=k;
+      c.parentElement.querySelectorAll("[data-k]").forEach(x=>x.setAttribute("aria-pressed",Array.isArray(FM[g])?FM[g].includes(x.dataset.k):FM[g]===x.dataset.k));
+      if(g==="subject"&&el._auto)el._auto();};
+    $("#fm-add").onclick=()=>{
+      const t=todayS();
+      if(FM.sec==="CARS"){ if(!FM.qtype)return toast("Pick the question type.");
+        S.cq.push({id:uid(),flId:id,passageId:"",disc:FM.disc,qn:FM.qn,qtype:FM.qtype,result:FM.result,traps:FM.traps,evidence:"",lure:FM.note.trim(),date:f.date});
+        FM.qtype="";FM.traps=[];
+      } else { if(!FM.subject)return toast("Pick a subject.");if(!FM.topic.trim())return toast("Add the concept.");
+        const tid=findOrCreateTopic(FM.topic,FM.subject,FM.outline,FM.outManual);
+        S.items.push({id:uid(),flId:id,flSec:FM.sec,qn:FM.qn,subject:FM.subject,topicId:tid,result:FM.result,source:f.name,qref:FM.qn?"Q"+FM.qn:"",reasons:FM.reasons,thought:FM.note.trim(),nextTime:"",doneDate:f.date,reviewDate:t,created:t,cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[]});
+        FM.topic="";FM.outline="";FM.outManual=false;FM.reasons=[];
+      }
+      FM.note="";FM.qn=FM.qn&&/^\d+$/.test(FM.qn)?String(+FM.qn+1):"";FM.result="wrong";
+      save();toast("Added.");render();setTimeout(()=>{const x=$("#fm-qn");if(x)x.scrollIntoView({block:"center"});},0);
+    };
+  }
+  body();
+}
+
+/* ================= BACKUP ================= */
+function backupHTML(){return `<details class="panel"><summary>Backup and restore</summary><div class="stack" style="margin-top:10px">
+  <p class="sub">Data lives in this browser only. Copy a backup to move it to another device.</p>
+  <div class="row"><button class="btn" id="s-export">Download backup</button><button class="btn" id="s-copy">Copy backup text</button></div>
+  <label class="f">Restore from file<input type="file" id="s-file" accept=".json,application/json"></label>
+  <label class="f">Or paste backup text<textarea id="s-paste"></textarea></label><button class="btn small" id="s-import" style="align-self:flex-start">Restore</button></div></details>`;}
+function bindBackup(){
+  const data=()=>JSON.stringify({app:"mcat-tracker",version:2,exported:new Date().toISOString(),...S});
+  $("#s-export").onclick=()=>{try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data()],{type:"application/json"}));a.download="mcat-tracker-backup-"+todayS()+".json";document.body.appendChild(a);a.click();a.remove();toast("If no file appeared, use Copy backup text.");}catch(e){toast("Download was blocked. Use Copy backup text.");}};
+  $("#s-copy").onclick=()=>copy(data(),"Backup copied.");
+  const restore=txt=>{try{const o=JSON.parse(txt);
+      if(o.version===2||o.items){S=Object.assign(blank(),o);delete S.app;delete S.exported;delete S.version;}
+      else if(Array.isArray(o.blocks)){S.legacy.blocks=o.blocks.filter(b=>!b.sample);S.legacy.reads=o.reads||{};}
+      else throw 0; S.v=2; save();render();toast("Backup restored.");}catch(e){toast("That doesn't look like a tracker backup.");}};
+  $("#s-file").onchange=e=>{const fl=e.target.files[0];if(!fl)return;const r=new FileReader();r.onload=()=>restore(r.result);r.readAsText(fl);};
+  $("#s-import").onclick=()=>restore($("#s-paste").value);
+}
 
 function vLogCars(v){
   const a=viewArg||{};
@@ -711,7 +892,9 @@ function vLogCars(v){
     <div class="fields"><label class="f">Title<input id="p-title" value="${esc(P.title)}"></label><label class="f">Link<input id="p-url" type="url" value="${esc(P.url)}" placeholder="https://"></label></div>
     <div class="fields" id="p-scorebox" ${P.readingOnly?"hidden":""}><label class="f">Time (min)<input type="number" min="0" step="0.5" id="p-min" value="${esc(P.minutes)}"></label>
       <label class="f">Correct<input type="number" min="0" id="p-score" value="${esc(P.score??"")}" placeholder="3"></label><label class="f">Out of<input type="number" min="1" id="p-of" value="${esc(P.outOf??"")}" placeholder="6"></label></div>
-    <div class="stack tight"><span class="label">Where reading got stuck (optional)</span><div class="chips" id="p-snags">${CARS_SNAGS.map(s=>`<button type="button" class="chip" data-sn="${esc(s)}" aria-pressed="${P.snags.includes(s)}">${esc(s)}</button>`).join("")}</div></div>
+    <div class="stack tight"><span class="label">Where I got stuck</span><div class="chips" id="p-snags">${CARS_SNAGS.map(s=>`<button type="button" class="chip" data-sn="${esc(s)}" aria-pressed="${P.snags.includes(s)}">${esc(s)}</button>`).join("")}</div></div>
+    <details ${P.text?"open":""}><summary>Paste the passage</summary><textarea id="p-text" style="margin-top:8px;min-height:140px" placeholder="Paste the full passage text">${esc(P.text||"")}</textarea></details>
+    <label class="f">Sentences I didn't understand (one per line)<textarea id="p-hard">${esc(P.hardSentences||"")}</textarea></label>
     <label class="f">${P.readingOnly?"Reading notes":"Notes"} (optional)<textarea id="p-notes" placeholder="e.g. The author argues against… Attitude words: 'naïvely', 'merely'">${esc(P.notes)}</textarea></label>
     <div class="row"><button class="btn primary" id="p-save">${ed?"Save changes":"Save passage"}</button><button class="btn" data-go="cars">Cancel</button>${ed?`<button class="btn danger" id="p-del">Delete…</button><button class="btn danger" id="p-del2" hidden>Delete passage and its questions</button>`:""}</div></div>`;
   bindCommon(v);
@@ -723,7 +906,7 @@ function vLogCars(v){
     if(!ro&&(sc!==""||of!=="")&&(of===""||sc===""||+sc>+of||+sc<0)) return toast("Score should look like 3 out of 6.");
     if(S.sample&&!ed) leaveSample();
     const rec=Object.assign(ed||{id:uid()},{date:ed?ed.date:todayS(),source:$("#p-src").value,title:$("#p-title").value.trim(),url:$("#p-url").value.trim(),disc:$("#p-disc").value,readingOnly:ro,
-      minutes:ro?null:(+$("#p-min").value||null),score:ro||sc===""?null:+sc,outOf:ro||of===""?null:+of,snags:P.snags,notes:$("#p-notes").value.trim()});
+      minutes:ro?null:(+$("#p-min").value||null),score:ro||sc===""?null:+sc,outOf:ro||of===""?null:+of,snags:P.snags,notes:$("#p-notes").value.trim(),text:$("#p-text").value.trim(),hardSentences:$("#p-hard").value.trim()});
     if(!ed)S.passages.push(rec); save();
     toast(ro?"Reading logged.":"Passage saved."); if(!ro&&!ed) go("logcars",{mode:"q",passageId:rec.id}); else go("cars");
   };
@@ -777,7 +960,7 @@ function vWeekly(v){
   const total=+W.total||0;
   const cands=[...q1.map(x=>tname(x.id)),q2?`CARS: ${CARS_TRAPS[q2.k]}`:null].filter(Boolean);
   const nextFocus=(S.weeks[nextWs]||{}).focus||"";
-  const recLink=i=>`<button class="btn link" data-topic="${i.topicId}">${esc(srcLabel(i)||"record")} (${shortD(i.doneDate)})</button>`;
+  const recLink=i=>`<button class="btn link" data-topic="${i.topicId}">${srcLabel(i)?esc(srcLabel(i))+", ":""}${shortD(i.doneDate)}</button>`;
   v.innerHTML=`<div class="stack" style="gap:16px">
   <div class="row between"><h2>Week of ${shortD(ws)} – ${shortD(we)}</h2><div class="seg"><button type="button" data-wk="1">← Earlier</button><button type="button" data-wk="-1" ${weekOffset===0?"disabled":""}>Later →</button></div></div>
   <p class="sub">This week: ${items.length} question record${items.length===1?"":"s"}, ${attempts.length} retest${attempts.length===1?"":"s"}, ${pW.filter(p=>!p.readingOnly).length} timed passage${pW.filter(p=>!p.readingOnly).length===1?"":"s"}, ${cqW.length} CARS question${cqW.length===1?"":"s"}, ${pW.filter(p=>p.readingOnly).length} article${pW.filter(p=>p.readingOnly).length===1?"":"s"} read.</p>
@@ -816,8 +999,9 @@ function vRecords(v){
       <span class="status ${info.tier===1?"no":info.tier===2?"part":info.tier>=4?"yes":"plain"}">${["","Still shaky","Repeated","First miss","Improving","Fixed?"][info.tier]}</span></li>`).join("")}</ul>`:`<div class="empty"><b>No records yet.</b><button class="btn primary" data-go="log">Log a question</button></div>`}</section>`:""}
    ${recTab==="c"?`<section class="panel stack"><h2>CARS passages</h2>${passageList(S.passages.slice().sort((a,b)=>a.date<b.date?1:-1))}${S.cq.filter(q=>!q.passageId).length?`<h3>Questions not linked to a passage</h3><ul class="list">${S.cq.filter(q=>!q.passageId).map(q=>`<li><div class="main">${esc(q.qtype)} · ${esc((q.traps||[]).map(t=>CARS_TRAPS[t]).join(", "))}</div><button class="btn small" data-cqedit="${q.id}">Edit</button></li>`).join("")}</ul>`:""}</section>`:""}
    ${recTab==="o"?`<section class="panel stack"><h2>Older block logs</h2>${S.legacy.blocks.length?`<div class="tablewrap"><table><thead><tr><th>Date</th><th>Source</th><th>Section</th><th>Score</th><th>Missed</th></tr></thead><tbody>${S.legacy.blocks.map(b=>`<tr><td class="num">${shortD(b.date)}</td><td>${esc(b.source)}</td><td>${esc(b.section)}</td><td class="num">${b.correct}/${b.total}</td><td>${(b.misses||[]).length} tagged${(b.misses||[]).some(m=>m.qtype)?": "+esc([...new Set(b.misses.map(m=>m.qtype).filter(Boolean))].join(", ")):""}</td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">No older logs.</p>`}</section>`:""}
+   ${backupHTML()}
   </div>`;
-  bindCommon(v);
+  bindCommon(v);bindBackup();
   v.querySelectorAll("[data-rt]").forEach(b=>b.onclick=()=>{recTab=b.dataset.rt;render();});
   v.addEventListener("click",e=>{const pe=e.target.closest("[data-pedit]");if(pe)go("logcars",{mode:"passage",editId:pe.dataset.pedit});const qa=e.target.closest("[data-padd]");if(qa)go("logcars",{mode:"q",passageId:qa.dataset.padd});});
 }
