@@ -5,103 +5,112 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MCAT Gap Tracker</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: a quiet study desk. One narrow working column, action first: retest → priority topic → CARS. */
+/* Plain and simple: white page, Arial, one blue for main actions. */
 :root{
-  /* Notebook: paper page, ruled lines, ink-blue writing, one red margin rule. */
-  --bg:#f5f2ea; --panel:#fffdf8; --sunk:#efebe1; --ink:#1c2a4a; --ink-2:#465577; --ink-3:#8590a8; --line:#dcd6c8; --rule:#dfe5ef; --margin:#e3a8a1;
-  --accent:#23448c; --accent-ink:#ffffff; --accent-soft:#e4e9f4;
-  --no:#b23a2a; --no-soft:#f6e1dc; --part:#8f6408; --part-soft:#f3e7c9; --yes:#2b7348; --yes-soft:#dcede1;
-  --display:"Newsreader",Georgia,"Times New Roman",serif;
-  --body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --bg:#ffffff; --panel:#ffffff; --sunk:#f4f5f7; --ink:#111111; --ink-2:#444444; --ink-3:#777777; --line:#e2e2e2;
+  --accent:#1a56db; --accent-ink:#ffffff; --accent-soft:#e8effc;
+  --no:#c0392b; --no-soft:#fbe9e7; --part:#9a6700; --part-soft:#fbf1d9; --yes:#1e7d46; --yes-soft:#e3f3e9;
+  --h0:#f1f1f1; --h1:#fde3d2; --h2:#f8b996; --h3:#ee8a5e; --h4:#d4462f; --hok:#e3f3e9;
+  --font:Arial,"Helvetica Neue",Helvetica,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#141824; --panel:#1b2030; --sunk:#232a3c; --ink:#ebe6da; --ink-2:#bfc3cf; --ink-3:#8b92a6; --line:#2f3648; --rule:#1f2536; --margin:#6e3a38;
-  --accent:#9fb6ea; --accent-ink:#121624; --accent-soft:#26304a;
-  --no:#ee8b78; --no-soft:#3b2324; --part:#e0b452; --part-soft:#383021; --yes:#71c795; --yes-soft:#1c3127; color-scheme:dark}}
+  --bg:#121212; --panel:#121212; --sunk:#1e1e1e; --ink:#eeeeee; --ink-2:#bbbbbb; --ink-3:#888888; --line:#2e2e2e;
+  --accent:#7aa2f7; --accent-ink:#0d0d0d; --accent-soft:#1d2740;
+  --no:#ef8a7a; --no-soft:#3a2220; --part:#e0b452; --part-soft:#362d1c; --yes:#6cc893; --yes-soft:#1b3024;
+  --h0:#262626; --h1:#4a2a20; --h2:#7a3a24; --h3:#b04a2c; --h4:#f07a63; --hok:#1b3024; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#141824; --panel:#1b2030; --sunk:#232a3c; --ink:#ebe6da; --ink-2:#bfc3cf; --ink-3:#8b92a6; --line:#2f3648; --rule:#1f2536; --margin:#6e3a38;
-  --accent:#9fb6ea; --accent-ink:#121624; --accent-soft:#26304a;
-  --no:#ee8b78; --no-soft:#3b2324; --part:#e0b452; --part-soft:#383021; --yes:#71c795; --yes-soft:#1c3127; color-scheme:dark}
+  --bg:#121212; --panel:#121212; --sunk:#1e1e1e; --ink:#eeeeee; --ink-2:#bbbbbb; --ink-3:#888888; --line:#2e2e2e;
+  --accent:#7aa2f7; --accent-ink:#0d0d0d; --accent-soft:#1d2740;
+  --no:#ef8a7a; --no-soft:#3a2220; --part:#e0b452; --part-soft:#362d1c; --yes:#6cc893; --yes-soft:#1b3024;
+  --h0:#262626; --h1:#4a2a20; --h2:#7a3a24; --h3:#b04a2c; --h4:#f07a63; --hok:#1b3024; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
-.wrap{max-width:920px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 96px}
-h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;font-weight:600}
-h1{font-size:1.6rem;font-style:italic} h2{font-size:1.3rem} h3{font-size:1.08rem}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 90px}
+h1,h2,h3{margin:0;font-weight:700}
+h1{font-size:1.25rem} h2{font-size:1.05rem} h3{font-size:.95rem}
 p{margin:0}
-.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
-.muted{color:var(--ink-3)} .sub{color:var(--ink-2);font-size:.9rem}
-.label{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);font-weight:600}
-header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
-.count{font-size:.85rem;color:var(--ink-2)} .count b{font-family:var(--display);font-size:1.4rem;color:var(--accent)}
-nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:2px;overflow-x:auto;padding-block:8px;margin-bottom:16px;border-bottom:1px solid var(--line);scrollbar-width:none}
-nav.tabs button{flex:0 0 auto;border:0;background:none;color:var(--ink-2);font:600 .88rem var(--body);padding:7px 11px;border-radius:8px;cursor:pointer;position:relative}
-nav.tabs button[aria-selected="true"]{color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent);border-radius:0}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-3)} .sub{color:var(--ink-2);font-size:.88rem}
+.label{font-size:.75rem;color:var(--ink-3);font-weight:700}
+header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.count{font-size:.85rem;color:var(--ink-2)} .count b{font-size:1rem;color:var(--ink)}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:0;overflow-x:auto;margin-bottom:16px;border-bottom:1px solid var(--line);scrollbar-width:none}
+nav.tabs button{flex:0 0 auto;border:0;background:none;color:var(--ink-2);font:700 .88rem var(--font);padding:10px 12px;cursor:pointer}
+nav.tabs button[aria-selected="true"]{color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent)}
 nav.tabs .dot{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:.7rem;line-height:18px;text-align:center}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.panel{background-color:var(--panel);background-image:linear-gradient(90deg,transparent 30px,var(--margin) 30px,var(--margin) 31px,transparent 31px),repeating-linear-gradient(180deg,transparent 0 27px,var(--rule) 27px 28px);border:1px solid var(--line);border-radius:4px;padding:18px 18px 18px 46px;min-width:0;box-shadow:0 1px 0 var(--line),0 2px 6px rgba(30,40,70,.05)}
-@media (max-width:480px){.panel{padding-left:38px;background-image:linear-gradient(90deg,transparent 24px,var(--margin) 24px,var(--margin) 25px,transparent 25px),repeating-linear-gradient(180deg,transparent 0 27px,var(--rule) 27px 28px)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;min-width:0}
 .stack{display:flex;flex-direction:column;gap:12px} .stack.tight{gap:6px}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .between{justify-content:space-between}
 .grid2{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
-.btn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:600 .88rem var(--body);padding:8px 14px;border-radius:4px;cursor:pointer}
+.btn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:700 .85rem var(--font);padding:8px 14px;border-radius:5px;cursor:pointer}
 .btn:hover{border-color:var(--ink-3)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.btn.big{padding:11px 18px;font-size:.95rem}
+.btn.big{padding:10px 18px;font-size:.92rem}
 .btn.small{padding:4px 10px;font-size:.8rem}
-.btn.link{border:0;background:none;padding:2px 0;color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.btn.link{border:0;background:none;padding:2px 0;color:var(--accent);text-decoration:underline}
 .btn.danger{color:var(--no);border-color:var(--no)}
-.fab{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:6;box-shadow:0 6px 20px rgba(0,0,0,.18)}
-.notice{background:var(--accent-soft);border-radius:4px;padding:10px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px;font-size:.9rem}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:20;max-width:calc(100% - 32px)}
-label.f{display:flex;flex-direction:column;gap:4px;font-size:.8rem;font-weight:600;color:var(--ink-2);min-width:0}
-input,select,textarea{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:8px 10px;width:100%;min-width:0}
+.fab{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:6;box-shadow:0 2px 10px rgba(0,0,0,.2)}
+.notice{background:var(--sunk);border-radius:5px;padding:8px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:.88rem}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:6px;font-weight:700;z-index:20;max-width:calc(100% - 32px)}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.8rem;font-weight:700;color:var(--ink-2);min-width:0}
+input,select,textarea{font:inherit;font-weight:400;font-size:.92rem;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:8px 10px;width:100%;min-width:0}
 input[type=checkbox]{width:auto}
-textarea{min-height:64px;resize:vertical}
+textarea{min-height:60px;resize:vertical}
 .fields{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink-2);font:500 .83rem var(--body);padding:5px 11px;border-radius:4px;cursor:pointer}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);font:.84rem var(--font);padding:6px 11px;border-radius:5px;cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.chip.sugg{border-style:dashed;color:var(--ink)}
+.chip.sugg{border-style:dashed}
 .req::after{content:" *";color:var(--no)}
 .sec-title{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.step{font-family:var(--mono);font-size:.72rem;color:var(--ink-3)}
-.why{font-size:.86rem;color:var(--ink-2)}
-.status{display:inline-flex;align-items:center;gap:4px;font:600 .72rem var(--body);border-radius:999px;padding:2px 9px;white-space:nowrap}
+.why{font-size:.85rem;color:var(--ink-2)}
+.status{display:inline-flex;align-items:center;font:700 .72rem var(--font);border-radius:4px;padding:2px 7px;white-space:nowrap}
 .status.no{background:var(--no-soft);color:var(--no)} .status.part{background:var(--part-soft);color:var(--part)} .status.yes{background:var(--yes-soft);color:var(--yes)} .status.plain{background:var(--sunk);color:var(--ink-2)} .status.acc{background:var(--accent-soft);color:var(--accent)}
 .list{list-style:none;margin:0;padding:0}
-.list>li{padding-block:10px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:space-between;align-items:flex-start}
+.list>li{padding-block:9px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:space-between;align-items:flex-start}
 .list>li:first-child{border-top:0}
 .list .main{min-width:0;flex:1}
-.qcard{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:2px;padding:12px 14px;white-space:pre-wrap;font-family:var(--display);font-size:1.05rem}
+.qcard{background:var(--sunk);border-radius:5px;padding:12px 14px;white-space:pre-wrap}
 .rate{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.rate button{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:12px 8px;font:600 .92rem var(--body);cursor:pointer;color:var(--ink)}
+.rate button{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:12px 8px;font:700 .9rem var(--font);cursor:pointer;color:var(--ink)}
 .rate button[data-s="no"]{border-color:var(--no);color:var(--no)} .rate button[data-s="partial"]{border-color:var(--part);color:var(--part)} .rate button[data-s="yes"]{border-color:var(--yes);color:var(--yes)}
-.rate small{display:block;font-weight:500;color:var(--ink-3);font-size:.74rem}
-.sugglist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;margin-top:4px;overflow:hidden}
-.sugglist button{text-align:left;border:0;border-top:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 10px;font:inherit;cursor:pointer}
-.sugglist button:first-child{border-top:0}
-.sugglist button:hover,.sugglist button:focus-visible{background:var(--accent-soft)}
-details>summary{cursor:pointer;font-weight:600;font-size:.88rem;color:var(--ink-2)}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
-.seg button{border:0;background:var(--panel);color:var(--ink-2);font:600 .82rem var(--body);padding:6px 12px;cursor:pointer}
+.rate small{display:block;font-weight:400;color:var(--ink-3);font-size:.74rem}
+details>summary{cursor:pointer;font-weight:700;font-size:.86rem;color:var(--ink-2)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.seg button{border:0;background:var(--panel);color:var(--ink-2);font:700 .8rem var(--font);padding:6px 12px;cursor:pointer}
 .seg button+button{border-left:1px solid var(--line)}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
-.prompt{font-family:var(--mono);font-size:.76rem;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;white-space:pre-wrap;max-height:160px;overflow:auto}
+.prompt{font-size:.8rem;background:var(--sunk);border-radius:5px;padding:10px;white-space:pre-wrap;max-height:160px;overflow:auto}
 table{border-collapse:collapse;width:100%;font-size:.86rem}
 th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
-th{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
+th{font-size:.75rem;color:var(--ink-3)}
 .tablewrap{overflow-x:auto}
-.empty{padding:4px 0;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.empty{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.88rem}
 .kv dt{color:var(--ink-3)} .kv dd{margin:0;white-space:pre-wrap;min-width:0}
+.meter{height:6px;background:var(--h0);border-radius:999px;overflow:hidden}
+.meter>i{display:block;height:100%;background:var(--accent)}
+.cov{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
+.cov button{text-align:left;font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:6px}
+.cov button[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.cat{display:flex;flex-direction:column;gap:6px;padding-block:8px;border-top:1px solid var(--line)}
+.cat:first-child{border-top:0}
+.code{font-size:.75rem;color:var(--accent);font-weight:700}
+.heat{display:grid;gap:4px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.cell{border-radius:4px;padding:6px 8px;font-size:.76rem;line-height:1.25;min-height:46px;border:1px solid transparent;color:var(--ink);text-align:left;font-family:var(--font);cursor:default;background:none}
+button.cell{cursor:pointer}
+.cell[data-l="u"]{background:repeating-linear-gradient(135deg,var(--h0) 0 6px,transparent 6px 10px);border-color:var(--line);color:var(--ink-3)}
+.cell[data-l="0"]{background:var(--hok)}
+.cell[data-l="1"]{background:var(--h1)} .cell[data-l="2"]{background:var(--h2)} .cell[data-l="3"]{background:var(--h3);color:#fff} .cell[data-l="4"]{background:var(--h4);color:#fff}
+.cell b{display:block;font-weight:400;font-size:.7rem;opacity:.85;margin-top:2px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.78rem;color:var(--ink-2);align-items:center}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:4px}
 </style>
 </head>
 <body>
@@ -153,6 +162,91 @@ const READ_TASKS=["After reading, write one sentence: what is the author arguing
  "Find one place where the author cites someone else's view. Write whose view it is and whether the author agrees.",
  "Write the main idea in one sentence before re-reading anything, then check it against the last paragraph."];
 const SITES=[["Aeon","aeon.co"],["JSTOR Daily","daily.jstor.org"],["Arts & Letters Daily","aldaily.com"],["The Conversation","theconversation.com"],["Psyche","psyche.co"]];
+const OUTLINE = {
+BB:[
+ ["1A","Proteins & amino acids",["Amino acid structure & properties","Protein structure (1°–4°)","Non-enzymatic proteins (binding, motors, antibodies)","Enzyme kinetics (Km, Vmax, Michaelis-Menten)","Enzyme inhibition & regulation","Protein isolation & analysis"]],
+ ["1B","Genetic information",["DNA structure & replication","DNA repair & mutation","Transcription & RNA processing","Translation & genetic code","Gene expression regulation (operons, eukaryotic)","Biotechnology (PCR, cloning, blotting, CRISPR)"]],
+ ["1C","Heredity & evolution",["Mendelian genetics & pedigrees","Meiosis & genetic variability","Linkage & recombination","Population genetics (Hardy-Weinberg)","Evolution & natural selection"]],
+ ["1D","Bioenergetics & metabolism",["Bioenergetics (ΔG, ATP, redox)","Glycolysis & gluconeogenesis","Glycogen & pentose phosphate pathway","Citric acid cycle","Electron transport & oxidative phosphorylation","Fatty acid & lipid metabolism","Amino acid & protein metabolism","Hormonal regulation of metabolism"]],
+ ["2A","Cells & membranes",["Plasma membrane & transport","Membrane potential (cell level)","Organelles & cytoskeleton","Tissues (epithelial, connective)"]],
+ ["2B","Prokaryotes & viruses",["Bacterial structure & growth","Bacterial genetics (conjugation, transduction)","Viruses & retroviruses","Prions & viroids"]],
+ ["2C","Cell division & development",["Cell cycle & mitosis","Cancer & cell cycle control","Embryogenesis & development","Stem cells & differentiation","Apoptosis & aging"]],
+ ["3A","Nervous & endocrine",["Neuron & action potential","Synapses & neurotransmitters","Nervous system organization","Sensory receptors","Endocrine glands & hormones","Hormone mechanisms (peptide vs steroid)"]],
+ ["3B","Organ systems",["Respiratory system","Cardiovascular system & blood","Lymphatic & immune system","Digestive system","Renal system & excretion","Reproductive system","Muscle system","Skeletal system","Skin"]],
+ ["SR","Research & data skills",["Experimental design (BB)","Reading figures & data (BB)"]]
+],
+CP:[
+ ["4A","Motion, forces & energy",["Kinematics","Newton's laws & forces","Friction & inclined planes","Work, energy & power","Momentum & collisions","Torque & equilibrium","Circular motion & gravity"]],
+ ["4B","Fluids & gases",["Density & pressure","Buoyancy (Archimedes)","Fluid dynamics (continuity, Bernoulli, Poiseuille)","Gas laws & kinetic theory"]],
+ ["4C","Electrostatics & circuits",["Electrostatics (Coulomb, fields, potential)","Circuits (Ohm, resistors, capacitors)","Magnetism","Galvanic & electrolytic cells","Reduction potentials & Nernst"]],
+ ["4D","Light, sound & spectroscopy",["Sound & Doppler effect","Wave properties & interference","Geometrical optics (lenses, mirrors)","EM spectrum & photons","IR & UV-Vis spectroscopy","NMR spectroscopy","Mass spectrometry"]],
+ ["4E","Atoms & nuclear",["Atomic structure & quantum numbers","Electron configuration","Periodic trends","Nuclear decay & half-life","Photoelectric effect & Bohr model"]],
+ ["5A","Water & solutions",["Acids & bases (pH, pKa)","Buffers & titration","Solubility & Ksp","Ions & complex ions","Colligative properties"]],
+ ["5B","Molecular structure",["Lewis structures & formal charge","Hybridization & VSEPR","Stereochemistry & isomers","Intermolecular forces","Resonance & molecular orbitals"]],
+ ["5C","Separation methods",["Extraction","Distillation","Chromatography","Electrophoresis","Recrystallization"]],
+ ["5D","Biological molecules & orgo",["Carbohydrates","Lipids","Amino acids & peptides (chem)","Nucleotides & nucleic acids","Aldehydes & ketones","Alcohols","Carboxylic acids & derivatives","Aromatics & phenols","Substitution reactions (SN1/SN2)"]],
+ ["5E","Thermo & kinetics",["Enthalpy, entropy & Gibbs","Equilibrium & Le Châtelier","Rate laws & reaction rates","Catalysts & activation energy","Calorimetry & heat transfer"]],
+ ["SR","Research & data skills",["Experimental design (CP)","Units, math & estimation"]]
+],
+PS:[
+ ["6A","Sensing the environment",["Sensory thresholds & signal detection","Vision","Hearing & vestibular sense","Touch, taste & smell"]],
+ ["6B","Making sense of the environment",["Attention","Cognitive development (Piaget)","Problem solving & heuristics","Intelligence","Sleep & consciousness","Drugs & altered states","Memory","Language"]],
+ ["6C","Responding to the world",["Emotion theories","Stress & coping","Brain regions of emotion (limbic)"]],
+ ["7A","Individual influences",["Biology of behavior (brain, neurotransmitters)","Genetics, twin & adoption studies","Personality theories","Psychological disorders","Motivation theories","Attitudes & behavior"]],
+ ["7B","Social processes",["Group effects (facilitation, groupthink)","Conformity & obedience","Socialization & norms","Deviance"]],
+ ["7C","Learning & attitude change",["Classical conditioning","Operant conditioning","Observational learning","Persuasion (elaboration likelihood)","Cognitive dissonance"]],
+ ["8A","Self-identity",["Self-concept & self-esteem","Identity development (Erikson, Kohlberg, Freud)","Social identity"]],
+ ["8B","Social thinking",["Attribution theory","Prejudice, bias & stereotypes","Stigma","Perceiving others"]],
+ ["8C","Social interactions",["Status & roles","Groups, networks & organizations","Self-presentation","Discrimination","Attraction, aggression & altruism"]],
+ ["9A","Social structure",["Sociological theories (functionalism, conflict, symbolic)","Social institutions (family, education, medicine, religion)","Culture & cultural change"]],
+ ["9B","Demographics",["Demographic categories (age, race, gender, sexuality)","Migration & immigration","Demographic transition","Urbanization & globalization","Social movements"]],
+ ["10A","Social inequality",["Social class & mobility","Poverty","Residential segregation","Health disparities"]],
+ ["SR","Research & data skills",["Research methods & study design (PS)","Statistics & data interpretation (PS)"]]
+]};
+const SECTIONS={BB:"Bio/Biochem",CP:"Chem/Phys",PS:"Psych/Soc"};
+const OUT={}; for(const sec in OUTLINE) OUTLINE[sec].forEach(([code,cat,subs])=>subs.forEach((name,i)=>{const id=sec+"-"+code+"-"+i;OUT[id]={id,sec,code,cat,name};}));
+const SUBJ_SEC={"Biology":["BB"],"Biochemistry":["BB","CP"],"General Chemistry":["CP"],"Organic Chemistry":["CP"],"Physics":["CP"],"Psychology":["PS"],"Sociology":["PS"],"Research & stats":["PS","BB","CP"]};
+// extra words that point to an outline subtopic
+const ALIAS={"PS-7C-1":"reinforcement punishment skinner schedule extinction","PS-7C-0":"pavlov unconditioned conditioned stimulus","BB-1A-3":"enzyme kinetics lineweaver","BB-1A-4":"inhibitor inhibition allosteric competitive","CP-5C-2":"chromatography exchange hplc column gel filtration affinity","BB-1A-5":"purification exchange sds page isoelectric","CP-4C-4":"nernst cell potential","CP-5A-1":"henderson hasselbalch buffer titration equivalence","BB-1D-4":"etc atp synthase proton gradient","CP-4D-2":"lens mirror focal magnification refraction snell","PS-9A-0":"functionalism conflict theory symbolic interactionism","BB-3B-4":"nephron kidney glomerulus loop henle","PS-6B-6":"encoding retrieval decay amnesia","PS-8B-0":"fundamental attribution error actor observer"};
+const stemTok=s=>String(s).toLowerCase().replace(/[^a-z0-9 ]+/g," ").split(/\s+/).filter(w=>w.length>3&&!["with","from","that","between","versus","system","systems","structure","function"].includes(w)).map(w=>w.replace(/(ies|es|s)$/,""));
+function matchOutline(name,subject){
+  const toks=stemTok(name); if(!toks.length) return "";
+  const secs=SUBJ_SEC[subject]||["BB","CP","PS"]; let best="",bs=0;
+  for(const id in OUT){const o=OUT[id]; const hay=new Set(stemTok(o.name+" "+(ALIAS[id]||"")));
+    let sc=toks.filter(t=>hay.has(t)).length; if(!sc) continue; if(secs.includes(o.sec)) sc+=0.5; if(secs[0]===o.sec) sc+=0.25;
+    if(sc>bs){bs=sc;best=id;}}
+  return best;
+}
+function outlineSelect(id,sel){
+  return `<select id="${id}"><option value="">Not on the map</option>${Object.entries(OUTLINE).map(([sec,cats])=>cats.map(([code,cat,subs])=>`<optgroup label="${SECTIONS[sec]} ${code} ${esc(cat)}">${subs.map((n,i)=>{const oid=sec+"-"+code+"-"+i;return `<option value="${oid}" ${oid===sel?"selected":""}>${esc(n)}</option>`;}).join("")}</optgroup>`).join("")).join("")}</select>`;
+}
+const isContent=it=>!(it.reasons||[]).length||(it.reasons||[]).some(r=>r==="gap"||r==="mixup");
+function mapStats(){
+  const st={}; for(const id in OUT) st[id]={topics:[],items:0,content:0,w:0,wins:0,last:""};
+  S.topics.forEach(t=>{ if(!t.outline||!st[t.outline]) return; const o=st[t.outline]; o.topics.push(t);
+    S.items.filter(i=>i.topicId===t.id).forEach(i=>{o.items++; if(isContent(i)){o.content++; o.w+=Math.exp(-diffDays(todayS(),i.doneDate)/21);} if(i.doneDate>o.last)o.last=i.doneDate;});
+    S.wins.filter(w=>w.topicId===t.id).forEach(w=>{o.wins++; if(w.date>o.last)o.last=w.date;}); });
+  for(const id in st){const o=st[id]; o.seen=o.items+o.wins>0; o.lvl=!o.seen?"u":!o.content?"0":o.w<.8?"1":o.w<1.6?"2":o.w<2.5?"3":"4";}
+  return st;
+}
+let mapSec="BB";
+function vMap(v){
+  const st=mapStats();
+  const cov=["BB","CP","PS"].map(s=>{const ids=Object.keys(OUT).filter(id=>OUT[id].sec===s);return {s,n:ids.length,seen:ids.filter(id=>st[id].seen).length};});
+  const unmapped=S.topics.filter(t=>!t.outline&&S.items.some(i=>i.topicId===t.id));
+  v.innerHTML=`<div class="stack" style="gap:16px">
+    <div class="cov">${cov.map(c=>`<button type="button" data-ms="${c.s}" aria-pressed="${c.s===mapSec}"><span class="label">${SECTIONS[c.s]}</span><span class="row between"><b class="num">${Math.round(c.seen/c.n*100)}% touched</b><span class="muted num">${c.seen}/${c.n}</span></span><span class="meter"><i style="width:${c.seen/c.n*100}%"></i></span></button>`).join("")}</div>
+    <div class="panel stack">
+      <div class="legend"><span><i style="background:repeating-linear-gradient(135deg,var(--h0) 0 4px,transparent 4px 7px);border:1px solid var(--line)"></i>Not touched</span><span><i style="background:var(--hok)"></i>No content misses</span><span><i style="background:var(--h1)"></i>Few</span><span><i style="background:var(--h2)"></i></span><span><i style="background:var(--h3)"></i></span><span><i style="background:var(--h4)"></i>Many</span></div>
+      ${OUTLINE[mapSec].map(([code,cat,subs])=>`<div class="cat"><div><span class="code">${code}</span> <b>${esc(cat)}</b></div><div class="heat">${subs.map((n,i)=>{const id=mapSec+"-"+code+"-"+i,o=st[id];
+        const info=o.seen?`${o.content} content miss${o.content===1?"":"es"}, ${o.items} record${o.items===1?"":"s"}${o.wins?`, ${o.wins} correct on new`:""}${o.topics.length?" · "+o.topics.map(t=>t.name).join(", "):""}`:"not touched";
+        return o.topics.length?`<button type="button" class="cell" data-l="${o.lvl}" data-topic="${o.topics[0].id}" title="${esc(n+": "+info)}">${esc(n)}<b>${o.content} miss · ${o.items} rec</b></button>`:`<div class="cell" data-l="${o.lvl}" title="${esc(n)}: not touched">${esc(n)}<b>—</b></div>`;}).join("")}</div></div>`).join("")}
+    </div>
+    ${unmapped.length?`<div class="panel stack"><b>Not on the map (${unmapped.length})</b><div class="chips">${unmapped.map(t=>`<button class="chip" data-topic="${t.id}">${esc(t.name)}</button>`).join("")}</div></div>`:""}
+  </div>`;
+  bindCommon(v);
+  v.querySelectorAll("[data-ms]").forEach(b=>b.onclick=()=>{mapSec=b.dataset.ms;render();});
+}
 
 /* ================= dates ================= */
 const DAY=864e5;
@@ -172,7 +266,7 @@ const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slic
 function blank(){return {v:2,settings:{testDate:"2027-02-12",iv:{no:1,partial:2,yes:5},style:"quick"},topics:[],items:[],wins:[],passages:[],cq:[],weeks:{},legacy:{blocks:[],reads:{}},sample:false};}
 let S;
 function load(){
-  try{const raw=localStorage.getItem(KEY);if(raw){S=Object.assign(blank(),JSON.parse(raw));S.settings=Object.assign(blank().settings,S.settings);S.settings.iv=Object.assign({no:1,partial:2,yes:5},S.settings.iv);return;}}catch(e){}
+  try{const raw=localStorage.getItem(KEY);if(raw){S=Object.assign(blank(),JSON.parse(raw));S.settings=Object.assign(blank().settings,S.settings);S.settings.iv=Object.assign({no:1,partial:2,yes:5},S.settings.iv);S.topics.forEach(t=>{if(t.outline===undefined)t.outline=matchOutline(t.name,t.subject);});return;}}catch(e){}
   S=blank();
   try{const old=JSON.parse(localStorage.getItem(OLD_KEY)||"null");
     if(old){S.legacy.blocks=(old.blocks||[]).filter(b=>!b.sample);S.legacy.reads=old.reads||{};S.settings.testDate=(old.settings&&old.settings.testDate)||S.settings.testDate;}}catch(e){}
@@ -187,13 +281,14 @@ function seedSample(){
   const tp=(name,subject)=>{const o={id:uid(),name,subject,created:addDays(t,-6)};S.topics.push(o);return o.id;};
   const ion=tp("anion-exchange chromatography","Biochemistry"), mm=tp("Michaelis-Menten: Km vs Vmax","Biochemistry"), nern=tp("Nernst equation","General Chemistry"), op=tp("negative reinforcement vs punishment","Psychology");
   S.items.push(
-   {id:uid(),subject:"Biochemistry",topicId:ion,result:"wrong",source:"UWorld",qref:"#18422",reasons:["mixup"],thought:"Thought a negatively charged protein binds a negatively charged resin.",nextTime:"First find the protein's net charge from pH vs pI, then pick the resin with the opposite charge.",doneDate:addDays(t,-4),reviewDate:addDays(t,-4),cards:[{id:uid(),q:"Buffer pH 8.5. Protein A has pI 6.0. Will it stick to a DEAE (positively charged) column?",a:"Yes. pH > pI so protein A is negative and binds the positive DEAE (anion-exchange) resin."}],cardIdx:0,due:addDays(t,-1),needsNewQ:false,attempts:[{date:addDays(t,-3),cardId:null,answer:"",self:"no",next:addDays(t,-2)},{date:addDays(t,-2),cardId:null,answer:"",self:"partial",next:t}],sample:true},
-   {id:uid(),subject:"Biochemistry",topicId:ion,result:"guess",source:"AAMC",qref:"SB Bio #12",reasons:["mixup"],thought:"Guessed between CM and DEAE.",nextTime:"",doneDate:addDays(t,-1),reviewDate:addDays(t,-1),cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[]},
-   {id:uid(),subject:"Biochemistry",topicId:mm,result:"wrong",source:"UWorld",qref:"#20511",reasons:["gap"],thought:"Said a competitive inhibitor lowers Vmax.",nextTime:"Competitive: Km up, Vmax same. Noncompetitive: Vmax down, Km same.",doneDate:addDays(t,-1),reviewDate:addDays(t,-1),cards:[{id:uid(),q:"An inhibitor's effect disappears at very high [S]. What happens to Km and Vmax?",a:"It's competitive: apparent Km increases, Vmax unchanged."}],cardIdx:0,due:t,needsNewQ:false,attempts:[]},
-   {id:uid(),subject:"General Chemistry",topicId:nern,result:"wrong",source:"Jack Westin",qref:"",reasons:["calc"],thought:"Flipped Q.",nextTime:"",doneDate:addDays(t,-2),reviewDate:addDays(t,-2),cards:[{id:uid(),q:"Zn|Zn²⁺(0.01 M)||Cu²⁺(1 M)|Cu. Is E higher or lower than E°?",a:"Higher. Q = [Zn²⁺]/[Cu²⁺] = 0.01 < 1, so ln Q < 0 and E > E°."}],cardIdx:0,due:t,needsNewQ:false,attempts:[]},
-   {id:uid(),subject:"Psychology",topicId:op,result:"guess",source:"AAMC",qref:"FL2 P/S #33",reasons:["mixup"],thought:"",nextTime:"Reinforcement always increases behavior. Negative = something removed.",doneDate:addDays(t,-8),reviewDate:addDays(t,-8),cards:[{id:uid(),q:"Taking aspirin removes a headache, so you take aspirin more often. Name it.",a:"Negative reinforcement."}],cardIdx:0,due:addDays(t,3),needsNewQ:true,attempts:[{date:addDays(t,-2),cardId:null,answer:"",self:"yes",next:addDays(t,3)}]});
+   {id:uid(),subject:"Biochemistry",topicId:ion,result:"wrong",source:"UWorld",reasons:["mixup"],thought:"Thought a negatively charged protein binds a negatively charged resin.",nextTime:"First find the protein's net charge from pH vs pI, then pick the resin with the opposite charge.",doneDate:addDays(t,-4),reviewDate:addDays(t,-4),cards:[{id:uid(),q:"Buffer pH 8.5. Protein A has pI 6.0. Will it stick to a DEAE (positively charged) column?",a:"Yes. pH > pI so protein A is negative and binds the positive DEAE (anion-exchange) resin."}],cardIdx:0,due:addDays(t,-1),needsNewQ:false,attempts:[{date:addDays(t,-3),cardId:null,answer:"",self:"no",next:addDays(t,-2)},{date:addDays(t,-2),cardId:null,answer:"",self:"partial",next:t}],sample:true},
+   {id:uid(),subject:"Biochemistry",topicId:ion,result:"guess",source:"AAMC",reasons:["mixup"],thought:"Guessed between CM and DEAE.",nextTime:"",doneDate:addDays(t,-1),reviewDate:addDays(t,-1),cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[]},
+   {id:uid(),subject:"Biochemistry",topicId:mm,result:"wrong",source:"UWorld",reasons:["gap"],thought:"Said a competitive inhibitor lowers Vmax.",nextTime:"Competitive: Km up, Vmax same. Noncompetitive: Vmax down, Km same.",doneDate:addDays(t,-1),reviewDate:addDays(t,-1),cards:[{id:uid(),q:"An inhibitor's effect disappears at very high [S]. What happens to Km and Vmax?",a:"It's competitive: apparent Km increases, Vmax unchanged."}],cardIdx:0,due:t,needsNewQ:false,attempts:[]},
+   {id:uid(),subject:"General Chemistry",topicId:nern,result:"wrong",source:"Jack Westin",reasons:["calc"],thought:"Flipped Q.",nextTime:"",doneDate:addDays(t,-2),reviewDate:addDays(t,-2),cards:[{id:uid(),q:"Zn|Zn²⁺(0.01 M)||Cu²⁺(1 M)|Cu. Is E higher or lower than E°?",a:"Higher. Q = [Zn²⁺]/[Cu²⁺] = 0.01 < 1, so ln Q < 0 and E > E°."}],cardIdx:0,due:t,needsNewQ:false,attempts:[]},
+   {id:uid(),subject:"Psychology",topicId:op,result:"guess",source:"AAMC",reasons:["mixup"],thought:"",nextTime:"Reinforcement always increases behavior. Negative = something removed.",doneDate:addDays(t,-8),reviewDate:addDays(t,-8),cards:[{id:uid(),q:"Taking aspirin removes a headache, so you take aspirin more often. Name it.",a:"Negative reinforcement."}],cardIdx:0,due:addDays(t,3),needsNewQ:true,attempts:[{date:addDays(t,-2),cardId:null,answer:"",self:"yes",next:addDays(t,3)}]});
   S.items.forEach(it=>{it.created=it.reviewDate;it.attempts.forEach(a=>a.cardId=it.cards[0]&&it.cards[0].id);});
-  S.wins.push({id:uid(),topicId:op,date:addDays(t,-1),source:"UWorld",qref:"#19003",note:"Got a new reinforcement question right without hesitating."});
+  S.topics.forEach(x=>x.outline=matchOutline(x.name,x.subject));
+  S.wins.push({id:uid(),topicId:op,date:addDays(t,-1),source:"UWorld",note:"Got a new reinforcement question right without hesitating."});
   const p1={id:uid(),date:addDays(t,-5),source:"Jack Westin",title:"Daily CARS: Kant and the sublime",url:"",disc:"Philosophy",minutes:11,score:3,outOf:6,readingOnly:false,snags:["Mixed up author's view and a cited view"],notes:""};
   const p2={id:uid(),date:addDays(t,-2),source:"UWorld",title:"",url:"",disc:"Philosophy",minutes:10,score:4,outOf:6,readingOnly:false,snags:["Missed how paragraphs connect"],notes:""};
   const p3={id:uid(),date:addDays(t,-1),source:"Aeon",title:"Essay on museums and memory",url:"",disc:"Art & architecture",minutes:14,score:null,outOf:null,readingOnly:true,snags:[],notes:"Author argues against treating museums as neutral."};
@@ -211,9 +306,10 @@ async function copy(text,ok){try{await navigator.clipboard.writeText(text);toast
 const norm=s=>String(s).toLowerCase().replace(/[^a-z0-9À-￿]+/g,"");
 const topicById=id=>S.topics.find(t=>t.id===id);
 const tname=id=>(topicById(id)||{name:"(deleted topic)"}).name;
-function findOrCreateTopic(name,subject){
+function findOrCreateTopic(name,subject,outline,force){
   const n=norm(name); let t=S.topics.find(x=>norm(x.name)===n);
-  if(!t){t={id:uid(),name:name.trim(),subject,created:todayS()};S.topics.push(t);}
+  if(!t){t={id:uid(),name:name.trim(),subject,created:todayS(),outline:outline||""};S.topics.push(t);}
+  else if(force||!t.outline) t.outline=outline||t.outline||"";
   return t.id;
 }
 const lastAttempt=it=>it.attempts.length?it.attempts[it.attempts.length-1]:null;
@@ -283,7 +379,7 @@ function todaysReading(){
 const siteLinks=disc=>{const q=encodeURIComponent(disc.replace("&","and"));return SITES.map(([n,s])=>`<a class="btn small" target="_blank" rel="noopener" href="https://www.google.com/search?q=site%3A${s}+${q}">${n}</a>`).join("");};
 
 /* ================= routing ================= */
-const TABS=[["today","Today"],["log","Log"],["retest","Retest"],["cars","CARS"],["weekly","Weekly review"],["records","Records"],["settings","Settings"]];
+const TABS=[["today","Today"],["log","Log"],["retest","Retest"],["map","Heatmap"],["cars","CARS"],["weekly","Weekly review"],["records","Records"],["settings","Settings"]];
 let view="today", viewArg=null;
 function go(v,arg){if(v==="retest"&&(!R||R.i>=R.queue.length))R=null;view=v;viewArg=arg??null;try{const h=TABS.some(t=>t[0]===v)?"#"+v:"";if(h&&location.hash!==h)history.replaceState(null,"",h);}catch(e){}render();window.scrollTo({top:0});}
 function render(){
@@ -296,7 +392,7 @@ function render(){
   $("#tabs").innerHTML=TABS.map(([k,l])=>`<button role="tab" aria-selected="${k===active}" data-tab="${k}">${l}${k==="retest"&&due?`<span class="dot num">${due}</span>`:""}</button>`).join("");
   $("#fab").hidden=(view==="log"||view==="retest");
   const old=$("#view");const v=old.cloneNode(false);old.replaceWith(v);
-  ({today:vToday,log:vLog,retest:vRetest,cars:vCars,logcars:vLogCars,weekly:vWeekly,records:vRecords,topic:vTopic,settings:vSettings})[view](v);
+  ({today:vToday,log:vLog,retest:vRetest,cars:vCars,logcars:vLogCars,weekly:vWeekly,records:vRecords,topic:vTopic,settings:vSettings,map:vMap})[view](v);
 }
 $("#tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b)go(b.dataset.tab);});
 $("#fab").onclick=()=>go("log");
@@ -346,7 +442,7 @@ function bindCommon(v){
 
 /* ================= LOG (science) ================= */
 let F=null;
-function freshForm(){return {subject:"",topic:"",result:"",source:"",qref:"",doneDate:todayS(),reasons:[],thought:"",nextTime:"",rq:"",ra:""};}
+function freshForm(){return {subject:"",topic:"",result:"",source:"",outline:"",outManual:false,reasons:[],thought:"",nextTime:"",rq:"",ra:""};}
 function vLog(v){
   const arg=viewArg||{}; const mode=arg.mode||"q";
   if(mode==="win") return vWin(v,arg.topicId);
@@ -354,7 +450,7 @@ function vLog(v){
   if(arg.editId){editing=S.items.find(i=>i.id===arg.editId);}
   if(!F||F._for!==(arg.editId||"new")){
     F=freshForm();F._for=arg.editId||"new";
-    if(editing)Object.assign(F,{subject:editing.subject,topic:tname(editing.topicId),result:editing.result,source:editing.source,qref:editing.qref,doneDate:editing.doneDate,reasons:[...(editing.reasons||[])],thought:editing.thought,nextTime:editing.nextTime});
+    if(editing)Object.assign(F,{subject:editing.subject,topic:tname(editing.topicId),result:editing.result,source:editing.source,qref:editing.qref,doneDate:editing.doneDate,reasons:[...(editing.reasons||[])],thought:editing.thought,nextTime:editing.nextTime,outline:(topicById(editing.topicId)||{}).outline||"",outManual:true});
   }
   const full=S.settings.style==="full";
   const recentSubj=S.items.length?S.items[S.items.length-1].subject:"";
@@ -365,12 +461,11 @@ function vLog(v){
     <div class="stack tight"><span class="label req">Subject</span><div class="chips" id="l-subj">${SUBJECTS.map(s=>`<button type="button" class="chip" data-subj="${esc(s)}" aria-pressed="${F.subject===s}">${esc(s)}</button>`).join("")}</div></div>
     <label class="f"><span class="req">Topic</span><input id="l-topic" autocomplete="off" placeholder="e.g. anion-exchange chromatography" value="${esc(F.topic)}"></label>
     <div id="l-sugg"></div>
+    <label class="f">Heatmap spot${outlineSelect("l-out",F.outline)}</label>
     <div class="stack tight"><span class="label req">Result</span><div class="chips" id="l-res"><button type="button" class="chip" data-res="wrong" aria-pressed="${F.result==="wrong"}">Wrong</button><button type="button" class="chip" data-res="guess" aria-pressed="${F.result==="guess"}">Guessed right / 50-50</button></div></div>
     <details id="l-more" ${full||editing?"open":""}><summary>Details</summary>
       <div class="stack" style="margin-top:10px">
-        <div class="fields"><label class="f">Source<select id="l-src"><option value="">Not specified</option>${SCI_SOURCES.map(s=>`<option ${s===F.source?"selected":""}>${s}</option>`).join("")}</select></label>
-          <label class="f">Question ID<input id="l-qref" placeholder="#18422" value="${esc(F.qref)}"></label>
-          <label class="f">Date done<input type="date" id="l-date" value="${esc(F.doneDate)}"></label></div>
+        <div class="fields"><label class="f">Source<select id="l-src"><option value="">Not specified</option>${SCI_SOURCES.map(s=>`<option ${s===F.source?"selected":""}>${s}</option>`).join("")}</select></label></div>
         <div class="stack tight"><span class="label">Why I missed it</span><div class="chips" id="l-rsn">${Object.entries(REASONS).map(([k,l])=>`<button type="button" class="chip" data-rsn="${k}" aria-pressed="${F.reasons.includes(k)}">${l}</button>`).join("")}</div></div>
         <label class="f">What I was thinking<textarea id="l-thought" placeholder="e.g. Thought a negative protein sticks to a negative resin">${esc(F.thought)}</textarea></label>
         <label class="f">How to tell next time<textarea id="l-next" placeholder="e.g. First compare pH and pI to get net charge, then pick the opposite-charge resin">${esc(F.nextTime)}</textarea></label>
@@ -382,15 +477,17 @@ function vLog(v){
   </div>`;
   if(!F.subject&&recentSubj&&!editing){} // keep explicit choice
   const bindIn=(sel,key)=>{const el=$(sel);if(el)el.oninput=e=>F[key]=e.target.value;};
-  bindIn("#l-qref","qref");bindIn("#l-date","doneDate");bindIn("#l-thought","thought");bindIn("#l-next","nextTime");bindIn("#l-rq","rq");bindIn("#l-ra","ra");
+  bindIn("#l-thought","thought");bindIn("#l-next","nextTime");bindIn("#l-rq","rq");bindIn("#l-ra","ra");
   $("#l-src").onchange=e=>F.source=e.target.value;
-  $("#l-topic").oninput=e=>{F.topic=e.target.value;sugg();};
+  const autoOut=()=>{if(F.outManual)return;F.outline=matchOutline(F.topic,F.subject);$("#l-out").value=F.outline;};
+  $("#l-topic").oninput=e=>{F.topic=e.target.value;sugg();autoOut();};
+  $("#l-out").onchange=e=>{F.outline=e.target.value;F.outManual=true;};
   $("#l-topic").onfocus=sugg;
   v.onclick=e=>{
-    const s=e.target.closest("[data-subj]");if(s){F.subject=s.dataset.subj;$("#l-subj").querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c.dataset.subj===F.subject));sugg();return;}
+    const s=e.target.closest("[data-subj]");if(s){F.subject=s.dataset.subj;$("#l-subj").querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c.dataset.subj===F.subject));sugg();autoOut();return;}
     const r=e.target.closest("[data-res]");if(r){F.result=r.dataset.res;$("#l-res").querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c.dataset.res===F.result));return;}
     const k=e.target.closest("[data-rsn]");if(k){const x=k.dataset.rsn;F.reasons=F.reasons.includes(x)?F.reasons.filter(y=>y!==x):[...F.reasons,x];k.setAttribute("aria-pressed",F.reasons.includes(x));return;}
-    const p=e.target.closest("[data-pick]");if(p){const t=topicById(p.dataset.pick);F.topic=t.name;$("#l-topic").value=t.name;if(!F.subject){F.subject=t.subject;$("#l-subj").querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c.dataset.subj===F.subject));}$("#l-sugg").innerHTML="";return;}
+    const p=e.target.closest("[data-pick]");if(p){const t=topicById(p.dataset.pick);F.topic=t.name;$("#l-topic").value=t.name;F.outline=t.outline||matchOutline(t.name,t.subject);$("#l-out").value=F.outline;if(!F.subject){F.subject=t.subject;$("#l-subj").querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c.dataset.subj===F.subject));}$("#l-sugg").innerHTML="";return;}
     const st=e.target.closest("[data-style]");if(st){S.settings.style=st.dataset.style;save();vLog(v);return;}
     const m=e.target.closest("[data-mode]");if(m){go("log",{mode:"win"});return;}
   };
@@ -413,10 +510,10 @@ function saveItem(editing){
   if(!F.result) return toast("Pick Wrong or Guessed right.");
   if((F.rq.trim()&&!F.ra.trim())||(!F.rq.trim()&&F.ra.trim())) return toast("A retest needs both a question and an answer.");
   if(S.sample&&!editing) leaveSample();
-  const topicId=findOrCreateTopic(F.topic,F.subject); const t=todayS();
-  if(editing){Object.assign(editing,{subject:F.subject,topicId,result:F.result,source:F.source,qref:F.qref.trim(),doneDate:F.doneDate||t,reasons:F.reasons,thought:F.thought.trim(),nextTime:F.nextTime.trim(),updated:t});
+  const topicId=findOrCreateTopic(F.topic,F.subject,F.outline,F.outManual); const t=todayS();
+  if(editing){Object.assign(editing,{subject:F.subject,topicId,result:F.result,source:F.source,reasons:F.reasons,thought:F.thought.trim(),nextTime:F.nextTime.trim(),updated:t});
     save();F=null;toast("Record updated.");go("topic",topicId);return;}
-  const it={id:uid(),subject:F.subject,topicId,result:F.result,source:F.source,qref:F.qref.trim(),reasons:F.reasons,thought:F.thought.trim(),nextTime:F.nextTime.trim(),doneDate:F.doneDate||t,reviewDate:t,created:t,cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[]};
+  const it={id:uid(),subject:F.subject,topicId,result:F.result,source:F.source,reasons:F.reasons,thought:F.thought.trim(),nextTime:F.nextTime.trim(),doneDate:t,reviewDate:t,created:t,cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[]};
   if(F.rq.trim()) addCard(it,F.rq,F.ra);
   S.items.push(it);save();F=null;
   toast(it.due?`Saved. First retest ${relDue(it.due)}.`:"Saved. Add a retest question any time to queue it.");
@@ -433,12 +530,12 @@ function vWin(v,topicId){
     <h2>Got a new question right</h2>
     <p class="sub">A new bank question, not a retest.</p>
     <label class="f"><span class="req">Topic</span><select id="w-topic"><option value="">Choose one of your topics…</option>${[...S.topics].sort((a,b)=>a.name.localeCompare(b.name)).map(t=>`<option value="${t.id}" ${t.id===tid?"selected":""}>${esc(t.name)}</option>`).join("")}</select></label>
-    <div class="fields"><label class="f">Source<select id="w-src">${SCI_SOURCES.map(s=>`<option>${s}</option>`).join("")}</select></label><label class="f">Question ID<input id="w-qref"></label><label class="f">Date<input type="date" id="w-date" value="${todayS()}"></label></div>
+    <div class="fields"><label class="f">Source<select id="w-src">${SCI_SOURCES.map(s=>`<option>${s}</option>`).join("")}</select></label></div>
     <label class="f">Note (optional)<input id="w-note" placeholder="e.g. used the pH vs pI step without hesitating"></label>
     <div class="row"><button class="btn primary" id="w-save">Save</button><button class="btn" id="w-back">Back</button></div></div>`;
   $("#w-back").onclick=()=>go("log");
   $("#w-save").onclick=()=>{const t=$("#w-topic").value;if(!t)return toast("Pick the topic.");
-    S.wins.push({id:uid(),topicId:t,date:$("#w-date").value||todayS(),source:$("#w-src").value,qref:$("#w-qref").value.trim(),note:$("#w-note").value.trim()});save();toast("Logged. Nice work.");go("topic",t);};
+    S.wins.push({id:uid(),topicId:t,date:todayS(),source:$("#w-src").value,note:$("#w-note").value.trim()});save();toast("Logged. Nice work.");go("topic",t);};
 }
 
 /* ================= RETEST ================= */
@@ -506,6 +603,7 @@ function vTopic(v){
       <p class="why">${esc(evidenceLine(info))}</p>
       <div class="qcard"><span class="label">Practice</span><br>${esc(practiceAction(info).text)}</div>
       <div class="row"><button class="btn" data-win="${id}">I got a new one right</button><button class="btn" id="t-rename">Rename topic</button></div>
+      <label class="f" style="max-width:420px">Heatmap spot${outlineSelect("t-out",t.outline||"")}</label>
       <div id="t-renamebox" hidden class="row"><input id="t-name" value="${esc(t.name)}" style="max-width:340px"><button class="btn small primary" id="t-rsave">Save name</button></div>
     </div>
     ${info.items.sort((a,b)=>a.doneDate<b.doneDate?1:-1).map(it=>itemCard(it,it.id===focusItem)).join("")}
@@ -513,6 +611,7 @@ function vTopic(v){
       ${info.wins.length?`<ul class="list">${info.wins.map(w=>`<li><div class="main"><b>${esc(srcLabel(w)||"New question")}</b><div class="muted" style="font-size:.82rem">${fmtD(w.date)}${w.note?" · "+esc(w.note):""}</div></div><span class="status yes">Independent</span></li>`).join("")}</ul>`:`<p class="muted">None yet.</p>`}</div>
   </div>`;
   bindCommon(v);
+  $("#t-out").onchange=e=>{t.outline=e.target.value;save();toast("Heatmap updated.");};
   $("#t-rename").onclick=()=>{$("#t-renamebox").hidden=false;$("#t-name").focus();};
   $("#t-rsave").onclick=()=>{const n=$("#t-name").value.trim();if(!n)return;const dup=S.topics.find(x=>x.id!==id&&norm(x.name)===norm(n));
     if(dup){S.items.forEach(i=>{if(i.topicId===id)i.topicId=dup.id;});S.wins.forEach(w=>{if(w.topicId===id)w.topicId=dup.id;});S.topics=S.topics.filter(x=>x.id!==id);save();toast("Merged into the existing topic with that name.");go("topic",dup.id);return;}
@@ -607,8 +706,7 @@ function vLogCars(v){
   v.innerHTML=`<div class="panel stack">
     <h2>${ed?"Edit passage":a.readingOnly?"Log an article I read":"Log a CARS passage"}</h2>
     <label class="row" style="font-size:.88rem;gap:8px"><input type="checkbox" id="p-ro" ${P.readingOnly?"checked":""}> Reading only (JSTOR / Aeon article, no questions). It won't count toward accuracy.</label>
-    <div class="fields"><label class="f">Date<input type="date" id="p-date" value="${esc(P.date)}"></label>
-      <label class="f">Source<select id="p-src">${CARS_SOURCES.map(s=>`<option ${s===P.source?"selected":""}>${s}</option>`).join("")}</select></label>
+    <div class="fields"><label class="f">Source<select id="p-src">${CARS_SOURCES.map(s=>`<option ${s===P.source?"selected":""}>${s}</option>`).join("")}</select></label>
       <label class="f"><span class="req">Passage type</span><select id="p-disc">${Object.entries(CARS_DISC).map(([g,l])=>`<optgroup label="${g}">${l.map(x=>`<option ${x===P.disc?"selected":""}>${esc(x)}</option>`).join("")}</optgroup>`).join("")}</select></label></div>
     <div class="fields"><label class="f">Title<input id="p-title" value="${esc(P.title)}"></label><label class="f">Link<input id="p-url" type="url" value="${esc(P.url)}" placeholder="https://"></label></div>
     <div class="fields" id="p-scorebox" ${P.readingOnly?"hidden":""}><label class="f">Time (min)<input type="number" min="0" step="0.5" id="p-min" value="${esc(P.minutes)}"></label>
@@ -624,7 +722,7 @@ function vLogCars(v){
     const ro=$("#p-ro").checked, sc=$("#p-score").value, of=$("#p-of").value;
     if(!ro&&(sc!==""||of!=="")&&(of===""||sc===""||+sc>+of||+sc<0)) return toast("Score should look like 3 out of 6.");
     if(S.sample&&!ed) leaveSample();
-    const rec=Object.assign(ed||{id:uid()},{date:$("#p-date").value||todayS(),source:$("#p-src").value,title:$("#p-title").value.trim(),url:$("#p-url").value.trim(),disc:$("#p-disc").value,readingOnly:ro,
+    const rec=Object.assign(ed||{id:uid()},{date:ed?ed.date:todayS(),source:$("#p-src").value,title:$("#p-title").value.trim(),url:$("#p-url").value.trim(),disc:$("#p-disc").value,readingOnly:ro,
       minutes:ro?null:(+$("#p-min").value||null),score:ro||sc===""?null:+sc,outOf:ro||of===""?null:+of,snags:P.snags,notes:$("#p-notes").value.trim()});
     if(!ed)S.passages.push(rec); save();
     toast(ro?"Reading logged.":"Passage saved."); if(!ro&&!ed) go("logcars",{mode:"q",passageId:rec.id}); else go("cars");
