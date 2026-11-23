@@ -6,50 +6,52 @@
 <title>MCAT Gap Tracker</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: a quiet study desk. One narrow working column, action first: retest → priority topic → CARS. */
 :root{
-  --bg:#efedea; --panel:#faf9f7; --sunk:#e7e4e0; --ink:#1e1c1a; --ink-2:#4e4a45; --ink-3:#7d776f; --line:#dcd8d2;
-  --accent:#2f5d9e; --accent-ink:#ffffff; --accent-soft:#dfe6f1;
-  --no:#b8402c; --no-soft:#f6e0da; --part:#94660a; --part-soft:#f4e8cc; --yes:#2c7a4f; --yes-soft:#dcefe2;
-  --display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  /* Notebook: paper page, ruled lines, ink-blue writing, one red margin rule. */
+  --bg:#f5f2ea; --panel:#fffdf8; --sunk:#efebe1; --ink:#1c2a4a; --ink-2:#465577; --ink-3:#8590a8; --line:#dcd6c8; --rule:#dfe5ef; --margin:#e3a8a1;
+  --accent:#23448c; --accent-ink:#ffffff; --accent-soft:#e4e9f4;
+  --no:#b23a2a; --no-soft:#f6e1dc; --part:#8f6408; --part-soft:#f3e7c9; --yes:#2b7348; --yes-soft:#dcede1;
+  --display:"Newsreader",Georgia,"Times New Roman",serif;
   --body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#171615; --panel:#211f1d; --sunk:#2a2826; --ink:#f0ede8; --ink-2:#c4beb5; --ink-3:#958e84; --line:#37342f;
-  --accent:#8fb0e3; --accent-ink:#141312; --accent-soft:#25303f;
-  --no:#ef8a76; --no-soft:#3d2420; --part:#e2b450; --part-soft:#3a3020; --yes:#6cc893; --yes-soft:#1d3226; color-scheme:dark}}
+  --bg:#141824; --panel:#1b2030; --sunk:#232a3c; --ink:#ebe6da; --ink-2:#bfc3cf; --ink-3:#8b92a6; --line:#2f3648; --rule:#1f2536; --margin:#6e3a38;
+  --accent:#9fb6ea; --accent-ink:#121624; --accent-soft:#26304a;
+  --no:#ee8b78; --no-soft:#3b2324; --part:#e0b452; --part-soft:#383021; --yes:#71c795; --yes-soft:#1c3127; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#171615; --panel:#211f1d; --sunk:#2a2826; --ink:#f0ede8; --ink-2:#c4beb5; --ink-3:#958e84; --line:#37342f;
-  --accent:#8fb0e3; --accent-ink:#141312; --accent-soft:#25303f;
-  --no:#ef8a76; --no-soft:#3d2420; --part:#e2b450; --part-soft:#3a3020; --yes:#6cc893; --yes-soft:#1d3226; color-scheme:dark}
+  --bg:#141824; --panel:#1b2030; --sunk:#232a3c; --ink:#ebe6da; --ink-2:#bfc3cf; --ink-3:#8b92a6; --line:#2f3648; --rule:#1f2536; --margin:#6e3a38;
+  --accent:#9fb6ea; --accent-ink:#121624; --accent-soft:#26304a;
+  --no:#ee8b78; --no-soft:#3b2324; --part:#e0b452; --part-soft:#383021; --yes:#71c795; --yes-soft:#1c3127; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
 .wrap{max-width:920px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 96px}
-h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
-h1{font-size:1.45rem;font-weight:700} h2{font-size:1.12rem;font-weight:700} h3{font-size:.98rem;font-weight:600}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;font-weight:600}
+h1{font-size:1.6rem;font-style:italic} h2{font-size:1.3rem} h3{font-size:1.08rem}
 p{margin:0}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
 .muted{color:var(--ink-3)} .sub{color:var(--ink-2);font-size:.9rem}
 .label{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);font-weight:600}
 header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
-.count{font-size:.85rem;color:var(--ink-2)} .count b{font-family:var(--display);font-size:1.25rem;color:var(--ink)}
+.count{font-size:.85rem;color:var(--ink-2)} .count b{font-family:var(--display);font-size:1.4rem;color:var(--accent)}
 nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:2px;overflow-x:auto;padding-block:8px;margin-bottom:16px;border-bottom:1px solid var(--line);scrollbar-width:none}
 nav.tabs button{flex:0 0 auto;border:0;background:none;color:var(--ink-2);font:600 .88rem var(--body);padding:7px 11px;border-radius:8px;cursor:pointer;position:relative}
-nav.tabs button[aria-selected="true"]{background:var(--panel);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+nav.tabs button[aria-selected="true"]{color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent);border-radius:0}
 nav.tabs .dot{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:.7rem;line-height:18px;text-align:center}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0}
+.panel{background-color:var(--panel);background-image:linear-gradient(90deg,transparent 30px,var(--margin) 30px,var(--margin) 31px,transparent 31px),repeating-linear-gradient(180deg,transparent 0 27px,var(--rule) 27px 28px);border:1px solid var(--line);border-radius:4px;padding:18px 18px 18px 46px;min-width:0;box-shadow:0 1px 0 var(--line),0 2px 6px rgba(30,40,70,.05)}
+@media (max-width:480px){.panel{padding-left:38px;background-image:linear-gradient(90deg,transparent 24px,var(--margin) 24px,var(--margin) 25px,transparent 25px),repeating-linear-gradient(180deg,transparent 0 27px,var(--rule) 27px 28px)}}
 .stack{display:flex;flex-direction:column;gap:12px} .stack.tight{gap:6px}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .between{justify-content:space-between}
 .grid2{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
-.btn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:600 .88rem var(--body);padding:8px 14px;border-radius:8px;cursor:pointer}
+.btn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:600 .88rem var(--body);padding:8px 14px;border-radius:4px;cursor:pointer}
 .btn:hover{border-color:var(--ink-3)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn.big{padding:11px 18px;font-size:.95rem}
@@ -57,28 +59,28 @@ nav.tabs .dot{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;
 .btn.link{border:0;background:none;padding:2px 0;color:var(--accent);text-decoration:underline;text-underline-offset:2px}
 .btn.danger{color:var(--no);border-color:var(--no)}
 .fab{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:6;box-shadow:0 6px 20px rgba(0,0,0,.18)}
-.notice{background:var(--accent-soft);border-radius:10px;padding:10px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px;font-size:.9rem}
+.notice{background:var(--accent-soft);border-radius:4px;padding:10px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px;font-size:.9rem}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:20;max-width:calc(100% - 32px)}
 label.f{display:flex;flex-direction:column;gap:4px;font-size:.8rem;font-weight:600;color:var(--ink-2);min-width:0}
-input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:8px 10px;width:100%;min-width:0}
 input[type=checkbox]{width:auto}
 textarea{min-height:64px;resize:vertical}
 .fields{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink-2);font:500 .83rem var(--body);padding:5px 11px;border-radius:999px;cursor:pointer}
-.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink-2);font:500 .83rem var(--body);padding:5px 11px;border-radius:4px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .chip.sugg{border-style:dashed;color:var(--ink)}
 .req::after{content:" *";color:var(--no)}
 .sec-title{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .step{font-family:var(--mono);font-size:.72rem;color:var(--ink-3)}
-.why{font-size:.85rem;color:var(--ink-2);border-left:3px solid var(--line);padding-left:10px}
+.why{font-size:.86rem;color:var(--ink-2)}
 .status{display:inline-flex;align-items:center;gap:4px;font:600 .72rem var(--body);border-radius:999px;padding:2px 9px;white-space:nowrap}
 .status.no{background:var(--no-soft);color:var(--no)} .status.part{background:var(--part-soft);color:var(--part)} .status.yes{background:var(--yes-soft);color:var(--yes)} .status.plain{background:var(--sunk);color:var(--ink-2)} .status.acc{background:var(--accent-soft);color:var(--accent)}
 .list{list-style:none;margin:0;padding:0}
 .list>li{padding-block:10px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:space-between;align-items:flex-start}
 .list>li:first-child{border-top:0}
 .list .main{min-width:0;flex:1}
-.qcard{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px;white-space:pre-wrap}
+.qcard{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:2px;padding:12px 14px;white-space:pre-wrap;font-family:var(--display);font-size:1.05rem}
 .rate{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .rate button{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:12px 8px;font:600 .92rem var(--body);cursor:pointer;color:var(--ink)}
 .rate button[data-s="no"]{border-color:var(--no);color:var(--no)} .rate button[data-s="partial"]{border-color:var(--part);color:var(--part)} .rate button[data-s="yes"]{border-color:var(--yes);color:var(--yes)}
@@ -91,13 +93,13 @@ details>summary{cursor:pointer;font-weight:600;font-size:.88rem;color:var(--ink-
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
 .seg button{border:0;background:var(--panel);color:var(--ink-2);font:600 .82rem var(--body);padding:6px 12px;cursor:pointer}
 .seg button+button{border-left:1px solid var(--line)}
-.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .prompt{font-family:var(--mono);font-size:.76rem;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;white-space:pre-wrap;max-height:160px;overflow:auto}
 table{border-collapse:collapse;width:100%;font-size:.86rem}
 th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 th{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
 .tablewrap{overflow-x:auto}
-.empty{border:1px dashed var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.empty{padding:4px 0;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.88rem}
 .kv dt{color:var(--ink-3)} .kv dd{margin:0;white-space:pre-wrap;min-width:0}
 </style>
@@ -106,12 +108,12 @@ th{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink
 
 <div class="wrap">
   <header class="top">
-    <div class="row" style="gap:12px"><h1>MCAT Gap Tracker</h1></div>
+    <h1>MCAT Gap Tracker</h1>
     <div class="count"><b class="num" id="daysLeft">–</b> <span id="daysLabel">days to test day</span></div>
   </header>
   <div id="sampleNote" class="notice" hidden>
-    <span>You're looking at <b>example records</b>. The first record you save replaces them.</span>
-    <button class="btn small" id="clearSample">Clear examples now</button>
+    <span>Example records. Your first save replaces them.</span>
+    <button class="btn small" id="clearSample">Clear</button>
   </div>
   <nav class="tabs" role="tablist" id="tabs"></nav>
   <main id="view"></main>
@@ -308,26 +310,24 @@ function vToday(v){
   v.innerHTML=`<div class="stack" style="gap:16px">
   ${focus?`<div class="notice" style="margin:0"><span><span class="label">This week's focus</span><br>${esc(focus)}</span><button class="btn small" data-go="weekly">Weekly review</button></div>`:""}
   <section class="panel stack" aria-labelledby="h-rt">
-    <div class="sec-title"><h2 id="h-rt"><span class="step">1</span> Today's retests</h2><span class="muted num" style="font-size:.85rem">${due.length} due</span></div>
-    ${due.length?`<p class="why">Do these before random practice. Each one checks a point you reviewed earlier, asked in a new way, with the answer hidden.</p>
-      <ul class="list">${due.slice(0,3).map(it=>`<li><div class="main"><b>${esc(tname(it.topicId))}</b><div class="muted" style="font-size:.82rem">${esc(it.subject)} · due ${relDue(it.due)}${lastAttempt(it)?` · last time: ${SELF[lastAttempt(it).self].toLowerCase()}`:" · first retest"}</div></div>${lastAttempt(it)?`<span class="status ${SELF_CLS[lastAttempt(it).self]}">${SELF[lastAttempt(it).self]}</span>`:`<span class="status acc">New</span>`}</li>`).join("")}</ul>
-      <div class="row"><button class="btn primary big" data-go="retest">Start retest (${sessionN})</button>${due.length>3?`<span class="muted" style="font-size:.85rem">${due.length-3} more after these</span>`:""}</div>`
-    :`<div class="empty"><b>No retests due today.</b><span class="sub">${(()=>{const nx=S.items.filter(i=>!i.needsNewQ&&i.due>todayS()).map(i=>i.due).sort()[0];return nx?`Next one is due ${relDue(nx)}.`:"Retests appear here the day after you add a retest question to a record.";})()} Start your practice set, then log the 1–3 questions most worth reviewing.</span>
-      <div class="row"><button class="btn primary" data-go="log">Log a question</button>${noCardItems().length?`<button class="btn" data-go="records">Add retest questions (${noCardItems().length} record${noCardItems().length===1?"":"s"} without one)</button>`:""}</div></div>`}
-    ${needNew.length?`<div class="stack tight"><span class="label">Needs a new question</span><p class="sub">You got these right. To confirm, the next retest should use a different question. Write one to keep them in the queue.</p>
-      <div class="chips">${needNew.map(it=>`<button class="chip sugg" data-addcard="${it.id}">+ ${esc(tname(it.topicId))}</button>`).join("")}</div></div>`:""}
+    <div class="sec-title"><h2 id="h-rt">Retests</h2><span class="muted num" style="font-size:.85rem">${due.length} due</span></div>
+    ${due.length?`      <ul class="list">${due.slice(0,3).map(it=>`<li><div class="main"><b>${esc(tname(it.topicId))}</b><div class="muted" style="font-size:.82rem">${esc(it.subject)} · ${relDue(it.due)}</div></div>${lastAttempt(it)?`<span class="status ${SELF_CLS[lastAttempt(it).self]}">${SELF[lastAttempt(it).self]}</span>`:`<span class="status acc">New</span>`}</li>`).join("")}</ul>
+      <div class="row"><button class="btn primary big" data-go="retest">Start retest (${sessionN})</button>${due.length>3?`<span class="muted" style="font-size:.85rem">+${due.length-3} more</span>`:""}</div>`
+    :`<div class="empty"><b>Nothing due today.</b><span class="sub">${(()=>{const nx=S.items.filter(i=>!i.needsNewQ&&i.due>todayS()).map(i=>i.due).sort()[0];return nx?`Next: ${relDue(nx)}.`:"";})()}</span>
+      <div class="row"><button class="btn primary" data-go="log">Log a question</button>${noCardItems().length?`<button class="btn" data-go="records">Add retest questions (${noCardItems().length})</button>`:""}</div></div>`}
+    ${needNew.length?`<div class="stack tight"><span class="label">Needs a new question</span>      <div class="chips">${needNew.map(it=>`<button class="chip sugg" data-addcard="${it.id}">+ ${esc(tname(it.topicId))}</button>`).join("")}</div></div>`:""}
   </section>
   <section class="panel stack" aria-labelledby="h-pr">
-    <div class="sec-title"><h2 id="h-pr"><span class="step">2</span> Priority topic</h2>${pri?`<span class="status ${pri.tier===1?"no":pri.tier===2?"part":"plain"}">${pri.tier===1?"Still shaky":pri.tier===2?"Repeated":"First miss"}</span>`:""}</div>
-    ${pri?(()=>{const act=practiceAction(pri);return `<div><h3 style="font-size:1.15rem">${esc(tname(pri.id))}</h3><p class="why" style="margin-top:6px"><b>Why:</b> ${esc(pri.why)}. ${esc(evidenceLine(pri))}</p></div>
-      <div class="qcard"><span class="label">Practice</span><br>${esc(act.text)}<br><span class="muted" style="font-size:.78rem">Suggested ${esc(act.from)}.</span></div>
-      <div class="row"><button class="btn primary" data-topic="${pri.id}">Open topic and all ${pri.items.length} record${pri.items.length>1?"s":""}</button><button class="btn" data-win="${pri.id}">I got a new one right</button></div>`;})()
-    :`<div class="empty"><b>No priority topic yet.</b><span class="sub">Log a wrong or guessed question and it will show up here with a practice step.</span><button class="btn" data-go="log">Log a question</button></div>`}
+    <div class="sec-title"><h2 id="h-pr">Review</h2>${pri?`<span class="status ${pri.tier===1?"no":pri.tier===2?"part":"plain"}">${pri.tier===1?"Still shaky":pri.tier===2?"Repeated":"First miss"}</span>`:""}</div>
+    ${pri?(()=>{const act=practiceAction(pri);return `<div><h3 style="font-size:1.15rem">${esc(tname(pri.id))}</h3><p class="why" style="margin-top:6px">${esc(pri.why)}. ${esc(evidenceLine(pri))}</p></div>
+      <div class="qcard">${esc(act.text)}</div>
+      <div class="row"><button class="btn primary" data-topic="${pri.id}">Open (${pri.items.length} record${pri.items.length>1?"s":""})</button><button class="btn" data-win="${pri.id}">I got a new one right</button></div>`;})()
+    :`<div class="empty"><b>Nothing yet.</b><button class="btn" data-go="log">Log a question</button></div>`}
   </section>
   <section class="panel stack" aria-labelledby="h-cars">
-    <div class="sec-title"><h2 id="h-cars"><span class="step">3</span> CARS</h2><span class="status plain">${esc(cr.disc)}</span></div>
-    <p class="why"><b>Why:</b> ${cr.fromWeak?`${esc(cr.disc)} is one of your lowest-scoring passage types (${esc(cr.pool.join(", "))}).`:"Not enough timed passages logged yet, so this rotates through every passage type."}${cr.trap?` Your most repeated trap is "${esc(CARS_TRAPS[cr.trap.k].toLowerCase())}", seen in ${cr.trap.np} passage${cr.trap.np>1?"s":""}.`:""}</p>
-    <div class="qcard"><span class="label">Task</span><br>Read one ${esc(cr.disc)} essay or passage. ${esc(cr.task)}</div>
+    <div class="sec-title"><h2 id="h-cars">CARS</h2><span class="status plain">${esc(cr.disc)}</span></div>
+    ${cr.fromWeak||cr.trap?`<p class="why">${cr.fromWeak?"A low-scoring type for you.":""}${cr.trap?` Top trap: ${esc(CARS_TRAPS[cr.trap.k].toLowerCase())} (${cr.trap.np} passage${cr.trap.np>1?"s":""}).`:""}</p>`:""}
+    <div class="qcard"><span class="label">Task</span><br>${esc(cr.task)}</div>
     <div class="row">${siteLinks(cr.disc)}</div>
     <div class="row"><button class="btn primary" data-logread="${esc(cr.disc)}">Log what I read</button><button class="btn" data-go="cars">Open CARS</button></div>
   </section></div>`;
@@ -360,13 +360,13 @@ function vLog(v){
   const recentSubj=S.items.length?S.items[S.items.length-1].subject:"";
   v.innerHTML=`<div class="panel stack">
     <div class="sec-title"><h2>${editing?"Edit record":"Log a question"}</h2>
-      <div class="row">${editing?"":`<div class="seg" role="group" aria-label="Form style"><button type="button" data-style="quick" aria-pressed="${!full}">Quick</button><button type="button" data-style="full" aria-pressed="${full}">Full review</button></div>`}</div></div>
-    ${editing?"":`<div class="row" style="font-size:.85rem"><span class="muted">Got a new question right on an old weak topic?</span><button class="btn link" data-mode="win">Log it here</button></div>`}
+      <div class="row">${editing?"":`<button class="btn link" data-mode="win" style="font-size:.85rem">Got one right</button><div class="seg" role="group" aria-label="Form style"><button type="button" data-style="quick" aria-pressed="${!full}">Quick</button><button type="button" data-style="full" aria-pressed="${full}">Full review</button></div>`}</div></div>
+    
     <div class="stack tight"><span class="label req">Subject</span><div class="chips" id="l-subj">${SUBJECTS.map(s=>`<button type="button" class="chip" data-subj="${esc(s)}" aria-pressed="${F.subject===s}">${esc(s)}</button>`).join("")}</div></div>
-    <label class="f"><span class="req">Topic (keep the original English term)</span><input id="l-topic" autocomplete="off" placeholder="e.g. anion-exchange chromatography" value="${esc(F.topic)}"></label>
+    <label class="f"><span class="req">Topic</span><input id="l-topic" autocomplete="off" placeholder="e.g. anion-exchange chromatography" value="${esc(F.topic)}"></label>
     <div id="l-sugg"></div>
     <div class="stack tight"><span class="label req">Result</span><div class="chips" id="l-res"><button type="button" class="chip" data-res="wrong" aria-pressed="${F.result==="wrong"}">Wrong</button><button type="button" class="chip" data-res="guess" aria-pressed="${F.result==="guess"}">Guessed right / 50-50</button></div></div>
-    <details id="l-more" ${full||editing?"open":""}><summary>More details (optional)</summary>
+    <details id="l-more" ${full||editing?"open":""}><summary>Details</summary>
       <div class="stack" style="margin-top:10px">
         <div class="fields"><label class="f">Source<select id="l-src"><option value="">Not specified</option>${SCI_SOURCES.map(s=>`<option ${s===F.source?"selected":""}>${s}</option>`).join("")}</select></label>
           <label class="f">Question ID<input id="l-qref" placeholder="#18422" value="${esc(F.qref)}"></label>
@@ -375,11 +375,10 @@ function vLog(v){
         <label class="f">What I was thinking<textarea id="l-thought" placeholder="e.g. Thought a negative protein sticks to a negative resin">${esc(F.thought)}</textarea></label>
         <label class="f">How to tell next time<textarea id="l-next" placeholder="e.g. First compare pH and pI to get net charge, then pick the opposite-charge resin">${esc(F.nextTime)}</textarea></label>
       </div></details>
-    ${editing?"":`<details id="l-rt" ${full?"open":""}><summary>Retest question (optional, can add later)</summary>
-      <div class="stack" style="margin-top:10px"><p class="sub">Ask it a new way, not the same question. Only records with a retest question go into the retest queue. First retest: tomorrow.</p>
-        <label class="f">Question<textarea id="l-rq" placeholder="e.g. Buffer pH 8.5, protein pI 6.0. Does it bind a DEAE column?">${esc(F.rq)}</textarea></label>
+    ${editing?"":`<details id="l-rt" ${full?"open":""}><summary>Retest question</summary>
+      <div class="stack" style="margin-top:10px">        <label class="f">Question<textarea id="l-rq" placeholder="e.g. Buffer pH 8.5, protein pI 6.0. Does it bind a DEAE column?">${esc(F.rq)}</textarea></label>
         <label class="f">Answer and short explanation<textarea id="l-ra" placeholder="e.g. Yes. pH > pI, so it's negative and binds the positive DEAE resin.">${esc(F.ra)}</textarea></label></div></details>`}
-    <div class="row"><button class="btn primary big" id="l-save">${editing?"Save changes":"Save"}</button>${editing?`<button class="btn" id="l-cancel">Cancel</button>`:`<button class="btn" id="l-clear">Clear</button>`}<span class="muted" style="font-size:.8rem">* required</span></div>
+    <div class="row"><button class="btn primary big" id="l-save">${editing?"Save changes":"Save"}</button>${editing?`<button class="btn" id="l-cancel">Cancel</button>`:`<button class="btn" id="l-clear">Clear</button>`}</div>
   </div>`;
   if(!F.subject&&recentSubj&&!editing){} // keep explicit choice
   const bindIn=(sel,key)=>{const el=$(sel);if(el)el.oninput=e=>F[key]=e.target.value;};
@@ -432,7 +431,7 @@ function vWin(v,topicId){
   let tid=topicId||"";
   v.innerHTML=`<div class="panel stack">
     <h2>Got a new question right</h2>
-    <p class="sub">Use this when you answer a <b>new</b> UWorld / AAMC / Jack Westin question correctly on a topic you used to miss. This is separate from retests, and it's the strongest sign a weak spot is fixed.</p>
+    <p class="sub">A new bank question, not a retest.</p>
     <label class="f"><span class="req">Topic</span><select id="w-topic"><option value="">Choose one of your topics…</option>${[...S.topics].sort((a,b)=>a.name.localeCompare(b.name)).map(t=>`<option value="${t.id}" ${t.id===tid?"selected":""}>${esc(t.name)}</option>`).join("")}</select></label>
     <div class="fields"><label class="f">Source<select id="w-src">${SCI_SOURCES.map(s=>`<option>${s}</option>`).join("")}</select></label><label class="f">Question ID<input id="w-qref"></label><label class="f">Date<input type="date" id="w-date" value="${todayS()}"></label></div>
     <label class="f">Note (optional)<input id="w-note" placeholder="e.g. used the pH vs pI step without hesitating"></label>
@@ -450,7 +449,7 @@ function vRetest(v){
     const more=dueItems().length;
     v.innerHTML=`<div class="panel stack">${R.queue.length?`<h2>Retest done</h2>
       <ul class="list">${R.results.map(r=>`<li><div class="main"><b>${esc(tname(r.topicId))}</b><div class="muted" style="font-size:.82rem">Next: ${r.needNew?"needs a new question first":fmtD(r.next)}</div></div><span class="status ${SELF_CLS[r.self]}">${SELF[r.self]}</span></li>`).join("")}</ul>`
-      :`<div class="empty"><b>Nothing due right now.</b><span class="sub">Retests show up the day after you add a retest question.</span></div>`}
+      :`<div class="empty"><b>Nothing due right now.</b></div>`}
       <div class="row">${more?`<button class="btn primary" id="r-more">Do ${Math.min(3,more)} more (${more} due)</button>`:""}<button class="btn ${more?"":"primary"}" data-go="today">Back to Today</button></div></div>`;
     bindCommon(v);
     const m=$("#r-more");if(m)m.onclick=()=>{R=null;render();};
@@ -462,7 +461,7 @@ function vRetest(v){
     <div class="sec-title"><span class="label">Retest ${R.i+1} of ${R.queue.length}</span><span class="muted" style="font-size:.82rem">${esc(it.subject)}</span></div>
     <h2>${esc(tname(it.topicId))}</h2>
     <div class="qcard">${esc(card.q)}</div>
-    ${R.stage==="ask"?`<label class="f">Your answer (closed book)<textarea id="r-ans" placeholder="Write your reasoning in a line or two">${esc(R.answer)}</textarea></label>
+    ${R.stage==="ask"?`<label class="f">Your answer<textarea id="r-ans">${esc(R.answer)}</textarea></label>
       <div class="row"><button class="btn primary" id="r-submit">Submit answer</button><button class="btn" id="r-show">Show answer</button><button class="btn link" id="r-skip">Skip for now</button></div>`
     :`${R.answer?`<div class="stack tight"><span class="label">Your answer</span><div>${esc(R.answer)}</div></div>`:""}
       <div class="stack tight"><span class="label">Answer</span><div class="qcard" style="background:var(--yes-soft)">${esc(card.a)}</div></div>
@@ -511,7 +510,7 @@ function vTopic(v){
     </div>
     ${info.items.sort((a,b)=>a.doneDate<b.doneDate?1:-1).map(it=>itemCard(it,it.id===focusItem)).join("")}
     <div class="panel stack"><h2>Correct on new questions</h2>
-      ${info.wins.length?`<ul class="list">${info.wins.map(w=>`<li><div class="main"><b>${esc(srcLabel(w)||"New question")}</b><div class="muted" style="font-size:.82rem">${fmtD(w.date)}${w.note?" · "+esc(w.note):""}</div></div><span class="status yes">Independent</span></li>`).join("")}</ul>`:`<p class="muted">None yet. When you get a new bank question right on this topic, log it here. It counts more than a retest.</p>`}</div>
+      ${info.wins.length?`<ul class="list">${info.wins.map(w=>`<li><div class="main"><b>${esc(srcLabel(w)||"New question")}</b><div class="muted" style="font-size:.82rem">${fmtD(w.date)}${w.note?" · "+esc(w.note):""}</div></div><span class="status yes">Independent</span></li>`).join("")}</ul>`:`<p class="muted">None yet.</p>`}</div>
   </div>`;
   bindCommon(v);
   $("#t-rename").onclick=()=>{$("#t-renamebox").hidden=false;$("#t-name").focus();};
@@ -539,7 +538,7 @@ function itemCard(it,open){
       ${it.attempts.length?`<div class="tablewrap"><table><thead><tr><th>Retest date</th><th>Result</th><th>Next due</th></tr></thead><tbody>${it.attempts.map(a=>`<tr><td class="num">${shortD(a.date)}</td><td><span class="status ${SELF_CLS[a.self]}">${SELF[a.self]}</span></td><td class="num">${shortD(a.next)}</td></tr>`).join("")}</tbody></table></div>`:""}</div></details>`:""}
     <div class="row"><button class="btn small ${it.needsNewQ||!it.cards.length?"primary":""}" data-cardform="${it.id}">${it.cards.length?"Add another retest question":"Add retest question"}</button><button class="btn small" data-edit="${it.id}">Edit</button>
       <button class="btn small" data-delask>Delete…</button><span class="row" hidden><button class="btn small danger" data-delyes="${it.id}">Delete this record</button><button class="btn small" data-delno>Keep</button></span></div>
-    <div id="cf-${it.id}" class="stack" ${open?"":"hidden"}><p class="sub">Ask the same point a new way (for example, a different pH and pI).</p>
+    <div id="cf-${it.id}" class="stack" ${open?"":"hidden"}>
       <label class="f">Question<textarea class="cq"></textarea></label><label class="f">Answer and short explanation<textarea class="ca"></textarea></label>
       <button class="btn primary small" data-cardsave="${it.id}" style="align-self:flex-start">Save retest question</button></div>
   </div>`;
@@ -555,24 +554,23 @@ function vCars(v){
   v.innerHTML=`<div class="stack" style="gap:16px">
   <div class="row"><button class="btn primary" data-lc="passage">+ Log a passage</button><button class="btn" data-lc="q">+ Log a CARS question</button><button class="btn" data-logread="${esc(cr.disc)}">+ Log an article I read</button></div>
   <section class="panel stack"><div class="sec-title"><h2>Next practice task</h2>${cr.trap?`<span class="status no">${esc(CARS_TRAPS[cr.trap.k])}</span>`:""}</div>
-    ${cr.trap?`<p class="why"><b>Why:</b> seen in ${cr.trap.np} passage${cr.trap.np>1?"s":""} (${cr.trap.n} question${cr.trap.n>1?"s":""}). ${cr.trap.np<3?"Small sample so far, so treat it as a lead to test, not a verdict.":""}</p>
-      <div class="qcard">${esc(TRAP_TASK[cr.trap.k])}</div>`:`<div class="empty"><b>No CARS question traps logged yet.</b><span class="sub">After a passage, log the 1–2 questions you missed or guessed and pick the trap. Repeated traps become your next task.</span></div>`}
+    ${cr.trap?`<p class="why">${cr.trap.np} passage${cr.trap.np>1?"s":""}, ${cr.trap.n} question${cr.trap.n>1?"s":""}.</p>
+      <div class="qcard">${esc(TRAP_TASK[cr.trap.k])}</div>`:`<div class="empty"><b>No traps logged yet.</b></div>`}
   </section>
   <section class="panel stack"><div class="sec-title"><h2>Today's reading</h2><span class="status plain">${esc(cr.disc)}</span></div>
-    <p class="why">${cr.fromWeak?`One of your lowest-scoring passage types: ${esc(cr.pool.join(", "))}. A different one each day.`:"Rotating through all passage types until you log a few timed passages."}</p>
-    <div class="qcard"><span class="label">Reading task</span><br>${esc(cr.task)}</div>
+        <div class="qcard">${esc(cr.task)}</div>
     <div class="row">${siteLinks(cr.disc)}</div>
-    <p class="muted" style="font-size:.82rem">Articles read: <b class="num">${reads.length+legacyReads}</b>. These count separately and never affect your accuracy.</p>
+    <p class="muted" style="font-size:.82rem">Articles read: <b class="num">${reads.length+legacyReads}</b></p>
   </section>
   <div class="grid2">
   <section class="panel stack"><h2>Where you read slowly</h2>
     ${ds.length?`<div class="tablewrap"><table><thead><tr><th>Passage type</th><th>Passages</th><th>Avg time</th><th>Score</th></tr></thead><tbody>${ds.map(d=>`<tr><td>${esc(d.k)}</td><td class="num">${d.n}</td><td class="num">${d.avgMin?d.avgMin.toFixed(1)+" min":"—"}</td><td class="num">${d.pct!=null?Math.round(d.pct*100)+"%":"—"}</td></tr>`).join("")}</tbody></table></div>
-      <p class="muted" style="font-size:.8rem">Based on ${timed.length} timed passage${timed.length===1?"":"s"}. Counts are shown as-is so you can judge how much to trust them.</p>`:`<p class="muted">Log a timed passage with its time and score to see this.</p>`}</section>
+      <p class="muted" style="font-size:.8rem">${timed.length} timed passage${timed.length===1?"":"s"}</p>`:`<p class="muted">No timed passages yet.</p>`}</section>
   <section class="panel stack"><h2>Repeated traps</h2>
     ${traps.length?`<ul class="list">${traps.map(t=>`<li><div class="main"><b>${esc(CARS_TRAPS[t.k])}</b><div class="muted" style="font-size:.82rem">in ${t.np} passage${t.np>1?"s":""} · ${t.n} question${t.n>1?"s":""} · ${esc([...new Set(t.qs.map(q=>q.qtype))].join(", "))}</div></div></li>`).join("")}</ul>`:`<p class="muted">No traps logged yet.</p>`}</section>
   </div>
   <section class="panel stack"><h2>Recent passages</h2>${passageList(S.passages.slice().sort((a,b)=>a.date<b.date?1:-1).slice(0,8))}</section>
-  <section class="panel stack"><h2>Quiz me in Claude</h2><p class="sub">Copy this prompt into a chat with Claude for an AAMC-style passage and questions, one at a time.</p>
+  <section class="panel stack"><h2>Quiz me in Claude</h2>
     <div class="fields"><label class="f">Passage type<select id="qz-disc">${CARS_DISC_ALL.map(x=>`<option ${x===quiz.disc?"selected":""}>${esc(x)}</option>`).join("")}</select></label></div>
     <div class="chips" id="qz-types">${CARS_QT.map(x=>`<button type="button" class="chip" data-qt="${esc(x)}" aria-pressed="${quiz.types.includes(x)}">${esc(x)}</button>`).join("")}</div>
     <div class="prompt" id="qz-prompt"></div>
@@ -687,21 +685,21 @@ function vWeekly(v){
   <p class="sub">This week: ${items.length} question record${items.length===1?"":"s"}, ${attempts.length} retest${attempts.length===1?"":"s"}, ${pW.filter(p=>!p.readingOnly).length} timed passage${pW.filter(p=>!p.readingOnly).length===1?"":"s"}, ${cqW.length} CARS question${cqW.length===1?"":"s"}, ${pW.filter(p=>p.readingOnly).length} article${pW.filter(p=>p.readingOnly).length===1?"":"s"} read.</p>
   <section class="panel stack"><h3>1. Which topics kept costing points, or still weren't known after a retest?</h3>
     ${q1.length?`<ul class="list">${q1.map(x=>`<li><div class="main"><b>${esc(tname(x.id))}</b><div class="sub" style="font-size:.85rem">${x.o.items.length?`${x.o.items.length} miss${x.o.items.length>1?"es":""} this week: ${x.o.items.map(recLink).join(", ")}. `:""}${x.o.bad.length?`Retests not solid: ${x.o.bad.map(a=>`${SELF[a.self].toLowerCase()} on ${shortD(a.date)}`).join(", ")}.`:""}</div></div><button class="btn small" data-topic="${x.id}">Open</button></li>`).join("")}</ul>`
-    :`<p class="muted">Nothing repeated yet. This week has ${items.length} record${items.length===1?"":"s"} and ${attempts.filter(a=>a.self!=="yes").length} unsolid retest${attempts.filter(a=>a.self!=="yes").length===1?"":"s"}. A topic shows up here after 2 misses or one shaky retest.</p>`}</section>
+    :`<p class="muted">Not enough yet (${items.length} record${items.length===1?"":"s"}, ${attempts.filter(a=>a.self!=="yes").length} shaky retest${attempts.filter(a=>a.self!=="yes").length===1?"":"s"}).</p>`}</section>
   <section class="panel stack"><h3>2. Which CARS trap showed up in different passages?</h3>
     ${q2?`<div><b>${esc(CARS_TRAPS[q2.k])}</b><div class="sub" style="font-size:.85rem">In ${q2.np} passages: ${q2.qs.map(q=>{const p=cqPassage(q);return esc(`${q.qtype} (${p?(p.title||p.disc)+", "+shortD(p.date):shortD(q.date)})`);}).join("; ")}.</div></div><div class="qcard"><span class="label">Practice</span><br>${esc(TRAP_TASK[q2.k])}</div>`
-    :`<p class="muted">No trap has repeated across different passages yet. ${cqW.length} CARS question${cqW.length===1?"":"s"} logged from ${new Set(cqW.map(q=>q.passageId).filter(Boolean)).size} passage${new Set(cqW.map(q=>q.passageId).filter(Boolean)).size===1?"":"s"} this week.</p>
+    :`<p class="muted">No repeat yet (${cqW.length} question${cqW.length===1?"":"s"} from ${new Set(cqW.map(q=>q.passageId).filter(Boolean)).size} passage${new Set(cqW.map(q=>q.passageId).filter(Boolean)).size===1?"":"s"}).</p>
       ${cqW.length?`<ul class="list">${cqW.map(q=>{const p=cqPassage(q);return `<li><div class="main"><b>${esc((q.traps||[]).map(t=>CARS_TRAPS[t]).join(", ")||"No trap tagged")}</b><div class="sub" style="font-size:.85rem">${esc(q.qtype)} · ${q.result==="wrong"?"wrong":"guessed"} · ${esc(p?(p.title||p.disc+" passage")+", "+(p.outOf?p.score+"/"+p.outOf+", ":"")+(p.minutes?p.minutes+" min, ":"")+shortD(p.date):shortD(q.date))}</div>${q.lure?`<div class="muted" style="font-size:.82rem">${esc(q.lure)}</div>`:""}</div><button class="btn small" data-cqedit="${q.id}">Open</button></li>`;}).join("")}</ul>`:""}`}</section>
   <section class="panel stack"><h3>3. Which old weak spot did you get right on a new question?</h3>
     ${q3.length?`<ul class="list">${q3.map(w=>`<li><div class="main"><b>${esc(tname(w.topicId))}</b><div class="sub" style="font-size:.85rem">${esc(srcLabel(w)||"New question")} on ${shortD(w.date)}. Earlier misses: ${S.items.filter(i=>i.topicId===w.topicId).length}.${w.note?" "+esc(w.note):""}</div></div><span class="status yes">Fixed?</span></li>`).join("")}</ul>`
-    :`<p class="muted">None logged this week. When you answer a new bank question right on an old weak topic, use "I got a new one right" so it shows here.</p>`}</section>
+    :`<p class="muted">None this week.</p>`}</section>
   <section class="panel stack"><h3>Totals (optional)</h3>
     <div class="fields"><label class="f">Total questions answered this week<input type="number" min="0" id="w-total" value="${total||""}" placeholder="e.g. 320"></label></div>
-    <p class="sub">${total?`You logged ${items.length} review-worthy question${items.length===1?"":"s"} out of ${total} answered (${(items.length/total*100).toFixed(1)}%). This is a review rate, not your score.`:"Add your total to see what share of questions you logged. No rate is calculated without it."}</p></section>
+    <p class="sub">${total?`You logged ${items.length} review-worthy question${items.length===1?"":"s"} out of ${total} answered (${(items.length/total*100).toFixed(1)}%).`:""}</p></section>
   <section class="panel stack"><h3>Pick next week's priority</h3>
     <div class="chips" id="w-cands">${cands.map(c=>`<button type="button" class="chip" data-focus="${esc(c)}" aria-pressed="${nextFocus===c}">${esc(c)}</button>`).join("")}</div>
     <div class="row"><input id="w-focus" placeholder="Or write your own" value="${esc(nextFocus)}" style="max-width:420px"><button class="btn primary" id="w-fsave">Save priority</button></div>
-    <p class="muted" style="font-size:.82rem">It shows at the top of Today during the week of ${shortD(nextWs)}.</p></section>
+    </section>
   </div>`;
   bindCommon(v);
   v.querySelectorAll("[data-wk]").forEach(b=>b.onclick=()=>{weekOffset=Math.max(0,weekOffset+(+b.dataset.wk));render();});
@@ -719,7 +717,7 @@ function vRecords(v){
    ${recTab==="q"?`<section class="panel stack"><h2>By topic</h2>${groups.length?`<ul class="list">${groups.map(({t,info})=>`<li><div class="main"><button class="btn link" data-topic="${t.id}" style="font-weight:600;text-align:left">${esc(t.name)}</button><div class="muted" style="font-size:.82rem">${esc(t.subject)} · ${info.items.length} record${info.items.length===1?"":"s"}${info.wins.length?` · ${info.wins.length} correct on new questions`:""} · ${esc(info.why)}</div></div>
       <span class="status ${info.tier===1?"no":info.tier===2?"part":info.tier>=4?"yes":"plain"}">${["","Still shaky","Repeated","First miss","Improving","Fixed?"][info.tier]}</span></li>`).join("")}</ul>`:`<div class="empty"><b>No records yet.</b><button class="btn primary" data-go="log">Log a question</button></div>`}</section>`:""}
    ${recTab==="c"?`<section class="panel stack"><h2>CARS passages</h2>${passageList(S.passages.slice().sort((a,b)=>a.date<b.date?1:-1))}${S.cq.filter(q=>!q.passageId).length?`<h3>Questions not linked to a passage</h3><ul class="list">${S.cq.filter(q=>!q.passageId).map(q=>`<li><div class="main">${esc(q.qtype)} · ${esc((q.traps||[]).map(t=>CARS_TRAPS[t]).join(", "))}</div><button class="btn small" data-cqedit="${q.id}">Edit</button></li>`).join("")}</ul>`:""}</section>`:""}
-   ${recTab==="o"?`<section class="panel stack"><h2>Older block logs</h2><p class="sub">From the earlier version of this tracker. Kept read-only.</p>${S.legacy.blocks.length?`<div class="tablewrap"><table><thead><tr><th>Date</th><th>Source</th><th>Section</th><th>Score</th><th>Missed</th></tr></thead><tbody>${S.legacy.blocks.map(b=>`<tr><td class="num">${shortD(b.date)}</td><td>${esc(b.source)}</td><td>${esc(b.section)}</td><td class="num">${b.correct}/${b.total}</td><td>${(b.misses||[]).length} tagged${(b.misses||[]).some(m=>m.qtype)?": "+esc([...new Set(b.misses.map(m=>m.qtype).filter(Boolean))].join(", ")):""}</td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">No older logs.</p>`}</section>`:""}
+   ${recTab==="o"?`<section class="panel stack"><h2>Older block logs</h2>${S.legacy.blocks.length?`<div class="tablewrap"><table><thead><tr><th>Date</th><th>Source</th><th>Section</th><th>Score</th><th>Missed</th></tr></thead><tbody>${S.legacy.blocks.map(b=>`<tr><td class="num">${shortD(b.date)}</td><td>${esc(b.source)}</td><td>${esc(b.section)}</td><td class="num">${b.correct}/${b.total}</td><td>${(b.misses||[]).length} tagged${(b.misses||[]).some(m=>m.qtype)?": "+esc([...new Set(b.misses.map(m=>m.qtype).filter(Boolean))].join(", ")):""}</td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">No older logs.</p>`}</section>`:""}
   </div>`;
   bindCommon(v);
   v.querySelectorAll("[data-rt]").forEach(b=>b.onclick=()=>{recTab=b.dataset.rt;render();});
@@ -733,15 +731,15 @@ function vSettings(v){
   v.innerHTML=`<div class="grid2">
   <section class="panel stack"><h2>Test date and retest spacing</h2>
     <label class="f">Test date<input type="date" id="s-date" value="${esc(S.settings.testDate)}"></label>
-    <p class="sub">After a retest, the next one is scheduled this many days later. The first retest is always the day after you add the question.</p>
+    <p class="sub">Days until the next retest.</p>
     <div class="fields"><label class="f">Couldn't<input type="number" min="1" id="s-no" value="${iv.no}"></label><label class="f">Partly<input type="number" min="1" id="s-part" value="${iv.partial}"></label><label class="f">Got it (new question)<input type="number" min="1" id="s-yes" value="${iv.yes}"></label></div>
     <button class="btn primary" id="s-save" style="align-self:flex-start">Save</button></section>
   <section class="panel stack"><h2>Backup</h2>
-    <p class="sub">Records live only in this browser on this device. Back up weekly. The same backup moves your data to your phone.</p>
+    <p class="sub">Data lives in this browser only.</p>
     <div class="row"><button class="btn primary" id="s-export">Download backup</button><button class="btn" id="s-copy">Copy backup text</button></div>
     <label class="f">Restore from a backup file<input type="file" id="s-file" accept=".json,application/json"></label>
     <details><summary>Or paste backup text</summary><div class="stack" style="margin-top:8px"><textarea id="s-paste"></textarea><button class="btn small" id="s-import" style="align-self:flex-start">Restore pasted backup</button></div></details></section>
-  <section class="panel stack"><h2>Start fresh</h2><p class="sub">Deletes every record in this browser. Download a backup first.</p>
+  <section class="panel stack"><h2>Start fresh</h2>
     ${confirmReset?`<div class="row"><button class="btn danger" id="s-yes2">Yes, delete everything</button><button class="btn" id="s-no2">Cancel</button></div>`:`<button class="btn danger" id="s-reset" style="align-self:flex-start">Delete all data…</button>`}</section></div>`;
   $("#s-save").onclick=()=>{S.settings.testDate=$("#s-date").value||"2027-02-12";S.settings.iv={no:Math.max(1,+$("#s-no").value||1),partial:Math.max(1,+$("#s-part").value||2),yes:Math.max(1,+$("#s-yes").value||5)};save();render();toast("Saved.");};
   const data=()=>JSON.stringify({app:"mcat-tracker",version:2,exported:new Date().toISOString(),...S});
