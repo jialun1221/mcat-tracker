@@ -148,13 +148,14 @@ const CARS_DISC={"Humanities":["Architecture","Art","Dance","Ethics","Literature
  "Social sciences":["Anthropology","Archaeology","Economics","Education","Geography","History","Linguistics","Political science","Population health","Psychology","Sociology","Diverse cultures (social science)"]};
 const CARS_STYLES=["Opinion / argument","Conversational","Factual / scientific","Historical account","Abstract / theoretical"];
 const DISC_MIGRATE={"Art & architecture":"Art","Theater & dance":"Theater","Cultural studies":"Diverse cultures (humanities)","Anthropology & archaeology":"Anthropology"};
-const discGroup=d=>CARS_DISC["Humanities"].includes(d)?"Humanities":CARS_DISC["Social sciences"].includes(d)?"Social sciences":"";
+const discGroup=d=>d==="Humanities"||d==="Social sciences"?d:CARS_DISC["Humanities"].includes(d)?"Humanities":CARS_DISC["Social sciences"].includes(d)?"Social sciences":"";
 const CARS_DISC_ALL=Object.values(CARS_DISC).flat();
 const CARS_SKILLS=[["Foundations of Comprehension","30%",["Main idea","Detail","Meaning in context","Author's attitude","Paragraph function"]],
  ["Reasoning Within the Text","30%",["Inference","Support for a claim","Argument structure"]],
  ["Reasoning Beyond the Text","40%",["Application","Analogy","Strengthen / weaken"]]];
 const CARS_QT=CARS_SKILLS.flatMap(x=>x[2]);
-const skillOf=qt=>(CARS_SKILLS.find(x=>x[2].includes(qt))||[""])[0];
+const skillOf=qt=>(CARS_SKILLS.find(x=>x[0]===qt||x[2].includes(qt))||[""])[0];
+const discOpts=sel=>`<option value="">—</option>${Object.entries(CARS_DISC).map(([g,l])=>`<optgroup label="${g}"><option value="${g}" ${sel===g?"selected":""}>${g} (not specified)</option>${l.map(x=>`<option ${x===sel?"selected":""}>${esc(x)}</option>`).join("")}</optgroup>`).join("")}`;
 const qtChips=(attr,sel,wrap)=>`<div class="stack tight" ${wrap}>${CARS_SKILLS.map(([g,pct,l])=>`<div class="stack tight" style="gap:4px"><span class="muted" style="font-size:.78rem">${g} · ${pct}</span><div class="chips">${l.map(x=>`<button type="button" class="chip" ${attr}="${esc(x)}" aria-pressed="${sel===x}">${esc(x)}</button>`).join("")}</div></div>`).join("")}</div>`;
 const CARS_TRAPS={attrib:"Misattributed a viewpoint",scope:"Answer went beyond the passage",detail:"Took a detail as the main idea",extreme:"Fell for extreme wording",qualifier:"Missed a qualifier or negation",wrongq:"True statement, wrong question",other:"Other"};
 const TRAP_TASK={
@@ -850,9 +851,42 @@ For every CARS question (correct or wrong), also add:
 - category: one of ${JSON.stringify(CARS_DISC_ALL)}
 
 Leave out any field you can't see. Don't guess my answer.`;}
+const KAP_QT={"summarize text":"Main idea","paraphrase detail":"Detail","interpret meaning":"Meaning in context","recognize opinion":"Author's attitude","describe purpose":"Argument structure","make deduction":"Inference","evaluate reasoning":"Support for a claim","strengthen/weaken argument":"Strengthen / weaken","imagine example/analogy":"Analogy","anticipate response":"Application","predict outcome/explanation":"Application"};
+function kapParse(txt){
+  const lines=txt.replace(/\r/g,"").split("\n"); const rows=[]; let cur=null;
+  const sec4code=c=>{const o=Object.values(OUT).find(o=>o.code===c);return o?o.sec:"";};
+  lines.forEach(raw=>{const l=raw.trim(); const m=l.match(/^Question\s+(\d+)$/i);
+    if(m){cur={q:m[1],lines:[]};rows.push(cur);return;} if(cur&&l)cur.lines.push(raw);});
+  return rows.map(r=>{
+    const st=(r.lines.find(x=>/^(correct|incorrect)/i.test(x.trim()))||"").trim();
+    const fin=/to(correct|incorrect)$/i.test(st)?st.match(/to(correct|incorrect)$/i)[1].toLowerCase():st.toLowerCase().replace(/\s.*/,"");
+    if(fin!=="correct"&&fin!=="incorrect") return null;
+    const dl=r.lines.find(x=>x.includes("\t")&&!/^\s*\d+:\d\d/.test(x))||"";
+    let fs=dl.split("\t").map(x=>x.trim()); if(fs.length<2) fs=dl.split(/\s{2,}/).map(x=>x.trim());
+    const skill=fs.find(x=>CARS_SKILLS.some(k=>k[0].toLowerCase()===x.toLowerCase()))||"";
+    const tm=(r.lines.find(x=>/^\s*\d+:\d\d\s*$/.test(x))||"").trim(); const t=tm?(+tm.split(":")[0])*60+(+tm.split(":")[1]):0;
+    const cat=fs[0]||"", chap=fs[1]||"", qt=fs[2]||"";
+    const o={q:r.q,result:fin==="correct"?"correct":"wrong",t,note:/^correctToIncorrect/i.test(st)?"Changed a right answer to wrong.":"",changed:/To/.test(st)?st:""};
+    if(skill){ const sk=CARS_SKILLS.find(k=>k[0].toLowerCase()===skill.toLowerCase())[0];
+      return Object.assign(o,{sec:"CARS",qtype:KAP_QT[qt.toLowerCase()]||sk,disc:/human/i.test(cat)?"Humanities":/social/i.test(cat)?"Social sciences":"",cat}); }
+    const code=outCode(cat+" "+chap); let sec=code?sec4code(code):"";
+    const txtAll=(chap+" "+cat).toLowerCase();
+    let subj=SUBJECTS.find(x=>txtAll.includes(x.toLowerCase()))||(/behavio/.test(txtAll)?"Psychology":/biolog/.test(txtAll)?"Biology":/physic/.test(txtAll)?"Physics":/organic/.test(txtAll)?"Organic Chemistry":/chem/.test(txtAll)?"General Chemistry":"");
+    if(!sec&&subj) sec=(SUBJ_SEC[subj]||[""])[0];
+    if(!subj&&sec) subj=SEC_SUBJ[sec][0];
+    const name=(chap||cat.replace(/^\s*(10A|[1-9][A-E])\b[:.\-\s]*/i,"")||qt).trim();
+    return Object.assign(o,{sec,subject:subj,topic:name?name+(code&&!outCode(name)?` (${code})`:""):""});
+  }).filter(Boolean);
+}
+function kapPassages(rows){
+  let n=0,cnt=0,prev=null; rows.filter(r=>r.sec==="CARS").sort((a,b)=>a.q-b.q).forEach(r=>{
+    if(!prev||r.cat!==prev.cat||(r.t>=180&&cnt>=4)){n++;cnt=0;} cnt++; r.passage=n; prev=r;});
+}
 function impParse(txt,f){
-  const a=txt.indexOf("["),b=txt.lastIndexOf("]"); if(a<0||b<a) return null;
-  let arr; try{arr=JSON.parse(txt.slice(a,b+1));}catch(e){return null;} if(!Array.isArray(arr)) return null;
+  const a=txt.indexOf("["),b=txt.lastIndexOf("]"); let arr=null;
+  if(a>=0&&b>a){try{arr=JSON.parse(txt.slice(a,b+1));}catch(e){arr=null;}}
+  if(!Array.isArray(arr)){ if(!/^\s*Question\s+\d+\s*$/im.test(txt)) return null;
+    const kr=kapParse(txt); kapPassages(kr); arr=kr.map(r=>({sec:r.sec,q:r.q,result:r.result,subject:r.subject,topic:r.topic,note:r.note,passage:r.passage,qtype:r.qtype,category:r.disc,changed:r.changed})); }
   const secMap={cp:"CP","c/p":"CP","chem/phys":"CP",cars:"CARS",bb:"BB","b/b":"BB","bio/biochem":"BB",ps:"PS","p/s":"PS","psych/soc":"PS"};
   const pick=(v,list)=>{if(!v)return "";const n=String(v).toLowerCase().trim();return list.find(x=>x.toLowerCase()===n)||list.find(x=>x.toLowerCase().startsWith(n)||n.startsWith(x.toLowerCase()))||"";};
   const have=new Set([...S.items.filter(i=>i.flId===f.id).map(i=>i.flSec+"|"+i.qn),...S.cq.filter(q=>q.flId===f.id).map(q=>"CARS|"+q.qn)]);
@@ -861,7 +895,7 @@ function impParse(txt,f){
     const q=o.q!=null?String(o.q).replace(/\D/g,""):"";
     const res=/^(w|wrong|incorrect)/i.test(String(o.result||""))?"wrong":/^(c|correct|right)/i.test(String(o.result||""))?"correct":"";
     const r={sec,q,result:res,subject:pick(o.subject,SUBJECTS),topic:String(o.topic||"").trim(),note:String(o.note||"").trim(),
-      passage:o.passage?+String(o.passage).replace(/\D/g,"")||"":"",qtype:pick(o.qtype,CARS_QT),disc:pick(o.category,CARS_DISC_ALL)};
+      passage:o.passage?+String(o.passage).replace(/\D/g,"")||"":"",qtype:pick(o.qtype,CARS_QT)||pick(o.qtype,CARS_SKILLS.map(x=>x[0])),disc:pick(o.category,[...CARS_DISC_ALL,"Humanities","Social sciences"]),changed:o.changed||""};
     r.dup=have.has(sec+"|"+q); r.on=r.result==="wrong"&&!r.dup&&!!sec; return r;}).filter(r=>r.sec&&r.result);
 }
 function impPassages(rows){
@@ -874,14 +908,14 @@ function impPreview(f){
   const rows=IMP.rows, wr=rows.filter(r=>r.result==="wrong"), cor=rows.length-wr.length, ps=impPassages(rows);
   const cnt=s=>rows.filter(r=>r.sec===s).length;
   return `<div class="stack tight">
-    <span class="muted" style="font-size:.82rem">Read ${rows.length} questions: ${SEC_ORDER.filter(cnt).map(s=>`${SEC_NAME[s]} ${cnt(s)}`).join(" · ")}. ${wr.length} wrong, ${cor} correct (correct ones aren't logged).</span>
+    <span class="muted" style="font-size:.82rem">Read ${rows.length} questions: ${SEC_ORDER.filter(cnt).map(s=>`${SEC_NAME[s]} ${cnt(s)}`).join(" · ")}. ${wr.length} wrong, ${cor} correct (correct ones aren't logged).${(()=>{const c=rows.filter(r=>r.changed);if(!c.length)return "";const k={};c.forEach(r=>{const x=r.changed.replace(/To/," → ").replace(/incorrect/ig,"wrong").replace(/correct/ig,"right");k[x]=(k[x]||0)+1;});return " Changed answers: "+Object.entries(k).map(([x,n])=>`${x} ${n}`).join(", ")+".";})()}</span>
     ${wr.length?`<div class="tablewrap"><table id="imp-tbl"><thead><tr><th></th><th>Section</th><th>Q#</th><th>Result</th><th>Concept or question type</th><th>Subject or category</th></tr></thead><tbody>
     ${rows.map((r,i)=>r.result!=="wrong"?"":`<tr><td><input type="checkbox" data-imp="${i}" ${r.on?"checked":""} ${r.dup?"disabled":""} aria-label="Include Q${esc(r.q)}"></td>
       <td>${SEC_NAME[r.sec]}</td><td class="num">${esc(r.q)||"—"}</td>
       <td>${r.dup?`<span class="muted">already logged</span>`:"Wrong"}</td>
       <td>${r.sec==="CARS"?`${esc(r.qtype||"—")}${r.passage?` <span class="muted">· P${r.passage}</span>`:""}`:esc(r.topic||"—")}</td>
       <td>${esc(r.sec==="CARS"?(r.disc||"—"):(r.subject||"—"))}</td></tr>`).join("")}</tbody></table></div>`:""}
-    ${ps.length?`<label class="row" style="gap:6px;font-size:.88rem"><input type="checkbox" id="imp-cp" checked> Fill the CARS passages table: ${ps.map(p=>`P${p.n} ${p.qs-p.wrong}/${p.qs}`).join(", ")}</label>`:""}
+    ${ps.length?`<label style="display:flex;gap:8px;align-items:flex-start;font-size:.88rem"><input type="checkbox" id="imp-cp" checked style="margin-top:3px"><span>Fill the CARS passages table${IMP.kap?" (passage breaks guessed from category changes and long first-question times)":""}: ${ps.map(p=>`P${p.n} ${p.qs-p.wrong}/${p.qs}`).join(", ")}</span></label>`:""}
     <div class="row"><button class="btn primary" id="imp-add">Add to this full length</button><button class="btn" id="imp-clear">Clear</button></div>
   </div>`;
 }
@@ -911,10 +945,10 @@ function vFLDetail(v,id){
       ${topCats.length?`<div class="why">Most missed areas: ${topCats.map(([k,c])=>`${esc(k)} (${c})`).join(", ")}</div>`:""}
       ${f.notes?`<div class="sub">${esc(f.notes)}</div>`:""}
     </section>
-    <section class="panel stack" id="imp"><h2>Import from screenshots</h2>
-      <ol class="muted" style="margin:0;padding-left:20px;font-size:.88rem;line-height:1.6"><li><button class="btn link" id="imp-copy">Copy the prompt</button></li><li>Open Claude, attach your review screenshots, and paste the prompt.</li><li>Paste Claude's reply below.</li></ol>
-      <textarea id="imp-text" placeholder="Paste Claude's reply here" style="min-height:90px"></textarea>
-      <div class="row"><button class="btn" id="imp-read">Read reply</button></div>
+    <section class="panel stack" id="imp"><h2>Import results</h2>
+      <p class="muted" style="margin:0;font-size:.88rem">Kaplan: select the whole review table, copy, and paste it below. Other sources: <button class="btn link" id="imp-copy">copy this prompt</button> into Claude with your screenshots and paste its reply.</p>
+      <textarea id="imp-text" placeholder="Paste the Kaplan review page or Claude's reply" style="min-height:90px"></textarea>
+      <div class="row"><button class="btn" id="imp-read">Read</button></div>
       <div id="imp-prev">${impPreview(f)}</div>
     </section>
     <section class="panel stack"><div class="sec-title"><h2>CARS passages</h2><span class="muted" style="font-size:.82rem">in the order you saw them</span></div>
@@ -923,7 +957,7 @@ function vFLDetail(v,id){
         <td><input type="number" min="1" max="12" inputmode="numeric" data-cp="${i}" data-f="qs" value="${esc(r.qs)}" style="width:70px"></td>
         <td><input type="number" min="0" max="12" inputmode="numeric" data-cp="${i}" data-f="wrong" value="${esc(r.wrong)}" style="width:70px"></td>
         <td class="num" id="cp-pct-${i}">${r.qs!==""&&r.wrong!==""?Math.round((r.qs-r.wrong)/r.qs*100)+"%":"—"}</td>
-        <td><select data-cp="${i}" data-f="disc" style="min-width:150px"><option value="">—</option>${Object.entries(CARS_DISC).map(([g,l])=>`<optgroup label="${g}">${l.map(x=>`<option ${x===r.disc?"selected":""}>${esc(x)}</option>`).join("")}</optgroup>`).join("")}</select></td>
+        <td><select data-cp="${i}" data-f="disc" style="min-width:150px">${discOpts(r.disc)}</select></td>
         <td><button class="btn small" data-cprm="${i}" aria-label="Remove passage ${i+1}">Remove</button></td></tr>`).join("")}
       </tbody></table></div>
       <div class="row"><button class="btn small" id="cp-add">+ Add a passage</button><span class="muted" style="font-size:.82rem" id="cp-sum">${cpSummary(f)}</span></div>
@@ -946,7 +980,7 @@ function vFLDetail(v,id){
   $("#cp-add").onclick=()=>{f.carsP.push({qs:"",wrong:"",disc:""});save();render();};
   $("#imp-copy").onclick=()=>copy(impPrompt(f),"Prompt copied. Paste it into Claude with your screenshots.");
   $("#imp-read").onclick=()=>{const rows=impParse($("#imp-text").value,f);
-    IMP=rows&&rows.length?{flId:f.id,rows}:{flId:f.id,err:"Couldn't find questions in that text. Paste Claude's whole reply, including the [ … ] part."};
+    IMP=rows&&rows.length?{flId:f.id,rows,kap:!/\[\s*\{/.test($("#imp-text").value)}:{flId:f.id,err:"Couldn't find questions in that text. Paste the whole Kaplan review table, or Claude's whole reply."};
     $("#imp-prev").innerHTML=impPreview(f);};
   $("#imp-prev").addEventListener("click",e=>{if(e.target.id==="imp-add")impApply(f);if(e.target.id==="imp-clear"){IMP=null;$("#imp-prev").innerHTML="";$("#imp-text").value="";}});
   $("#imp-prev").addEventListener("change",e=>{const c=e.target.closest("[data-imp]");if(c)IMP.rows[+c.dataset.imp].on=c.checked;});
@@ -964,7 +998,7 @@ function vFLDetail(v,id){
     if(FM.sec==="CARS"){
       el.innerHTML=`<div class="stack">
         <div class="fields"><label class="f">Q#<input id="fm-qn" inputmode="numeric" value="${esc(FM.qn)}" placeholder="optional"></label>
-        <label class="f">Passage type<select id="fm-disc"><option value="">—</option>${Object.entries(CARS_DISC).map(([g,l])=>`<optgroup label="${g}">${l.map(x=>`<option ${x===FM.disc?"selected":""}>${esc(x)}</option>`).join("")}</optgroup>`).join("")}</select></label></div>
+        <label class="f">Passage type<select id="fm-disc">${discOpts(FM.disc)}</select></label></div>
         <div class="stack tight"><span class="label req">Question type</span>${qtChips("data-k",FM.qtype,'data-grp="qtype"')}</div>
         <div class="stack tight"><span class="label">Result</span>${chips("result",[["wrong","Wrong"],["guess","Guessed right"]],FM.result)}</div>
         <div class="stack tight"><span class="label">Trap</span>${chips("traps",Object.entries(CARS_TRAPS),FM.traps,true)}</div>
