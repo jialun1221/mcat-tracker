@@ -823,6 +823,72 @@ function vFLForm(v,editId){
     $("#f-del2").onclick=()=>{S.fls=S.fls.filter(x=>x.id!==ed.id);S.items=S.items.filter(i=>i.flId!==ed.id);S.cq=S.cq.filter(q=>q.flId!==ed.id);save();toast("Deleted.");go("fl");};}
 }
 let FM={sec:"CP",subject:"",topic:"",outline:"",outManual:false,result:"wrong",reasons:[],note:"",qn:"",disc:"",qtype:"",traps:[]};
+let IMP=null;
+function impPrompt(f){return `I'm reviewing my MCAT full-length exam (${f.name}). I'm attaching screenshots of the review screens. For every question you can see, output one JSON object. Reply with only one JSON array in a code block.
+
+Fields for every question:
+- sec: "CP", "CARS", "BB" or "PS"
+- q: question number
+- result: "correct" or "wrong" (wrong = my answer is not the correct answer)
+
+For wrong CP, BB or PS questions, also add:
+- subject: one of ${JSON.stringify(SUBJECTS)}
+- topic: the specific concept tested, 2–6 words (e.g. "galvanic cell electrode signs")
+- note: one short sentence on why the right answer is right
+
+For every CARS question (correct or wrong), also add:
+- passage: passage number, 1–9
+- qtype: one of ${JSON.stringify(CARS_QT)}
+- category: one of ${JSON.stringify(CARS_DISC_ALL)}
+
+Leave out any field you can't see. Don't guess my answer.`;}
+function impParse(txt,f){
+  const a=txt.indexOf("["),b=txt.lastIndexOf("]"); if(a<0||b<a) return null;
+  let arr; try{arr=JSON.parse(txt.slice(a,b+1));}catch(e){return null;} if(!Array.isArray(arr)) return null;
+  const secMap={cp:"CP","c/p":"CP","chem/phys":"CP",cars:"CARS",bb:"BB","b/b":"BB","bio/biochem":"BB",ps:"PS","p/s":"PS","psych/soc":"PS"};
+  const pick=(v,list)=>{if(!v)return "";const n=String(v).toLowerCase().trim();return list.find(x=>x.toLowerCase()===n)||list.find(x=>x.toLowerCase().startsWith(n)||n.startsWith(x.toLowerCase()))||"";};
+  const have=new Set([...S.items.filter(i=>i.flId===f.id).map(i=>i.flSec+"|"+i.qn),...S.cq.filter(q=>q.flId===f.id).map(q=>"CARS|"+q.qn)]);
+  return arr.filter(o=>o&&typeof o==="object").map(o=>{
+    const sec=secMap[String(o.sec||o.section||"").toLowerCase().trim()]||"";
+    const q=o.q!=null?String(o.q).replace(/\D/g,""):"";
+    const res=/^(w|wrong|incorrect)/i.test(String(o.result||""))?"wrong":/^(c|correct|right)/i.test(String(o.result||""))?"correct":"";
+    const r={sec,q,result:res,subject:pick(o.subject,SUBJECTS),topic:String(o.topic||"").trim(),note:String(o.note||"").trim(),
+      passage:o.passage?+String(o.passage).replace(/\D/g,"")||"":"",qtype:pick(o.qtype,CARS_QT),disc:pick(o.category,CARS_DISC_ALL)};
+    r.dup=have.has(sec+"|"+q); r.on=r.result==="wrong"&&!r.dup&&!!sec; return r;}).filter(r=>r.sec&&r.result);
+}
+function impPassages(rows){
+  const by={}; rows.filter(r=>r.sec==="CARS"&&r.passage>=1&&r.passage<=12).forEach(r=>{const o=by[r.passage]=by[r.passage]||{qs:0,wrong:0,disc:{}};o.qs++;if(r.result==="wrong")o.wrong++;if(r.disc)o.disc[r.disc]=(o.disc[r.disc]||0)+1;});
+  return Object.entries(by).map(([n,o])=>({n:+n,qs:o.qs,wrong:o.wrong,disc:Object.entries(o.disc).sort((a,b)=>b[1]-a[1]).map(x=>x[0])[0]||""})).sort((a,b)=>a.n-b.n);
+}
+function impPreview(f){
+  if(!IMP||IMP.flId!==f.id) return "";
+  if(IMP.err) return `<p class="muted">${esc(IMP.err)}</p>`;
+  const rows=IMP.rows, wr=rows.filter(r=>r.result==="wrong"), cor=rows.length-wr.length, ps=impPassages(rows);
+  const cnt=s=>rows.filter(r=>r.sec===s).length;
+  return `<div class="stack tight">
+    <span class="muted" style="font-size:.82rem">Read ${rows.length} questions: ${SEC_ORDER.filter(cnt).map(s=>`${SEC_NAME[s]} ${cnt(s)}`).join(" · ")}. ${wr.length} wrong, ${cor} correct (correct ones aren't logged).</span>
+    ${wr.length?`<div class="tablewrap"><table id="imp-tbl"><thead><tr><th></th><th>Section</th><th>Q#</th><th>Result</th><th>Concept or question type</th><th>Subject or category</th></tr></thead><tbody>
+    ${rows.map((r,i)=>r.result!=="wrong"?"":`<tr><td><input type="checkbox" data-imp="${i}" ${r.on?"checked":""} ${r.dup?"disabled":""} aria-label="Include Q${esc(r.q)}"></td>
+      <td>${SEC_NAME[r.sec]}</td><td class="num">${esc(r.q)||"—"}</td>
+      <td>${r.dup?`<span class="muted">already logged</span>`:"Wrong"}</td>
+      <td>${r.sec==="CARS"?`${esc(r.qtype||"—")}${r.passage?` <span class="muted">· P${r.passage}</span>`:""}`:esc(r.topic||"—")}</td>
+      <td>${esc(r.sec==="CARS"?(r.disc||"—"):(r.subject||"—"))}</td></tr>`).join("")}</tbody></table></div>`:""}
+    ${ps.length?`<label class="row" style="gap:6px;font-size:.88rem"><input type="checkbox" id="imp-cp" checked> Fill the CARS passages table: ${ps.map(p=>`P${p.n} ${p.qs-p.wrong}/${p.qs}`).join(", ")}</label>`:""}
+    <div class="row"><button class="btn primary" id="imp-add">Add to this full length</button><button class="btn" id="imp-clear">Clear</button></div>
+  </div>`;
+}
+function impApply(f){
+  const t=todayS(); let nSci=0,nCq=0,skip=0;
+  IMP.rows.forEach(r=>{if(!r.on||r.dup)return; const result="wrong";
+    if(r.sec==="CARS"){S.cq.push({id:uid(),flId:f.id,passageId:"",disc:r.disc,qn:r.q,qtype:r.qtype,result,traps:[],evidence:"",lure:r.note,date:f.date});nCq++;}
+    else{ if(!r.topic){skip++;return;} const subj=r.subject||SEC_SUBJ[r.sec][0];
+      const tid=findOrCreateTopic(r.topic,subj,matchOutline(r.topic,subj),false);
+      S.items.push({id:uid(),flId:f.id,flSec:r.sec,qn:r.q,subject:subj,topicId:tid,result,source:f.name,qref:r.q?"Q"+r.q:"",reasons:[],thought:r.note,nextTime:"",doneDate:f.date,reviewDate:t,created:t,cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[]});nSci++;}});
+  const cpBox=$("#imp-cp");
+  if(cpBox&&cpBox.checked){const ps=impPassages(IMP.rows); f.carsP=f.carsP||[];
+    ps.forEach(p=>{while(f.carsP.length<p.n)f.carsP.push({qs:"",wrong:"",disc:""});f.carsP[p.n-1]={qs:p.qs,wrong:p.wrong,disc:p.disc||f.carsP[p.n-1].disc||""};});}
+  IMP=null; save(); toast(`Added ${nSci+nCq} question${nSci+nCq===1?"":"s"}${skip?` (${skip} skipped: no concept)`:""}.`); render();
+}
 function vFLDetail(v,id){
   const f=(S.fls||[]).find(x=>x.id===id); if(!f){go("fl");return;}
   const ms=flMisses(id);
@@ -836,6 +902,12 @@ function vFLDetail(v,id){
       <div class="tablewrap"><table><thead><tr>${SEC_ORDER.map(k=>`<th>${SEC_NAME[k]}</th>`).join("")}<th>Total</th></tr></thead><tbody><tr>${SEC_ORDER.map(k=>`<td class="num">${f.scores[k]||"—"} <span class="muted">(${bySec(k).length} missed)</span></td>`).join("")}<td class="num"><b>${flTotal(f)??"—"}</b></td></tr></tbody></table></div>
       ${topCats.length?`<div class="why">Most missed areas: ${topCats.map(([k,c])=>`${esc(k)} (${c})`).join(", ")}</div>`:""}
       ${f.notes?`<div class="sub">${esc(f.notes)}</div>`:""}
+    </section>
+    <section class="panel stack" id="imp"><h2>Import from screenshots</h2>
+      <ol class="muted" style="margin:0;padding-left:20px;font-size:.88rem;line-height:1.6"><li><button class="btn link" id="imp-copy">Copy the prompt</button></li><li>Open Claude, attach your review screenshots, and paste the prompt.</li><li>Paste Claude's reply below.</li></ol>
+      <textarea id="imp-text" placeholder="Paste Claude's reply here" style="min-height:90px"></textarea>
+      <div class="row"><button class="btn" id="imp-read">Read reply</button></div>
+      <div id="imp-prev">${impPreview(f)}</div>
     </section>
     <section class="panel stack"><div class="sec-title"><h2>CARS passages</h2><span class="muted" style="font-size:.82rem">in the order you saw them</span></div>
       <div class="tablewrap"><table id="fl-cp"><thead><tr><th>#</th><th>Questions</th><th>Wrong</th><th>Correct</th><th>Category</th><th></th></tr></thead><tbody>
@@ -864,6 +936,12 @@ function vFLDetail(v,id){
     if(r.qs!==""&&r.wrong!==""&&+r.wrong>+r.qs){toast("Wrong can't be more than the number of questions.");}
     $("#cp-pct-"+i).textContent=r.qs!==""&&r.wrong!==""&&+r.qs?Math.round((r.qs-r.wrong)/r.qs*100)+"%":"—";$("#cp-sum").textContent=cpSummary(f);save();};
   $("#cp-add").onclick=()=>{f.carsP.push({qs:"",wrong:"",disc:""});save();render();};
+  $("#imp-copy").onclick=()=>copy(impPrompt(f),"Prompt copied. Paste it into Claude with your screenshots.");
+  $("#imp-read").onclick=()=>{const rows=impParse($("#imp-text").value,f);
+    IMP=rows&&rows.length?{flId:f.id,rows}:{flId:f.id,err:"Couldn't find questions in that text. Paste Claude's whole reply, including the [ … ] part."};
+    $("#imp-prev").innerHTML=impPreview(f);};
+  $("#imp-prev").addEventListener("click",e=>{if(e.target.id==="imp-add")impApply(f);if(e.target.id==="imp-clear"){IMP=null;$("#imp-prev").innerHTML="";$("#imp-text").value="";}});
+  $("#imp-prev").addEventListener("change",e=>{const c=e.target.closest("[data-imp]");if(c)IMP.rows[+c.dataset.imp].on=c.checked;});
   $("#fl-cp").onclick=e=>{const b=e.target.closest("[data-cprm]");if(!b)return;const i=+b.dataset.cprm,r=f.carsP[i];
     if((r.qs!==""||r.wrong!==""||r.disc)&&!b.dataset.sure){b.dataset.sure="1";b.textContent="Remove?";b.classList.add("danger");return;}
     f.carsP.splice(i,1);save();toast("Passage removed.");render();};
