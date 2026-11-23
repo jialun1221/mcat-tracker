@@ -838,12 +838,13 @@ function vFLDetail(v,id){
       ${f.notes?`<div class="sub">${esc(f.notes)}</div>`:""}
     </section>
     <section class="panel stack"><div class="sec-title"><h2>CARS passages</h2><span class="muted" style="font-size:.82rem">in the order you saw them</span></div>
-      <div class="tablewrap"><table id="fl-cp"><thead><tr><th>#</th><th>Questions</th><th>Wrong</th><th>Correct</th><th>Category</th></tr></thead><tbody>
-      ${(f.carsP=f.carsP&&f.carsP.length?f.carsP:Array.from({length:9},()=>({qs:"",wrong:"",disc:""}))).map((r,i)=>`<tr><td class="num"><b>${i+1}</b></td>
+      <div class="tablewrap"><table id="fl-cp"><thead><tr><th>#</th><th>Questions</th><th>Wrong</th><th>Correct</th><th>Category</th><th></th></tr></thead><tbody>
+      ${(f.carsP=f.carsP?f.carsP:Array.from({length:9},()=>({qs:"",wrong:"",disc:""}))).map((r,i)=>`<tr><td class="num"><b>${i+1}</b></td>
         <td><input type="number" min="1" max="12" inputmode="numeric" data-cp="${i}" data-f="qs" value="${esc(r.qs)}" style="width:70px"></td>
         <td><input type="number" min="0" max="12" inputmode="numeric" data-cp="${i}" data-f="wrong" value="${esc(r.wrong)}" style="width:70px"></td>
         <td class="num" id="cp-pct-${i}">${r.qs!==""&&r.wrong!==""?Math.round((r.qs-r.wrong)/r.qs*100)+"%":"—"}</td>
-        <td><select data-cp="${i}" data-f="disc" style="min-width:150px"><option value="">—</option>${Object.entries(CARS_DISC).map(([g,l])=>`<optgroup label="${g}">${l.map(x=>`<option ${x===r.disc?"selected":""}>${esc(x)}</option>`).join("")}</optgroup>`).join("")}</select></td></tr>`).join("")}
+        <td><select data-cp="${i}" data-f="disc" style="min-width:150px"><option value="">—</option>${Object.entries(CARS_DISC).map(([g,l])=>`<optgroup label="${g}">${l.map(x=>`<option ${x===r.disc?"selected":""}>${esc(x)}</option>`).join("")}</optgroup>`).join("")}</select></td>
+        <td><button class="btn small" data-cprm="${i}" aria-label="Remove passage ${i+1}">Remove</button></td></tr>`).join("")}
       </tbody></table></div>
       <div class="row"><button class="btn small" id="cp-add">+ Add a passage</button><span class="muted" style="font-size:.82rem" id="cp-sum">${cpSummary(f)}</span></div>
     </section>
@@ -863,6 +864,9 @@ function vFLDetail(v,id){
     if(r.qs!==""&&r.wrong!==""&&+r.wrong>+r.qs){toast("Wrong can't be more than the number of questions.");}
     $("#cp-pct-"+i).textContent=r.qs!==""&&r.wrong!==""&&+r.qs?Math.round((r.qs-r.wrong)/r.qs*100)+"%":"—";$("#cp-sum").textContent=cpSummary(f);save();};
   $("#cp-add").onclick=()=>{f.carsP.push({qs:"",wrong:"",disc:""});save();render();};
+  $("#fl-cp").onclick=e=>{const b=e.target.closest("[data-cprm]");if(!b)return;const i=+b.dataset.cprm,r=f.carsP[i];
+    if((r.qs!==""||r.wrong!==""||r.disc)&&!b.dataset.sure){b.dataset.sure="1";b.textContent="Remove?";b.classList.add("danger");return;}
+    f.carsP.splice(i,1);save();toast("Passage removed.");render();};
   $("#fm-sec").onclick=e=>{const b=e.target.closest("[data-v]");if(!b)return;FM.sec=b.dataset.v;FM.subject="";$("#fm-sec").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===FM.sec));body();};
   v.addEventListener("click",e=>{
     const a=e.target.closest("[data-rm-item]");if(a){S.items=S.items.filter(i=>i.id!==a.dataset.rmItem);save();render();return;}
