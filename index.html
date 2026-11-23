@@ -143,8 +143,12 @@ const REASON_ACTION={
   time:"Do 2 timed questions on this topic and note the step where you slowed down.",
   other:"Re-read your note on this question, then do 2 questions on the topic."};
 const CARS_SOURCES=["Jack Westin","UWorld","AAMC","JSTOR Daily","Aeon","Other"];
-const CARS_DISC={"Humanities":["Philosophy","Ethics","Literature","Art & architecture","Music","Theater & dance","Religion","Popular culture","Cultural studies"],
- "Social sciences":["History","Economics","Political science","Anthropology & archaeology","Linguistics","Psychology","Sociology","Education","Geography","Population health"]};
+// AAMC CARS content outline: ~50% humanities, ~50% social sciences. "Studies of diverse cultures" can fall in either.
+const CARS_DISC={"Humanities":["Architecture","Art","Dance","Ethics","Literature","Music","Philosophy","Popular culture","Religion","Theater","Diverse cultures (humanities)"],
+ "Social sciences":["Anthropology","Archaeology","Economics","Education","Geography","History","Linguistics","Political science","Population health","Psychology","Sociology","Diverse cultures (social science)"]};
+const CARS_STYLES=["Opinion / argument","Conversational","Factual / scientific","Historical account","Abstract / theoretical"];
+const DISC_MIGRATE={"Art & architecture":"Art","Theater & dance":"Theater","Cultural studies":"Diverse cultures (humanities)","Anthropology & archaeology":"Anthropology"};
+const discGroup=d=>CARS_DISC["Humanities"].includes(d)?"Humanities":CARS_DISC["Social sciences"].includes(d)?"Social sciences":"";
 const CARS_DISC_ALL=Object.values(CARS_DISC).flat();
 const CARS_QT=["Main idea","Author's attitude","Inference","Application","Paragraph function","Detail","Strengthen / weaken","Analogy"];
 const CARS_TRAPS={attrib:"Misattributed a viewpoint",scope:"Answer went beyond the passage",detail:"Took a detail as the main idea",extreme:"Fell for extreme wording",qualifier:"Missed a qualifier or negation",wrongq:"True statement, wrong question",other:"Other"};
@@ -266,7 +270,7 @@ const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slic
 function blank(){return {v:2,settings:{testDate:"2027-02-12",iv:{no:1,partial:2,yes:5},style:"quick"},topics:[],items:[],wins:[],passages:[],cq:[],weeks:{},legacy:{blocks:[],reads:{}},fls:[],sample:false};}
 let S;
 function load(){
-  try{const raw=localStorage.getItem(KEY);if(raw){S=Object.assign(blank(),JSON.parse(raw));S.settings=Object.assign(blank().settings,S.settings);S.settings.iv=Object.assign({no:1,partial:2,yes:5},S.settings.iv);S.topics.forEach(t=>{if(t.outline===undefined)t.outline=matchOutline(t.name,t.subject);});return;}}catch(e){}
+  try{const raw=localStorage.getItem(KEY);if(raw){S=Object.assign(blank(),JSON.parse(raw));S.settings=Object.assign(blank().settings,S.settings);S.settings.iv=Object.assign({no:1,partial:2,yes:5},S.settings.iv);S.topics.forEach(t=>{if(t.outline===undefined)t.outline=matchOutline(t.name,t.subject);});[...S.passages,...S.cq,...(S.fls||[]).flatMap(f=>f.carsP||[])].forEach(x=>{if(DISC_MIGRATE[x.disc])x.disc=DISC_MIGRATE[x.disc];});return;}}catch(e){}
   S=blank();
   try{const old=JSON.parse(localStorage.getItem(OLD_KEY)||"null");
     if(old){S.legacy.blocks=(old.blocks||[]).filter(b=>!b.sample);S.legacy.reads=old.reads||{};S.settings.testDate=(old.settings&&old.settings.testDate)||S.settings.testDate;}}catch(e){}
@@ -289,9 +293,9 @@ function seedSample(){
   S.items.forEach(it=>{it.created=it.reviewDate;it.attempts.forEach(a=>a.cardId=it.cards[0]&&it.cards[0].id);});
   S.topics.forEach(x=>x.outline=matchOutline(x.name,x.subject));
   S.wins.push({id:uid(),topicId:op,date:addDays(t,-1),source:"UWorld",note:"Got a new reinforcement question right without hesitating."});
-  const p1={id:uid(),date:addDays(t,-5),source:"Jack Westin",title:"Daily CARS: Kant and the sublime",url:"",disc:"Philosophy",minutes:11,score:3,outOf:6,readingOnly:false,snags:["Author's view vs. others' views","Long or complex sentences"],notes:"",hardSentences:"The assumption, long held by its critics, that the sublime must terrify is not without its defenders."};
+  const p1={id:uid(),date:addDays(t,-5),source:"Jack Westin",title:"Daily CARS: Kant and the sublime",url:"",disc:"Philosophy",styles:["Abstract / theoretical","Opinion / argument"],minutes:11,score:3,outOf:6,readingOnly:false,snags:["Author's view vs. others' views","Long or complex sentences"],notes:"",hardSentences:"The assumption, long held by its critics, that the sublime must terrify is not without its defenders."};
   const p2={id:uid(),date:addDays(t,-2),source:"UWorld",title:"",url:"",disc:"Philosophy",minutes:10,score:4,outOf:6,readingOnly:false,snags:["Following the argument","Long or complex sentences"],notes:""};
-  const p3={id:uid(),date:addDays(t,-1),source:"Aeon",title:"Essay on museums and memory",url:"",disc:"Art & architecture",minutes:14,score:null,outOf:null,readingOnly:true,snags:[],notes:"Author argues against treating museums as neutral."};
+  const p3={id:uid(),date:addDays(t,-1),source:"Aeon",title:"Essay on museums and memory",url:"",disc:"Art",styles:["Opinion / argument"],minutes:14,score:null,outOf:null,readingOnly:true,snags:[],notes:"Author argues against treating museums as neutral."};
   S.passages.push(p1,p2,p3);
   S.cq.push({id:uid(),passageId:p1.id,date:p1.date,qtype:"Author's attitude",result:"wrong",traps:["attrib"],evidence:"Para 3: 'Some critics insist…' is not the author.",lure:"The choice repeated words from the critics' sentence."},
             {id:uid(),passageId:p2.id,date:p2.date,qtype:"Inference",result:"wrong",traps:["attrib"],evidence:"",lure:"Picked the view the author was summarizing, not holding."},
@@ -379,7 +383,7 @@ function todaysReading(){
 const siteLinks=disc=>{const q=encodeURIComponent(disc.replace("&","and"));return SITES.map(([n,s])=>`<a class="btn small" target="_blank" rel="noopener" href="https://www.google.com/search?q=site%3A${s}+${q}">${n}</a>`).join("");};
 
 /* ================= routing ================= */
-const TABS=[["today","Today"],["log","Log"],["fl","Full lengths"],["retest","Retest"],["map","Heatmap"],["cars","CARS"],["weekly","Weekly review"],["records","Records"]];
+const TABS=[["today","Today"],["log","Science log"],["cars","CARS log"],["fl","Full lengths"],["retest","Retest"],["map","Heatmap"],["weekly","Weekly review"],["records","Records"]];
 let view="today", viewArg=null;
 function go(v,arg){if(v==="retest"&&(!R||R.i>=R.queue.length))R=null;view=v;viewArg=arg??null;try{const h=TABS.some(t=>t[0]===v)?"#"+v:"";if(h&&location.hash!==h)history.replaceState(null,"",h);}catch(e){}render();window.scrollTo({top:0});}
 function render(){
@@ -474,7 +478,7 @@ function vLog(v){
       <div class="stack" style="margin-top:10px">        <label class="f">Question<textarea id="l-rq" placeholder="e.g. Buffer pH 8.5, protein pI 6.0. Does it bind a DEAE column?">${esc(F.rq)}</textarea></label>
         <label class="f">Answer and short explanation<textarea id="l-ra" placeholder="e.g. Yes. pH > pI, so it's negative and binds the positive DEAE resin.">${esc(F.ra)}</textarea></label></div></details>`}
     <div class="row"><button class="btn primary big" id="l-save">${editing?"Save changes":"Save"}</button>${editing?`<button class="btn" id="l-cancel">Cancel</button>`:`<button class="btn" id="l-clear">Clear</button>`}</div>
-  </div>`;
+  </div>${editing?"":sciLogList()}`;
   if(!F.subject&&recentSubj&&!editing){} // keep explicit choice
   const bindIn=(sel,key)=>{const el=$(sel);if(el)el.oninput=e=>F[key]=e.target.value;};
   bindIn("#l-thought","thought");bindIn("#l-next","nextTime");bindIn("#l-rq","rq");bindIn("#l-ra","ra");
@@ -490,10 +494,26 @@ function vLog(v){
     const p=e.target.closest("[data-pick]");if(p){const t=topicById(p.dataset.pick);F.topic=t.name;$("#l-topic").value=t.name;F.outline=t.outline||matchOutline(t.name,t.subject);$("#l-out").value=F.outline;if(!F.subject){F.subject=t.subject;$("#l-subj").querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",c.dataset.subj===F.subject));}$("#l-sugg").innerHTML="";return;}
     const st=e.target.closest("[data-style]");if(st){S.settings.style=st.dataset.style;save();vLog(v);return;}
     const m=e.target.closest("[data-mode]");if(m){go("log",{mode:"win"});return;}
+    const lf=e.target.closest("[data-lf]");if(lf){logFilter=lf.dataset.lf;vLog(v);return;}
+    const fi=e.target.closest("[data-flid]");if(fi){go("fl",{id:fi.dataset.flid});return;}
+    const tp=e.target.closest("[data-topic]");if(tp){go("topic",tp.dataset.topic);return;}
+    const ed=e.target.closest("[data-edit]");if(ed){go("log",{mode:"q",editId:ed.dataset.edit});return;}
   };
   const cl=$("#l-clear");if(cl)cl.onclick=()=>{F=null;vLog(v);};
   const cc=$("#l-cancel");if(cc)cc.onclick=()=>{F=null;go("topic",editing.topicId);};
   $("#l-save").onclick=()=>saveItem(editing);
+}
+let logFilter="all";
+function sciLogList(){
+  const all=S.items.slice().sort((a,b)=>(a.created||a.doneDate)<(b.created||b.doneDate)?1:-1);
+  const list=all.filter(i=>logFilter==="all"||(logFilter==="fl"?i.flId:!i.flId));
+  const nfl=all.filter(i=>i.flId).length;
+  return `<section class="panel stack" style="margin-top:16px"><div class="sec-title"><h2>Logged questions</h2>
+    <div class="seg" id="lf">${[["all",`All (${all.length})`],["practice",`Practice (${all.length-nfl})`],["fl",`Full length (${nfl})`]].map(([k,l])=>`<button type="button" data-lf="${k}" aria-pressed="${logFilter===k}">${l}</button>`).join("")}</div></div>
+    ${list.length?`<ul class="list">${list.slice(0,40).map(i=>`<li><div class="main"><button class="btn link" data-topic="${i.topicId}" style="font-weight:700;text-align:left">${esc(tname(i.topicId))}</button>
+      <div class="muted" style="font-size:.82rem">${shortD(i.doneDate)} · ${esc(i.subject)} · ${i.result==="wrong"?"wrong":"guessed"}${(i.reasons||[]).length?" · "+i.reasons.map(r=>REASONS[r]).join(", "):""}</div>${i.thought?`<div class="sub">${esc(i.thought)}</div>`:""}</div>
+      <div class="stack tight" style="align-items:flex-end">${i.flId?`<button class="status acc" data-flid="${i.flId}" style="border:0;cursor:pointer">Full length · ${esc(i.source)}${i.qn?" Q"+esc(i.qn):""}</button>`:i.source?`<span class="status plain">${esc(i.source)}</span>`:""}<button class="btn small" data-edit="${i.id}">Edit</button></div></li>`).join("")}</ul>${list.length>40?`<p class="muted">Showing 40 of ${list.length}. See Records for all.</p>`:""}`:`<p class="muted">Nothing logged yet.</p>`}
+  </section>`;
 }
 function sugg(){
   const q=norm(F.topic), el=$("#l-sugg"); if(!el) return;
@@ -670,7 +690,11 @@ function carsAnalysis(){
   const qt={}; S.cq.forEach(q=>qt[q.qtype]=(qt[q.qtype]||0)+1);
   const qtypes=Object.entries(qt).sort((a,b)=>b[1]-a[1]);
   const ds=discStats().filter(d=>d.n>0||d.miss>0).sort((a,b)=>(a.pct??1)-(b.pct??1)||b.miss-a.miss);
-  return {timed,snags,qtypes,ds,traps:trapStats()};
+  const grp={},sty={};
+  timed.forEach(p=>{const g=discGroup(p.disc);if(g&&p.outOf){(grp[g]=grp[g]||{n:0,sc:0,of:0});grp[g].n++;grp[g].sc+=+p.score;grp[g].of+=+p.outOf;}
+    (p.styles||[]).forEach(x=>{(sty[x]=sty[x]||{n:0,sc:0,of:0});sty[x].n++;if(p.outOf){sty[x].sc+=+p.score;sty[x].of+=+p.outOf;}});});
+  const styles=Object.entries(sty).map(([k,o])=>({k,n:o.n,pct:o.of?o.sc/o.of:null})).sort((a,b)=>(a.pct??1)-(b.pct??1));
+  return {timed,snags,qtypes,ds,traps:trapStats(),grp,styles};
 }
 function sentenceList(){ return S.passages.flatMap(p=>(p.hardSentences||"").split(/\n+/).map(s=>s.trim()).filter(Boolean).map(s=>({s,p}))).slice(-12).reverse(); }
 function vCars(v){
@@ -686,6 +710,8 @@ function vCars(v){
       <div class="stack tight"><span class="label">Passage types you miss most</span>${weak.length?`<ul class="list">${weak.map(d=>`<li><div class="main"><b>${esc(d.k)}</b><div class="muted" style="font-size:.82rem">${d.n?`${d.n} passage${d.n>1?"s":""}`:"from full lengths"}${d.pct!=null?` · avg ${Math.round(d.pct*100)}%`:""}${d.avgMin?` · ${d.avgMin.toFixed(1)} min`:""} · ${d.miss} missed</div></div></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
       <div class="stack tight"><span class="label">Where you get stuck</span>${A.snags.length?`<ul class="list">${A.snags.slice(0,4).map(([k,c])=>`<li><span>${esc(k)}</span><span class="num muted">${c} of ${n}</span></li>`).join("")}</ul>`:`<p class="muted">Tag "where I got stuck" when logging a passage.</p>`}</div>
       <div class="stack tight"><span class="label">Question types you miss</span>${A.qtypes.length?`<ul class="list">${A.qtypes.slice(0,4).map(([k,c])=>`<li><span>${esc(k)}</span><span class="num muted">${c}</span></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
+      <div class="stack tight"><span class="label">Humanities vs. social sciences</span>${Object.keys(A.grp).length?`<ul class="list">${["Humanities","Social sciences"].filter(g=>A.grp[g]).map(g=>`<li><span>${g}</span><span class="num muted">${Math.round(A.grp[g].sc/A.grp[g].of*100)}% · ${A.grp[g].n} passage${A.grp[g].n>1?"s":""}</span></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
+      <div class="stack tight"><span class="label">By style</span>${A.styles.length?`<ul class="list">${A.styles.slice(0,4).map(x=>`<li><span>${esc(x.k)}</span><span class="num muted">${x.pct!=null?Math.round(x.pct*100)+"% · ":""}${x.n} passage${x.n>1?"s":""}</span></li>`).join("")}</ul>`:`<p class="muted">Tag a style when logging a passage.</p>`}</div>
       <div class="stack tight"><span class="label">Traps</span>${A.traps.length?`<ul class="list">${A.traps.slice(0,4).map(t=>`<li><span>${esc(CARS_TRAPS[t.k])}</span><span class="num muted">${t.n} in ${t.np} passage${t.np>1?"s":""}</span></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
     </div>`:`<p class="muted">Log a passage to see your pattern.</p>`}
   </section>
@@ -732,7 +758,7 @@ function passageList(list){
   if(!list.length) return `<p class="muted">No passages logged yet.</p>`;
   return `<ul class="list">${list.map(p=>{const qs=S.cq.filter(q=>q.passageId===p.id);return `<li><div class="main">
     <b>${esc(p.title||p.disc+" passage")}</b> ${p.readingOnly?`<span class="status plain">Reading only</span>`:""}
-    <div class="muted" style="font-size:.82rem">${shortD(p.date)} · ${esc(p.source)} · ${esc(p.disc)}${p.minutes?` · ${p.minutes} min`:""}${p.outOf?` · <b class="num">${p.score}/${p.outOf}</b>`:""}${p.url?` · <a href="${esc(p.url)}" target="_blank" rel="noopener">link</a>`:""}${p.text?" · text saved":""}</div>
+    <div class="muted" style="font-size:.82rem">${shortD(p.date)} · ${esc(p.source)} · ${esc(p.disc)}${(p.styles||[]).length?` · ${esc(p.styles.join(", "))}`:""}${p.minutes?` · ${p.minutes} min`:""}${p.outOf?` · <b class="num">${p.score}/${p.outOf}</b>`:""}${p.url?` · <a href="${esc(p.url)}" target="_blank" rel="noopener">link</a>`:""}${p.text?" · text saved":""}</div>
     ${(p.snags||[]).length?`<div style="font-size:.84rem">Stuck: ${esc(p.snags.join("; "))}</div>`:""}${p.notes?`<div class="sub" style="font-size:.84rem">${esc(p.notes)}</div>`:""}
     ${qs.map(q=>`<div style="font-size:.84rem;margin-top:4px">• <b>${esc(q.qtype)}</b> (${q.result==="wrong"?"wrong":"guessed"}): ${esc((q.traps||[]).map(t=>CARS_TRAPS[t]).join(", ")||"no trap tagged")}${q.lure?` <span class="muted">— ${esc(q.lure)}</span>`:""} <button class="btn link" data-cqedit="${q.id}">edit</button></div>`).join("")}
     </div><div class="stack tight">${p.readingOnly?"":`<button class="btn small" data-padd="${p.id}">+ Question</button><button class="btn small" data-pbreak="${p.id}">Copy for analysis</button>`}<button class="btn small" data-pedit="${p.id}">Edit</button></div></li>`;}).join("")}</ul>`;
@@ -755,9 +781,20 @@ function vFL(v){
     <section class="panel stack"><h2>Full-length exams</h2>
     ${fls.length?`<div class="tablewrap"><table><thead><tr><th>Date</th><th>Exam</th><th>C/P</th><th>CARS</th><th>B/B</th><th>P/S</th><th>Total</th><th>Missed</th></tr></thead><tbody>
       ${fls.map(f=>`<tr><td class="num">${shortD(f.date)}</td><td><button class="btn link" data-fl="${f.id}">${esc(f.name)}</button></td>${SEC_ORDER.map(k=>`<td class="num">${f.scores[k]||"—"}</td>`).join("")}<td class="num"><b>${flTotal(f)??"—"}</b></td><td class="num">${flMisses(f.id).length}</td></tr>`).join("")}</tbody></table></div>`
-      :`<p class="muted">No full lengths logged yet.</p>`}</section></div>`;
+      :`<p class="muted">No full lengths logged yet.</p>`}</section>
+    ${(()=>{const os=orderStats();if(!os.length)return "";const third=(a,b)=>{const xs=os.filter(o=>o.i>=a&&o.i<b);const q=xs.reduce((s,o)=>s+o.q,0),w=xs.reduce((s,o)=>s+o.w,0);return q?Math.round((q-w)/q*100)+"%":"—";};
+      return `<section class="panel stack"><h2>CARS accuracy by passage order</h2>
+      <div class="tablewrap"><table><thead><tr><th>Passage #</th><th>Exams</th><th>Correct</th><th style="width:45%"></th></tr></thead><tbody>${os.map(o=>`<tr><td class="num"><b>${o.i+1}</b></td><td class="num">${o.n}</td><td class="num">${o.q-o.w}/${o.q} (${Math.round(o.pct*100)}%)</td><td><div class="meter" style="height:10px"><i style="width:${o.pct*100}%"></i></div></td></tr>`).join("")}</tbody></table></div>
+      <p class="sub">Passages 1–3: <b>${third(0,3)}</b> · 4–6: <b>${third(3,6)}</b> · 7–9: <b>${third(6,99)}</b></p></section>`;})()}
+  </div>`;
   $("#fl-new").onclick=()=>go("fl",{mode:"new"});
   v.addEventListener("click",e=>{const b=e.target.closest("[data-fl]");if(b)go("fl",{id:b.dataset.fl});});
+}
+const cpDone=r=>r.qs!==""&&r.wrong!==""&&+r.qs>0;
+function cpSummary(f){const rows=(f.carsP||[]).filter(cpDone);if(!rows.length)return "";const q=rows.reduce((a,r)=>a+ +r.qs,0),w=rows.reduce((a,r)=>a+ +r.wrong,0);return `${rows.length} passages · ${q-w}/${q} correct (${Math.round((q-w)/q*100)}%)`;}
+function orderStats(){
+  const pos=[];(S.fls||[]).forEach(f=>(f.carsP||[]).forEach((r,i)=>{if(!cpDone(r))return;(pos[i]=pos[i]||{n:0,q:0,w:0});pos[i].n++;pos[i].q+=+r.qs;pos[i].w+=+r.wrong;}));
+  return pos.map((o,i)=>o?{i,...o,pct:(o.q-o.w)/o.q}:null).filter(Boolean);
 }
 function flMisses(id){return [...S.items.filter(i=>i.flId===id).map(i=>({kind:"sci",sec:i.flSec,r:i})),...S.cq.filter(q=>q.flId===id).map(q=>({kind:"cars",sec:"CARS",r:q}))];}
 function vFLForm(v,editId){
@@ -793,6 +830,16 @@ function vFLDetail(v,id){
       ${topCats.length?`<div class="why">Most missed areas: ${topCats.map(([k,c])=>`${esc(k)} (${c})`).join(", ")}</div>`:""}
       ${f.notes?`<div class="sub">${esc(f.notes)}</div>`:""}
     </section>
+    <section class="panel stack"><div class="sec-title"><h2>CARS passages</h2><span class="muted" style="font-size:.82rem">in the order you saw them</span></div>
+      <div class="tablewrap"><table id="fl-cp"><thead><tr><th>#</th><th>Questions</th><th>Wrong</th><th>Correct</th><th>Category</th></tr></thead><tbody>
+      ${(f.carsP=f.carsP&&f.carsP.length?f.carsP:Array.from({length:9},()=>({qs:"",wrong:"",disc:""}))).map((r,i)=>`<tr><td class="num"><b>${i+1}</b></td>
+        <td><input type="number" min="1" max="12" inputmode="numeric" data-cp="${i}" data-f="qs" value="${esc(r.qs)}" style="width:70px"></td>
+        <td><input type="number" min="0" max="12" inputmode="numeric" data-cp="${i}" data-f="wrong" value="${esc(r.wrong)}" style="width:70px"></td>
+        <td class="num" id="cp-pct-${i}">${r.qs!==""&&r.wrong!==""?Math.round((r.qs-r.wrong)/r.qs*100)+"%":"—"}</td>
+        <td><select data-cp="${i}" data-f="disc" style="min-width:150px"><option value="">—</option>${Object.entries(CARS_DISC).map(([g,l])=>`<optgroup label="${g}">${l.map(x=>`<option ${x===r.disc?"selected":""}>${esc(x)}</option>`).join("")}</optgroup>`).join("")}</select></td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="row"><button class="btn small" id="cp-add">+ Add a passage</button><span class="muted" style="font-size:.82rem" id="cp-sum">${cpSummary(f)}</span></div>
+    </section>
     <section class="panel stack"><h2>Add a missed question</h2>
       <div class="seg" id="fm-sec">${SEC_ORDER.map(k=>`<button type="button" data-v="${k}" aria-pressed="${FM.sec===k}">${SEC_NAME[k]}</button>`).join("")}</div>
       <div id="fm-body"></div>
@@ -804,6 +851,11 @@ function vFLDetail(v,id){
     </section></div>`;
   bindCommon(v);
   $("#fl-edit").onclick=()=>go("fl",{editId:id});
+  $("#fl-cp").onchange=e=>{const el=e.target.closest("[data-cp]");if(!el)return;const i=+el.dataset.cp,k=el.dataset.f;let val=el.value;
+    if(k!=="disc")val=val===""?"":Math.max(0,+val);f.carsP[i][k]=val;const r=f.carsP[i];
+    if(r.qs!==""&&r.wrong!==""&&+r.wrong>+r.qs){toast("Wrong can't be more than the number of questions.");}
+    $("#cp-pct-"+i).textContent=r.qs!==""&&r.wrong!==""&&+r.qs?Math.round((r.qs-r.wrong)/r.qs*100)+"%":"—";$("#cp-sum").textContent=cpSummary(f);save();};
+  $("#cp-add").onclick=()=>{f.carsP.push({qs:"",wrong:"",disc:""});save();render();};
   $("#fm-sec").onclick=e=>{const b=e.target.closest("[data-v]");if(!b)return;FM.sec=b.dataset.v;FM.subject="";$("#fm-sec").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===FM.sec));body();};
   v.addEventListener("click",e=>{
     const a=e.target.closest("[data-rm-item]");if(a){S.items=S.items.filter(i=>i.id!==a.dataset.rmItem);save();render();return;}
@@ -883,12 +935,13 @@ function vLogCars(v){
   const a=viewArg||{};
   if(a.mode==="q") return vLogCQ(v,a);
   const ed=a.editId?S.passages.find(p=>p.id===a.editId):null;
-  const P=ed?{...ed}:{date:todayS(),source:a.source||"Jack Westin",title:"",url:"",disc:a.disc||"Philosophy",minutes:"",score:"",outOf:"",readingOnly:!!a.readingOnly,snags:[],notes:""};
+  const P=ed?{...ed}:{date:todayS(),source:a.source||"Jack Westin",title:"",url:"",disc:a.disc||"",styles:[],minutes:"",score:"",outOf:"",readingOnly:!!a.readingOnly,snags:[],notes:""};
   v.innerHTML=`<div class="panel stack">
     <h2>${ed?"Edit passage":a.readingOnly?"Log an article I read":"Log a CARS passage"}</h2>
     <label class="row" style="font-size:.88rem;gap:8px"><input type="checkbox" id="p-ro" ${P.readingOnly?"checked":""}> Reading only (JSTOR / Aeon article, no questions). It won't count toward accuracy.</label>
-    <div class="fields"><label class="f">Source<select id="p-src">${CARS_SOURCES.map(s=>`<option ${s===P.source?"selected":""}>${s}</option>`).join("")}</select></label>
-      <label class="f"><span class="req">Passage type</span><select id="p-disc">${Object.entries(CARS_DISC).map(([g,l])=>`<optgroup label="${g}">${l.map(x=>`<option ${x===P.disc?"selected":""}>${esc(x)}</option>`).join("")}</optgroup>`).join("")}</select></label></div>
+    <div class="fields"><label class="f">Source<select id="p-src">${CARS_SOURCES.map(s=>`<option ${s===P.source?"selected":""}>${s}</option>`).join("")}</select></label></div>
+    <div class="stack tight" id="p-disc"><span class="label req">Category</span>${Object.entries(CARS_DISC).map(([g,l])=>`<div class="sub" style="font-size:.78rem">${g}</div><div class="chips">${l.map(x=>`<button type="button" class="chip" data-d="${esc(x)}" aria-pressed="${x===P.disc}">${esc(x)}</button>`).join("")}</div>`).join("")}</div>
+    <div class="stack tight"><span class="label">Style</span><div class="chips" id="p-sty">${CARS_STYLES.map(x=>`<button type="button" class="chip" data-st="${esc(x)}" aria-pressed="${(P.styles||[]).includes(x)}">${esc(x)}</button>`).join("")}</div></div>
     <div class="fields"><label class="f">Title<input id="p-title" value="${esc(P.title)}"></label><label class="f">Link<input id="p-url" type="url" value="${esc(P.url)}" placeholder="https://"></label></div>
     <div class="fields" id="p-scorebox" ${P.readingOnly?"hidden":""}><label class="f">Time (min)<input type="number" min="0" step="0.5" id="p-min" value="${esc(P.minutes)}"></label>
       <label class="f">Correct<input type="number" min="0" id="p-score" value="${esc(P.score??"")}" placeholder="3"></label><label class="f">Out of<input type="number" min="1" id="p-of" value="${esc(P.outOf??"")}" placeholder="6"></label></div>
@@ -899,13 +952,17 @@ function vLogCars(v){
     <div class="row"><button class="btn primary" id="p-save">${ed?"Save changes":"Save passage"}</button><button class="btn" data-go="cars">Cancel</button>${ed?`<button class="btn danger" id="p-del">Delete…</button><button class="btn danger" id="p-del2" hidden>Delete passage and its questions</button>`:""}</div></div>`;
   bindCommon(v);
   $("#p-ro").onchange=e=>{$("#p-scorebox").hidden=e.target.checked;};
+  P.styles=P.styles||[];
+  $("#p-disc").onclick=e=>{const c=e.target.closest("[data-d]");if(!c)return;P.disc=c.dataset.d;$("#p-disc").querySelectorAll("[data-d]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.d===P.disc));};
+  $("#p-sty").onclick=e=>{const c=e.target.closest("[data-st]");if(!c)return;const k=c.dataset.st;P.styles=P.styles.includes(k)?P.styles.filter(x=>x!==k):[...P.styles,k];c.setAttribute("aria-pressed",P.styles.includes(k));};
   $("#p-snags").onclick=e=>{const c=e.target.closest("[data-sn]");if(!c)return;const s=c.dataset.sn;P.snags=P.snags.includes(s)?P.snags.filter(x=>x!==s):[...P.snags,s];c.setAttribute("aria-pressed",P.snags.includes(s));};
   if(ed){$("#p-del").onclick=()=>{$("#p-del").hidden=true;$("#p-del2").hidden=false;};$("#p-del2").onclick=()=>{S.passages=S.passages.filter(p=>p.id!==ed.id);S.cq=S.cq.filter(q=>q.passageId!==ed.id);save();toast("Passage deleted.");go("cars");};}
   $("#p-save").onclick=()=>{
     const ro=$("#p-ro").checked, sc=$("#p-score").value, of=$("#p-of").value;
+    if(!P.disc) return toast("Pick the passage category.");
     if(!ro&&(sc!==""||of!=="")&&(of===""||sc===""||+sc>+of||+sc<0)) return toast("Score should look like 3 out of 6.");
     if(S.sample&&!ed) leaveSample();
-    const rec=Object.assign(ed||{id:uid()},{date:ed?ed.date:todayS(),source:$("#p-src").value,title:$("#p-title").value.trim(),url:$("#p-url").value.trim(),disc:$("#p-disc").value,readingOnly:ro,
+    const rec=Object.assign(ed||{id:uid()},{date:ed?ed.date:todayS(),source:$("#p-src").value,title:$("#p-title").value.trim(),url:$("#p-url").value.trim(),disc:P.disc,styles:P.styles,readingOnly:ro,
       minutes:ro?null:(+$("#p-min").value||null),score:ro||sc===""?null:+sc,outOf:ro||of===""?null:+of,snags:P.snags,notes:$("#p-notes").value.trim(),text:$("#p-text").value.trim(),hardSentences:$("#p-hard").value.trim()});
     if(!ed)S.passages.push(rec); save();
     toast(ro?"Reading logged.":"Passage saved."); if(!ro&&!ed) go("logcars",{mode:"q",passageId:rec.id}); else go("cars");
