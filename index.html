@@ -216,10 +216,18 @@ const SECTIONS={BB:"Bio/Biochem",CP:"Chem/Phys",PS:"Psych/Soc"};
 const OUT={}; for(const sec in OUTLINE) OUTLINE[sec].forEach(([code,cat,subs])=>subs.forEach((name,i)=>{const id=sec+"-"+code+"-"+i;OUT[id]={id,sec,code,cat,name};}));
 const SUBJ_SEC={"Biology":["BB"],"Biochemistry":["BB","CP"],"General Chemistry":["CP"],"Organic Chemistry":["CP"],"Physics":["CP"],"Psychology":["PS"],"Sociology":["PS"],"Research & stats":["PS","BB","CP"]};
 // extra words that point to an outline subtopic
-const ALIAS={"PS-7C-1":"reinforcement punishment skinner schedule extinction","PS-7C-0":"pavlov unconditioned conditioned stimulus","BB-1A-3":"enzyme kinetics lineweaver","BB-1A-4":"inhibitor inhibition allosteric competitive","CP-5C-2":"chromatography exchange hplc column gel filtration affinity","BB-1A-5":"purification exchange sds page isoelectric","CP-4C-4":"nernst cell potential","CP-5A-1":"henderson hasselbalch buffer titration equivalence","BB-1D-4":"etc atp synthase proton gradient","CP-4D-2":"lens mirror focal magnification refraction snell","PS-9A-0":"functionalism conflict theory symbolic interactionism","BB-3B-4":"nephron kidney glomerulus loop henle","PS-6B-6":"encoding retrieval decay amnesia","PS-8B-0":"fundamental attribution error actor observer"};
+const ALIAS={"BB-1D-1":"carbohydrate glucose","BB-1A-2":"nonenzymatic","CP-4C-3":"electrochemistry electrochemical electrolytic galvanic","PS-7C-1":"reinforcement punishment skinner schedule extinction","PS-7C-0":"pavlov unconditioned conditioned stimulus","BB-1A-3":"enzyme kinetics lineweaver","BB-1A-4":"inhibitor inhibition allosteric competitive","CP-5C-2":"chromatography exchange hplc column gel filtration affinity","BB-1A-5":"purification exchange sds page isoelectric","CP-4C-4":"nernst cell potential","CP-5A-1":"henderson hasselbalch buffer titration equivalence","BB-1D-4":"etc atp synthase proton gradient","CP-4D-2":"lens mirror focal magnification refraction snell","PS-9A-0":"functionalism conflict theory symbolic interactionism","BB-3B-4":"nephron kidney glomerulus loop henle","PS-6B-6":"encoding retrieval decay amnesia","PS-8B-0":"fundamental attribution error actor observer"};
 const stemTok=s=>String(s).toLowerCase().replace(/[^a-z0-9 ]+/g," ").split(/\s+/).filter(w=>w.length>3&&!["with","from","that","between","versus","system","systems","structure","function"].includes(w)).map(w=>w.replace(/(ies|es|s)$/,""));
+const outCode=name=>{const m=String(name).match(/(?:^|[^0-9a-z])(10A|[1-9][A-E])(?![0-9a-z])/i);if(!m)return "";const c=m[1].toUpperCase();return Object.values(OUT).some(o=>o.code===c)?c:"";};
 function matchOutline(name,subject){
-  const toks=stemTok(name); if(!toks.length) return "";
+  const code=outCode(name), toks=stemTok(String(name).replace(/\(?\b(10A|[1-9][A-E])\b\)?/ig," "));
+  if(code){ const ids=Object.keys(OUT).filter(id=>OUT[id].code===code); let best=ids[0],bs=0;
+    const ne=w=>w.replace(/e$/,""); const tk=toks.map(ne);
+    ids.forEach(id=>{const hay=stemTok(OUT[id].name.replace(/non-\S+/ig," ")+" "+(ALIAS[id]||"")).map(ne);
+      const sc=tk.filter(t=>hay.includes(t)).length+0.5*tk.filter(t=>t.length>=5&&hay.some(h=>h.length>=5&&h.slice(0,5)===t.slice(0,5))).length;
+      if(sc>bs){bs=sc;best=id;}});
+    return best; }
+  if(!toks.length) return "";
   const secs=SUBJ_SEC[subject]||["BB","CP","PS"]; let best="",bs=0;
   for(const id in OUT){const o=OUT[id]; const hay=new Set(stemTok(o.name+" "+(ALIAS[id]||"")));
     let sc=toks.filter(t=>hay.has(t)).length; if(!sc) continue; if(secs.includes(o.sec)) sc+=0.5; if(secs[0]===o.sec) sc+=0.25;
@@ -275,7 +283,7 @@ const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slic
 function blank(){return {v:2,settings:{testDate:"2027-02-12",iv:{no:1,partial:2,yes:5},style:"quick"},topics:[],items:[],wins:[],passages:[],cq:[],weeks:{},legacy:{blocks:[],reads:{}},fls:[],sample:false};}
 let S;
 function load(){
-  try{const raw=localStorage.getItem(KEY);if(raw){S=Object.assign(blank(),JSON.parse(raw));S.settings=Object.assign(blank().settings,S.settings);S.settings.iv=Object.assign({no:1,partial:2,yes:5},S.settings.iv);S.topics.forEach(t=>{if(t.outline===undefined)t.outline=matchOutline(t.name,t.subject);});[...S.passages,...S.cq,...(S.fls||[]).flatMap(f=>f.carsP||[])].forEach(x=>{if(DISC_MIGRATE[x.disc])x.disc=DISC_MIGRATE[x.disc];});return;}}catch(e){}
+  try{const raw=localStorage.getItem(KEY);if(raw){S=Object.assign(blank(),JSON.parse(raw));S.settings=Object.assign(blank().settings,S.settings);S.settings.iv=Object.assign({no:1,partial:2,yes:5},S.settings.iv);S.topics.forEach(t=>{if(t.outline===undefined||(!t.outline&&outCode(t.name)))t.outline=matchOutline(t.name,t.subject);});[...S.passages,...S.cq,...(S.fls||[]).flatMap(f=>f.carsP||[])].forEach(x=>{if(DISC_MIGRATE[x.disc])x.disc=DISC_MIGRATE[x.disc];});return;}}catch(e){}
   S=blank();
   try{const old=JSON.parse(localStorage.getItem(OLD_KEY)||"null");
     if(old){S.legacy.blocks=(old.blocks||[]).filter(b=>!b.sample);S.legacy.reads=old.reads||{};S.settings.testDate=(old.settings&&old.settings.testDate)||S.settings.testDate;}}catch(e){}
@@ -833,7 +841,7 @@ Fields for every question:
 
 For wrong CP, BB or PS questions, also add:
 - subject: one of ${JSON.stringify(SUBJECTS)}
-- topic: the specific concept tested, 2–6 words (e.g. "galvanic cell electrode signs")
+- topic: the specific concept tested, 2–6 words, followed by the AAMC content category code in parentheses when you can tell it (e.g. "galvanic cell electrode signs (4C)")
 - note: one short sentence on why the right answer is right
 
 For every CARS question (correct or wrong), also add:
