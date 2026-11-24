@@ -138,6 +138,20 @@ h1{letter-spacing:-.01em}
 .lines{display:flex;flex-direction:column}
 .line{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line);font-size:.92rem}
 .line:last-child{border-bottom:1px solid var(--line)}
+.scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,96px),1fr));gap:8px}
+.sc{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;min-width:0}
+.sc .v{font-size:1.35rem;font-weight:700;letter-spacing:-.02em;display:flex;align-items:baseline;gap:6px}
+.sc.big .v{font-size:1.7rem}
+.delta{font-size:.72rem;font-weight:600}.delta.up{color:var(--yes)}.delta.dn{color:var(--no)}
+.chart{min-height:60px;overflow:hidden}.chart svg{display:block;max-width:100%}
+.chart .grid{stroke:var(--line);stroke-width:1}.chart .tgt{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:3 4}
+.chart .ax{fill:var(--ink-3);font:11px var(--font)}.chart .val{fill:var(--ink);font:600 12px var(--font)}
+.chart .ln{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round}.chart .ln.dash{stroke-dasharray:5 4}
+.chart .dot{fill:var(--accent);stroke:var(--bg);stroke-width:2}.chart .dot.hollow{fill:var(--bg);stroke:var(--accent)}
+.chart .pt{cursor:pointer}
+.legend .lg{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:-1px;background:var(--accent)}.legend .lg.hollow{background:var(--bg);border:2px solid var(--accent);box-sizing:border-box}
+.ptxt{font-size:.95rem}
+table.hist tbody tr{cursor:pointer}table.hist tbody tr:hover{background:var(--sunk)}
 .statusbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:8px}
 .statusbar button{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:12px 14px;border:1px solid var(--line);border-radius:10px}
 .statusbar button[aria-pressed="true"]{border-color:var(--ink);}
@@ -331,7 +345,8 @@ function load(){
     if(old){S.legacy.blocks=(old.blocks||[]).filter(b=>!b.sample);S.legacy.reads=old.reads||{};S.settings.testDate=(old.settings&&old.settings.testDate)||S.settings.testDate;}}catch(e){}
   if(!S.legacy.blocks.length) seedSample();
 }
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){toast("Couldn't save in this browser. Check that site storage is allowed.");}}
+let KNOWN=null;
+function save(){if(KNOWN){const n=Date.now();[...S.items,...S.wins].forEach(x=>{if(!x.ts&&!KNOWN.has(x.id))x.ts=n;});}try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){toast("Couldn't save in this browser. Check that site storage is allowed.");}}
 function leaveSample(){ if(!S.sample) return; const keep={settings:S.settings,legacy:S.legacy}; S=Object.assign(blank(),keep); }
 
 /* ================= example records ================= */
@@ -428,12 +443,6 @@ function discStats(){
   const d={};S.passages.filter(p=>!p.readingOnly).forEach(p=>{const o=d[p.disc]=d[p.disc]||{n:0,min:[],sc:0,of:0,miss:0};o.n++;if(p.minutes)o.min.push(+p.minutes);if(p.outOf){o.sc+=+p.score;o.of+=+p.outOf;}});
   S.cq.forEach(q=>{const p=cqPassage(q);const k=p?p.disc:q.disc;if(k)(d[k]=d[k]||{n:0,min:[],sc:0,of:0,miss:0}).miss++;});
   return Object.entries(d).map(([k,o])=>({k,n:o.n,avgMin:o.min.length?o.min.reduce((a,c)=>a+c,0)/o.min.length:null,pct:o.of?o.sc/o.of:null,miss:o.miss}));
-}
-function todaysReading(){
-  const ds=discStats().filter(x=>x.n>0).sort((a,b)=>(a.pct??1)-(b.pct??1)||b.miss-a.miss).slice(0,3).map(x=>x.k);
-  const pool=ds.length?ds:CARS_DISC_ALL; const n=Math.floor(parseD(todayS()).getTime()/DAY);
-  const traps=trapStats(); const task=traps.length?TRAP_TASK[traps[0].k]:READ_TASKS[n%READ_TASKS.length];
-  return {disc:pool[n%pool.length],fromWeak:ds.length>0,pool,task,trap:traps[0]};
 }
 const siteLinks=disc=>{const q=encodeURIComponent(disc.replace("&","and"));return SITES.map(([n,s])=>`<a class="btn small" target="_blank" rel="noopener" href="https://www.google.com/search?q=site%3A${s}+${q}">${n}</a>`).join("");};
 
@@ -650,7 +659,7 @@ function vRetest(v){
   } else if(R.stage==="rate"){
     v.querySelectorAll(".rate button").forEach(b=>b.onclick=()=>{
       const self=b.dataset.s, t=todayS(), next=addDays(t,iv[self]);
-      it.attempts.push({date:t,cardId:card.id,answer:R.answer.trim(),self,next});
+      it.attempts.push({date:t,cardId:card.id,answer:R.answer.trim(),self,next,ts:Date.now()});
       let needNew=false;
       if(self==="yes"){ if(it.cardIdx+1<it.cards.length) it.cardIdx++; else {it.needsNewQ=true;needNew=true;} }
       it.due=next; save();
@@ -752,37 +761,65 @@ function carsAnalysis(){
   return {timed,snags,qtypes,ds,traps:trapStats(),grp,styles,sk};
 }
 function sentenceList(){ return S.passages.flatMap(p=>(p.hardSentences||"").split(/\n+/).map(s=>s.trim()).filter(Boolean).map(s=>({s,p}))).slice(-12).reverse(); }
+const SKILL_OBJ={"Foundations of Comprehension":"Write the author's main argument in one sentence before you stop reading.","Reasoning Within the Text":"For each claim, find the sentence that supports it, and note how each paragraph connects to the last.","Reasoning Beyond the Text":"Pick one claim and predict how the author would respond to a new example."};
+const TRAP_OBJ={attrib:"Distinguish the author's position from the competing viewpoints the author reports.",scope:"List what the author actually claims, plus one tempting claim the author never makes.",detail:"Separate the main point from its supporting details: one line each.",extreme:"Mark every qualifier (some, often, may) and note how it limits the claim.",qualifier:"Mark every negation and qualifier, then restate each claim with them included.",wrongq:"After each paragraph, write the question it answers."};
+const SNAG_OBJ={"Finding the main idea":SKILL_OBJ["Foundations of Comprehension"],"Following the argument":"Label each sentence claim, support or counterpoint, and mark where the argument turns.","Author's view vs. others' views":TRAP_OBJ.attrib,"How paragraphs connect":"Write how each paragraph relates to the one before: continues, contrasts, example or conclusion.","Long or complex sentences":"Rewrite three long sentences as two short ones each.","Unfamiliar words":"Guess each hard word from context before checking it.","Abstract topic":"Restate each abstract claim with a concrete example of your own.","Ran out of time":"Read with a 10-minute timer and note the paragraph where you slowed down."};
+/* the reading objective follows the strongest piece of evidence; general only when data is thin */
+function carsWeak(){
+  const out=[], cf=carsFocus(), A=carsAnalysis(), n=A.timed.length;
+  if(cf) out.push({t:`${SKILL_SHORT[cf.g]}: ${Math.round(cf.share*100)}% of your CARS misses (${Math.round(cf.test*100)}% of the test)`,a:cf.task,obj:SKILL_OBJ[cf.g]});
+  A.traps.filter(t=>t.n>=2).slice(0,2).forEach(t=>out.push({t:`${CARS_TRAPS[t.k]}: ${t.n} times in ${t.np} passage${t.np>1?"s":""}`,a:TRAP_TASK[t.k]||"Before choosing, find the line that proves the answer.",obj:TRAP_OBJ[t.k]}));
+  A.snags.filter(([k,c])=>c>=2).slice(0,1).forEach(([k,c])=>out.push({t:`Stuck on ${k.toLowerCase()}: ${c} of ${n} passages`,a:SNAG_TIP[k],obj:SNAG_OBJ[k]}));
+  const os=orderStats(); if(os.length>=6){const part=(a,b)=>{const xs=os.filter(o=>o.i>=a&&o.i<b);const q=xs.reduce((s,o)=>s+o.q,0),w=xs.reduce((s,o)=>s+o.w,0);return q?(q-w)/q:null;};const e=part(0,3),l=part(6,99);
+    if(e!=null&&l!=null&&e-l>=.1) out.push({t:`Accuracy drops late in the section: ${Math.round(e*100)}% on passages 1–3, ${Math.round(l*100)}% on 7–9`,a:"Do one timed 3-passage set at the end of a study day each week.",obj:SNAG_OBJ["Ran out of time"]});}
+  return out;
+}
+function todaysReading(){
+  const ds=discStats().filter(x=>x.n>0||x.miss>0).sort((a,b)=>(a.pct??1)-(b.pct??1)||b.miss-a.miss).slice(0,3).map(x=>x.k);
+  const pool=ds.length?ds:CARS_DISC_ALL; const n=Math.floor(parseD(todayS()).getTime()/DAY);
+  const W=carsWeak(), top=W[0];
+  const traps=trapStats();
+  return {disc:pool[n%pool.length],fromWeak:ds.length>0,pool,task:top?top.obj:READ_TASKS[n%READ_TASKS.length],why:top?top.t:"",personal:!!top,trap:traps[0]};
+}
+function carsRecent(){
+  const r=[...S.passages.filter(p=>!p.readingOnly).map(p=>({d:p.date,t:`${p.title||p.disc+" passage"}`,s:p.source,v:p.outOf?`${p.score}/${p.outOf}`:"",min:p.minutes})),
+    ...(S.sessions||[]).filter(s=>s.sec==="CARS").map(s=>({d:s.date,t:"Practice session",s:s.source,v:s.total&&s.correct!=null?`${s.correct}/${s.total}`:""})),
+    ...(S.fls||[]).filter(f=>+f.scores.CARS).map(f=>({d:f.date,t:f.name,s:"Full length",v:`CARS ${f.scores.CARS}`}))];
+  return r.sort((a,b)=>a.d<b.d?1:-1);
+}
 function vCars(v){
-  const A=carsAnalysis(), cr=todaysReading();
-  const reads=S.passages.filter(p=>p.readingOnly).length+Object.keys(S.legacy.reads||{}).length;
-  const weak=A.ds.slice(0,3), topSnag=A.snags[0];
-  const n=A.timed.length;
-  const hs=sentenceList();
-  v.innerHTML=`<div class="stack" style="gap:16px">
-  <div class="row"><button class="btn primary" data-lc="passage">+ Log a passage</button><button class="btn" data-lc="q">+ Log a question</button><button class="btn" data-logread="${esc(cr.disc)}">+ Log an article I read</button></div>
-  <section class="panel stack"><h2>Pattern</h2>
-    ${n||S.cq.length?`<div class="grid2">
+  const A=carsAnalysis(), cr=todaysReading(), W=carsWeak(), rec=carsRecent();
+  const n=A.timed.length, weak=A.ds.slice(0,3), hs=sentenceList();
+  const since=addDays(todayS(),-14), acc=(()=>{let q=0,c=0;S.passages.filter(p=>!p.readingOnly&&p.outOf&&p.date>=since).forEach(p=>{q+=+p.outOf;c+=+p.score;});(S.sessions||[]).filter(s=>s.sec==="CARS"&&s.date>=since&&s.total&&s.correct!=null).forEach(s=>{q+=s.total;c+=s.correct;});return q>=5?{q,c}:null;})();
+  v.innerHTML=`<div class="stack" style="gap:24px">
+  <div class="row"><button class="btn primary big" data-lc="passage">Log a passage</button><button class="btn link" data-lc="q">Log a question</button><button class="btn link" data-logread="${esc(cr.disc)}">Log an article I read</button></div>
+  <section class="stack tight"><h3 class="eyebrow">Today's reading</h3>
+    <div class="ptxt"><b>One ${esc(cr.disc.toLowerCase())} article</b></div>
+    <div class="pa">${esc(cr.task)}</div>
+    <span class="muted small">${cr.personal?`Because: ${esc(cr.why)}`:"Not enough CARS data yet for a personal objective."}</span>
+    <div class="row">${siteLinks(cr.disc)}</div>
+  </section>
+  <section class="stack tight"><h3 class="eyebrow">Recurring weaknesses</h3>
+    ${W.length?insightList(W.slice(0,3)):`<p class="muted small">Not enough data yet. Log passages and missed questions, or import a full length.</p>`}
+  </section>
+  <section class="stack tight"><div class="sec-title"><h3 class="eyebrow">Recent practice</h3>${acc?`<span class="muted small num">Last 2 weeks: ${acc.c}/${acc.q} (${Math.round(acc.c/acc.q*100)}%)</span>`:""}</div>
+    ${rec.length?`<ul class="list">${rec.slice(0,5).map(x=>`<li><div class="main">${esc(x.t)}<div class="muted small">${shortD(x.d)} · ${esc(x.s||"")}${x.min?` · ${x.min} min`:""}</div></div><span class="num">${esc(x.v)}</span></li>`).join("")}</ul>`:`<p class="muted small">Nothing logged yet.</p>`}
+  </section>
+  <details class="panel"><summary>Detailed stats</summary><div class="grid2" style="margin-top:12px">
       <div class="stack tight"><span class="label">By AAMC skill</span>${Object.keys(A.sk).length?(()=>{const tot=Object.values(A.sk).reduce((a,b)=>a+b,0);return `<ul class="list">${CARS_SKILLS.map(([g,pct])=>`<li><span>${g}</span><span class="num muted">${A.sk[g]||0} missed · ${Math.round((A.sk[g]||0)/tot*100)}% of misses (test ${pct})</span></li>`).join("")}</ul>`;})():`<p class="muted">—</p>`}</div>
       <div class="stack tight"><span class="label">By passage order (full lengths)</span>${(()=>{const os=orderStats();if(!os.length)return `<p class="muted">Fill the CARS passages table in a full length.</p>`;const part=(a,b)=>{const xs=os.filter(o=>o.i>=a&&o.i<b);const q=xs.reduce((s,o)=>s+o.q,0),w=xs.reduce((s,o)=>s+o.w,0);return q?Math.round((q-w)/q*100)+"%":"—";};return `<ul class="list"><li><span>Passages 1–3</span><span class="num muted">${part(0,3)}</span></li><li><span>4–6</span><span class="num muted">${part(3,6)}</span></li><li><span>7–9</span><span class="num muted">${part(6,99)}</span></li></ul>`;})()}</div>
       <div class="stack tight"><span class="label">Traps</span>${A.traps.length?`<ul class="list">${A.traps.slice(0,4).map(t=>`<li><span>${esc(CARS_TRAPS[t.k])}</span><span class="num muted">${t.n} in ${t.np} passage${t.np>1?"s":""}</span></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
-    </div>
-    <details><summary>More stats</summary><div class="grid2" style="margin-top:12px">
       <div class="stack tight"><span class="label">Passage types you miss most</span>${weak.length?`<ul class="list">${weak.map(d=>`<li><div class="main"><b>${esc(d.k)}</b><div class="muted" style="font-size:.82rem">${d.n?`${d.n} passage${d.n>1?"s":""}`:"from full lengths"}${d.pct!=null?` · avg ${Math.round(d.pct*100)}%`:""}${d.avgMin?` · ${d.avgMin.toFixed(1)} min`:""} · ${d.miss} missed</div></div></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
       <div class="stack tight"><span class="label">Where you get stuck</span>${A.snags.length?`<ul class="list">${A.snags.slice(0,4).map(([k,c])=>`<li><span>${esc(k)}</span><span class="num muted">${c} of ${n}</span></li>`).join("")}</ul>`:`<p class="muted">Tag "where I got stuck" when logging a passage.</p>`}</div>
       <div class="stack tight"><span class="label">Question types you miss</span>${A.qtypes.length?`<ul class="list">${A.qtypes.slice(0,4).map(([k,c])=>`<li><span>${esc(k)}</span><span class="num muted">${c}</span></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
       <div class="stack tight"><span class="label">Humanities vs. social sciences</span>${Object.keys(A.grp).length?`<ul class="list">${["Humanities","Social sciences"].filter(g=>A.grp[g]).map(g=>`<li><span>${g}</span><span class="num muted">${Math.round(A.grp[g].sc/A.grp[g].of*100)}% · ${A.grp[g].n} passage${A.grp[g].n>1?"s":""}</span></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
       <div class="stack tight"><span class="label">By style</span>${A.styles.length?`<ul class="list">${A.styles.slice(0,4).map(x=>`<li><span>${esc(x.k)}</span><span class="num muted">${x.pct!=null?Math.round(x.pct*100)+"% · ":""}${x.n} passage${x.n>1?"s":""}</span></li>`).join("")}</ul>`:`<p class="muted">Tag a style when logging a passage.</p>`}</div>
-    </div></details>`:`<p class="muted">Log a passage to see your pattern.</p>`}
-  </section>
-  <section class="panel stack"><h2>Read next</h2>
-    ${topSnag?`<div class="qcard"><span class="label">Practice for "${esc(topSnag[0])}"</span><br>${esc(SNAG_TIP[topSnag[0]]||READ_TASKS[0])}</div>`:""}
-    <ul class="list">${(weak.length?weak.map(d=>d.k):[cr.disc]).map(k=>`<li><div class="main stack tight"><b>${esc(k)}</b><div class="row">${siteLinks(k)}</div></div></li>`).join("")}</ul>
-  </section>
+  </div></details>
+  <details class="panel"><summary>Passages (${S.passages.length})</summary><div style="margin-top:8px">${passageList(S.passages.slice().sort((a,b)=>a.date<b.date?1:-1))}</div></details>
   <details class="panel"><summary>Hard sentences</summary><div class="stack">
     ${hs.length?`<ul class="list">${hs.map(({s,p})=>`<li><div class="main">${esc(s)}<div class="muted" style="font-size:.8rem">${esc(p.title||p.disc)}</div></div><button class="btn small" data-hs="${esc(s)}">Copy for breakdown</button></li>`).join("")}</ul>`:`<p class="muted">Paste sentences you didn't understand when you log a passage. They'll collect here.</p>`}
     <details><summary>Common CARS sentence patterns</summary><ul class="list" style="margin-top:6px">${SENTENCE_PATTERNS.map(([t,ex,how])=>`<li><div class="main"><b>${esc(t)}</b><div style="font-size:.88rem;font-style:italic;margin-top:2px">${esc(ex)}</div><div class="sub">${esc(how)}</div></div></li>`).join("")}</ul></details>
   </div></details>
-  <section class="panel stack"><h2>Passages</h2>${passageList(S.passages.slice().sort((a,b)=>a.date<b.date?1:-1).slice(0,10))}</section>
   </div>`;
   bindCommon(v);
   v.addEventListener("click",e=>{
@@ -830,25 +867,151 @@ const FL_NAMES=["AAMC Sample Test","AAMC FL 1","AAMC FL 2","AAMC FL 3","AAMC FL 
 const SEC_ORDER=["CP","CARS","BB","PS"]; const SEC_NAME={CP:"Chem/Phys",CARS:"CARS",BB:"Bio/Biochem",PS:"Psych/Soc"};
 const SEC_SUBJ={CP:["General Chemistry","Organic Chemistry","Physics","Biochemistry"],BB:["Biology","Biochemistry","Organic Chemistry"],PS:["Psychology","Sociology","Research & stats"]};
 const flTotal=f=>SEC_ORDER.every(k=>+f.scores[k])?SEC_ORDER.reduce((a,k)=>a+(+f.scores[k]),0):null;
+/* ================= FULL-LENGTH ================= */
+const provOf=n=>/^\s*aamc/i.test(n||"")?"AAMC":(String(n||"Other").trim().split(/\s+/)[0]||"Other");
+const isAAMC=f=>provOf(f.name)==="AAMC";
+const provTag=f=>`<span class="status ${isAAMC(f)?"acc":"plain"}">${isAAMC(f)?"AAMC":"Third-party"}</span>`;
+const flsAsc=()=>(S.fls||[]).slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+const prevComparable=f=>flsAsc().filter(x=>x.id!==f.id&&x.date<=f.date&&provOf(x.name)===provOf(f.name)&&(flTotal(x)||SEC_ORDER.some(k=>+x.scores[k]))).pop()||null;
+const scoreOf=(f,k)=>k==="T"?flTotal(f):(+f.scores[k]||null);
+const dlt=(a,b)=>a!=null&&b!=null&&a!==b?`<span class="delta ${a>b?"up":"dn"}">${a>b?"+":"−"}${Math.abs(a-b)}</span>`:"";
+let flTrendK="T";
+function trendSVG(el){
+  const k=flTrendK, pts=flsAsc().map(f=>({f,y:scoreOf(f,k)})).filter(p=>p.y);
+  if(pts.length<2){el.innerHTML=`<p class="muted small">The trend appears after two exams with ${k==="T"?"a total":"this section's"} score.</p>`;return;}
+  const W=Math.max(280,el.clientWidth||600),H=190,L=36,R=14,T=14,B=26;
+  const tg=k==="T"?+S.settings.target||0:0;
+  let lo=Math.min(...pts.map(p=>p.y),tg||999),hi=Math.max(...pts.map(p=>p.y),tg||0);
+  const pad=k==="T"?3:1; lo=Math.max(k==="T"?472:118,lo-pad); hi=Math.min(k==="T"?528:132,hi+pad); if(hi-lo<4){hi=lo+4;}
+  const n=pts.length, x=i=>L+(n===1?0:(W-L-R)*i/(n-1)), y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+  const ticks=[lo,Math.round((lo+hi)/2),hi];
+  const path=sel=>{const ps=pts.map((p,i)=>({p,i})).filter(o=>sel(o.p.f));return ps.length>1?ps.map((o,j)=>`${j?"L":"M"}${x(o.i).toFixed(1)},${y(o.p.y).toFixed(1)}`).join(""):"";};
+  const showX=pts.map((p,i)=>i===0||i===n-1||n<=6);
+  el.innerHTML=`<svg width="${W}" height="${H}" role="img" aria-label="${k==="T"?"Total":SEC_NAME[k]} score by exam">
+    ${ticks.map(t=>`<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}" class="grid"/><text x="${L-6}" y="${y(t)+4}" text-anchor="end" class="ax">${t}</text>`).join("")}
+    ${tg?`<line x1="${L}" x2="${W-R}" y1="${y(tg)}" y2="${y(tg)}" class="tgt"/><text x="${W-R}" y="${y(tg)-5}" text-anchor="end" class="ax">target ${tg}</text>`:""}
+    <path d="${path(isAAMC)}" class="ln"/><path d="${path(f=>!isAAMC(f))}" class="ln dash"/>
+    ${pts.map((p,i)=>`<g class="pt" data-fl="${p.f.id}"><circle cx="${x(i)}" cy="${y(p.y)}" r="12" fill="transparent"/><circle cx="${x(i)}" cy="${y(p.y)}" r="4.5" class="${isAAMC(p.f)?"dot":"dot hollow"}"/><title>${esc(p.f.name)} · ${shortD(p.f.date)} · ${p.y}</title>${i===n-1?`<text x="${x(i)}" y="${y(p.y)-10}" text-anchor="end" class="val">${p.y}</text>`:""}${showX[i]?`<text x="${x(i)}" y="${H-6}" text-anchor="${i===0?"start":i===n-1?"end":"middle"}" class="ax">${shortD(p.f.date)}</text>`:""}</g>`).join("")}
+  </svg>
+  <div class="legend"><span><i class="lg dot"></i>AAMC</span><span><i class="lg dot hollow"></i>Third-party (not directly comparable)</span></div>`;
+}
+/* patterns across exams; each comes with an action */
+function flInsights(){
+  const out=[], fls=flsAsc(), scored=fls.filter(f=>SEC_ORDER.some(k=>+f.scores[k])), lf=scored[scored.length-1];
+  if(lf){
+    const same=scored.filter(f=>provOf(f.name)===provOf(lf.name)).slice(-3);
+    if(same.length>=3){const flat=SEC_ORDER.filter(k=>same.every(f=>+f.scores[k])).map(k=>({k,v:same.map(f=>+f.scores[k])})).filter(o=>Math.max(...o.v)-Math.min(...o.v)<=1).sort((a,b)=>Math.min(...a.v)-Math.min(...b.v))[0];
+      if(flat) out.push({t:`${SEC_NAME[flat.k]} flat at ${Math.min(...flat.v)}–${Math.max(...flat.v)} over your last 3 ${provOf(lf.name)} exams`,a:`More full lengths alone won't move it. Work the top ${SEC_NAME[flat.k]} concepts in the Knowledge Hub.`,k:"plateau"});}
+    const secs=SEC_ORDER.filter(k=>+lf.scores[k]).sort((a,b)=>lf.scores[a]-lf.scores[b]), lo=secs[0], tg=+S.settings.target, tot=flTotal(lf);
+    if(lo&&secs.length>1&&lf.scores[secs[1]]-lf.scores[lo]>=1&&!out.some(o=>o.k==="plateau")){
+      const top=concepts().find(c=>c.status!=="verified"&&c.items.some(i=>i.flSec===lo));
+      out.push({t:`${SEC_NAME[lo]} is your lowest section (${lf.scores[lo]}) on ${lf.name}${tg&&tot&&tg>tot?` · ${tg-tot} points to target`:""}`,a:top?`Start with ${top.name}: ${conceptAction(top).toLowerCase()}`:`Put two of this week's practice sessions on ${SEC_NAME[lo]}.`,k:"low"});}
+  }
+  concepts().filter(c=>c.nfl>=2&&c.status!=="verified").slice(0,2).forEach(c=>out.push({t:`${c.name} missed on ${c.nfl} full lengths`,a:conceptAction(c),k:"rep",ck:c.k}));
+  const fi=S.items.filter(i=>i.flId), unrev=fi.filter(i=>errOf(i)==="unknown"&&!(i.reasons||[]).length), conf=fi.filter(i=>errOf(i)!=="unknown");
+  if(conf.length>=3){const ec={};conf.forEach(i=>{const e=errOf(i);ec[e]=(ec[e]||0)+1;});const [e,n]=Object.entries(ec).sort((a,b)=>b[1]-a[1])[0];
+    if(n/conf.length>=.4) out.push({t:`${n} of ${conf.length} reviewed exam misses are ${ERR[e].toLowerCase()} errors`,a:{content:"Review content before more practice: pick the top concept in the Knowledge Hub.",application:"Practice passage-based questions, not flashcards.",reasoning:"On each missed question, say why each wrong choice is wrong.",calculation:"Do 10 timed calculation questions, writing units every step.",interpretation:"Before answering, restate what the question and the figure ask."}[e],k:"err"});}
+  if(unrev.length>=5&&unrev.length/fi.length>.5){const lf2=fls.filter(f=>unrev.some(i=>i.flId===f.id)).pop();
+    out.push({t:`${unrev.length} exam misses have no reviewed cause yet`,a:"Open Question Review and mark why each one was wrong. Until then, they count as tested concepts, not confirmed gaps.",k:"unrev",fl:lf2&&lf2.id});}
+  if(lf){const since=addDays(todayS(),-30);SEC_ORDER.filter(k=>+lf.scores[k]).forEach(k=>{const ss=(S.sessions||[]).filter(s=>s.sec===k&&s.date>=since&&s.total&&s.correct!=null);const q=ss.reduce((a,s)=>a+s.total,0),c=ss.reduce((a,s)=>a+s.correct,0);
+    const low=SEC_ORDER.filter(x=>+lf.scores[x]).every(x=>+lf.scores[x]>=+lf.scores[k]);
+    if(q>=30&&c/q>=.7&&low) out.push({t:`${SEC_NAME[k]} practice is ${Math.round(c/q*100)}% correct this month, but it's your lowest exam section`,a:`Do ${SEC_NAME[k]} practice timed and mixed, in full section blocks.`,k:"gap"});});}
+  const os=orderStats(); if(os.length>=6){const part=(a,b)=>{const xs=os.filter(o=>o.i>=a&&o.i<b);const q=xs.reduce((s,o)=>s+o.q,0),w=xs.reduce((s,o)=>s+o.w,0);return q?(q-w)/q:null;};const e=part(0,3),l=part(6,99);
+    if(e!=null&&l!=null&&e-l>=.1) out.push({t:`CARS accuracy drops from ${Math.round(e*100)}% (passages 1–3) to ${Math.round(l*100)}% (passages 7–9)`,a:"Do one timed 3-passage set at the end of a study day each week.",k:"cars"});}
+  concepts().filter(c=>c.status==="verified").forEach(c=>{const vd=c.items.flatMap(i=>i.attempts||[]).filter(a=>a.self==="yes").map(a=>a.date).concat(c.wins.map(w=>w.date)).sort().pop();
+    const later=vd&&fls.filter(f=>f.date>vd&&flMisses(f.id).length);if(later&&later.length&&c.nfl) out.push({t:`No misses on ${c.name} in ${later.length} exam${later.length>1?"s":""} since it was verified`,a:"Keep it in mixed practice.",k:"good"});});
+  return out;
+}
+function insightList(L){return `<ol class="prio">${L.map((x,i)=>`<li><span class="pn num">${i+1}</span><div class="main"><div class="ptxt">${esc(x.t)}</div><div class="pa">${esc(x.a)}</div></div></li>`).join("")}</ol>`;}
 function vFL(v){
   const a=viewArg||{};
   if(a.id) return vFLDetail(v,a.id);
+  if(a.mode==="import") return vFLImport(v,a);
   if(a.mode==="new"||a.editId) return vFLForm(v,a.editId);
-  const fls=(S.fls||[]).slice().sort((x,y)=>x.date<y.date?1:-1);
-  v.innerHTML=`<div class="stack" style="gap:16px">
-    <div class="row"><button class="btn primary" id="fl-new">+ Log a full length</button></div>
-    ${(()=>{const L=flLimits();return L.length?`<section class="panel stack"><h2>What's limiting your score</h2><ul class="list">${L.map(x=>`<li><span>${x}</span></li>`).join("")}</ul></section>`:"";})()}
-    <section class="panel stack"><h2>Exams</h2>
-    ${fls.length?`<div class="tablewrap"><table><thead><tr><th>Date</th><th>Exam</th><th>C/P</th><th>CARS</th><th>B/B</th><th>P/S</th><th>Total</th><th>Missed</th></tr></thead><tbody>
-      ${fls.map(f=>`<tr><td class="num">${shortD(f.date)}</td><td><button class="btn link" data-fl="${f.id}">${esc(f.name)}</button></td>${SEC_ORDER.map(k=>`<td class="num">${f.scores[k]||"—"}</td>`).join("")}<td class="num"><b>${flTotal(f)??"—"}</b></td><td class="num">${flMisses(f.id).length}</td></tr>`).join("")}</tbody></table></div>`
-      :`<p class="muted">No full lengths logged yet.</p>`}</section>
-    ${(()=>{const os=orderStats();if(!os.length)return "";const third=(a,b)=>{const xs=os.filter(o=>o.i>=a&&o.i<b);const q=xs.reduce((s,o)=>s+o.q,0),w=xs.reduce((s,o)=>s+o.w,0);return q?Math.round((q-w)/q*100)+"%":"—";};
-      return `<details class="panel"><summary>CARS accuracy by passage order</summary><div class="stack">
-      <div class="tablewrap"><table><thead><tr><th>Passage #</th><th>Exams</th><th>Correct</th><th style="width:45%"></th></tr></thead><tbody>${os.map(o=>`<tr><td class="num"><b>${o.i+1}</b></td><td class="num">${o.n}</td><td class="num">${o.q-o.w}/${o.q} (${Math.round(o.pct*100)}%)</td><td><div class="meter" style="height:10px"><i style="width:${o.pct*100}%"></i></div></td></tr>`).join("")}</tbody></table></div>
-      <p class="sub">Passages 1–3: <b>${third(0,3)}</b> · 4–6: <b>${third(3,6)}</b> · 7–9: <b>${third(6,99)}</b></p></div></details>`;})()}
+  const fls=flsAsc().slice().reverse(), lf=fls.find(f=>SEC_ORDER.some(k=>+f.scores[k])), pv=lf&&prevComparable(lf), tg=+S.settings.target||0;
+  const L=flInsights();
+  v.innerHTML=`<div class="stack" style="gap:24px">
+   <div class="row"><button class="btn primary big" id="fl-imp">Import exam</button><button class="btn link" id="fl-new">Enter scores only</button></div>
+   ${lf?`<section class="stack tight"><div class="sec-title"><h3 class="eyebrow">Latest · ${esc(lf.name)} · ${shortD(lf.date)}</h3>${provTag(lf)}</div>
+     <div class="scores"><div class="sc big"><span class="small muted">Total</span><span class="num v">${flTotal(lf)??"—"}${dlt(flTotal(lf),pv&&flTotal(pv))}</span><span class="small muted">${tg?`target ${tg}`:`<button class="btn link small" data-go="settings">Set target</button>`}</span></div>
+     ${SEC_ORDER.map(k=>`<div class="sc"><span class="small muted">${SEC_NAME[k]}</span><span class="num v">${lf.scores[k]||"—"}${dlt(+lf.scores[k]||null,pv&&(+pv.scores[k]||null))}</span></div>`).join("")}</div>
+     ${pv?`<span class="muted small">Change vs ${esc(pv.name)}</span>`:""}</section>`:""}
+   ${fls.length?`<section class="stack tight"><div class="sec-title"><h3 class="eyebrow">Score trend</h3><div class="seg" id="fl-tk">${[["T","Total"],...SEC_ORDER.map(k=>[k,SEC_NAME[k]])].map(([k,l])=>`<button type="button" data-k="${k}" aria-pressed="${flTrendK===k}">${l}</button>`).join("")}</div></div><div id="fl-trend" class="chart"></div></section>`:""}
+   ${L.length?`<section class="stack tight"><h3 class="eyebrow">What's limiting your score</h3>${insightList(L.slice(0,3))}${L.length>3?`<details><summary>More patterns (${L.length-3})</summary>${insightList(L.slice(3))}</details>`:""}</section>`
+     :fls.length?`<p class="muted small">Not enough exam data for patterns yet.</p>`:""}
+   <section class="stack tight"><h3 class="eyebrow">Exam history</h3>
+    ${fls.length?`<div class="tablewrap"><table class="hist"><thead><tr><th>Date</th><th>Exam</th>${SEC_ORDER.map(k=>`<th class="num">${SEC_NAME[k]}</th>`).join("")}<th class="num">Total</th></tr></thead><tbody>
+      ${fls.map(f=>`<tr data-fl="${f.id}" tabindex="0"><td class="num">${shortD(f.date)}</td><td><button class="btn link" data-fl="${f.id}">${esc(f.name)}</button> ${isAAMC(f)?"":`<span class="muted small">3rd-party</span>`}</td>${SEC_ORDER.map(k=>`<td class="num">${f.scores[k]||"—"}</td>`).join("")}<td class="num"><b>${flTotal(f)??"—"}</b></td></tr>`).join("")}</tbody></table></div>`
+      :`<p class="muted">No exams yet. Paste a score report or review page with Import exam.</p>`}</section>
   </div>`;
+  bindCommon(v);
+  $("#fl-imp").onclick=()=>{IMP=null;go("fl",{mode:"import"});};
   $("#fl-new").onclick=()=>go("fl",{mode:"new"});
+  const tr=$("#fl-trend"); if(tr){trendSVG(tr); $("#fl-tk").onclick=e=>{const b=e.target.closest("[data-k]");if(!b)return;flTrendK=b.dataset.k;$("#fl-tk").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.k===flTrendK));trendSVG(tr);};}
   v.addEventListener("click",e=>{const b=e.target.closest("[data-fl]");if(b)go("fl",{id:b.dataset.fl});});
+  v.addEventListener("keydown",e=>{if(e.key==="Enter"){const b=e.target.closest("tr[data-fl]");if(b)go("fl",{id:b.dataset.fl});}});
+}
+/* ---- reading a pasted score report ---- */
+function parseExamMeta(txt){
+  const o={scores:{},name:"",date:""}; const lines=String(txt||"").replace(/\r/g,"").split("\n");
+  const SECRX=[["PS",/psych\w*\s*(,|and|&|\/)\s*soc\w*|\bp\/s\b|psych\/soc/i],["CP",/chem\w*\s*(and|&|\/)\s*phys\w*|\bc\/p\b/i],["BB",/bio\w*\s*(and|&|\/)\s*bio\w*|\bb\/b\b/i],["CARS",/critical analysis|\bcars\b/i]];
+  lines.forEach((l,i)=>{const hit=SECRX.find(([k,r])=>r.test(l)); if(!hit||o.scores[hit[0]]) return;
+    const after=l.slice(l.search(hit[1]))+" "+(lines[i+1]||"")+" "+(lines[i+2]||""); const m=after.match(/(?:^|[^\d])(11[89]|12\d|13[0-2])(?!\d)/);
+    if(m) o.scores[hit[0]]=+m[1];});
+  const tm=txt.match(/(?:total|overall)(?:\s+score)?[^\d\n]{0,20}\n?[^\d\n]{0,10}(4[7-9]\d|5[0-2]\d)(?!\d)/i); if(tm) o.total=+tm[1];
+  const am=txt.match(/aamc[^\n]{0,40}?(sample)/i)?"AAMC Sample Test":(txt.match(/(?:aamc[^\n]{0,30}?(?:full[- ]length|practice)\s*(?:exam)?|\bFL)\s*#?\s*(\d)\b/i)||[])[1];
+  if(am) o.name=am==="AAMC Sample Test"?am:(/aamc/i.test(txt)?`AAMC FL ${am}`:"");
+  if(!o.name){const pr=(txt.match(/\b(Kaplan|Blueprint|UWorld|Altius|Jack Westin|Princeton Review)\b/i)||[])[1];if(pr)o.name=FL_NAMES.find(n=>n.toLowerCase().startsWith(pr.toLowerCase()))||pr+" FL";}
+  const dm=txt.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{2,4})\b/)||null, dm2=txt.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(20\d\d)\b/i);
+  const d=dm?new Date(+(dm[3].length===2?"20"+dm[3]:dm[3]),+dm[1]-1,+dm[2]):dm2?new Date(dm2[0].replace(".","")):null;
+  if(d&&!isNaN(d)&&d.getFullYear()>2020&&d<=new Date()) o.date=iso(d);
+  return o;
+}
+let IX=null;
+function vFLImport(v){
+  if(!IX) IX={text:"",read:false,name:"",date:todayS(),scores:{CP:"",CARS:"",BB:"",PS:""},target:"",meta:null};
+  const dup=IX.read&&IX.name?(S.fls||[]).filter(f=>f.name===IX.name):[];
+  if(IX.read&&!IX.target&&dup.length) IX.target=dup[dup.length-1].id;
+  const tgt=IX.target&&IX.target!=="new"?(S.fls||[]).find(f=>f.id===IX.target):null;
+  const pseudo=tgt||{id:"__new"};
+  v.innerHTML=`<div class="stack" style="gap:20px">
+   <button class="btn link" id="ix-back" style="align-self:flex-start">← Full-Length</button>
+   <section class="panel stack"><h2>Import exam</h2>
+    <label class="f">Paste the score report or review page<textarea id="ix-text" rows="${IX.read?3:9}" placeholder="Select all on the score analysis or review page, copy, and paste here. Kaplan review tables are read question by question.">${esc(IX.text)}</textarea></label>
+    <div class="row"><button class="btn ${IX.read?"":"primary"}" id="ix-read">${IX.read?"Read again":"Read"}</button><button class="btn link small" id="imp-copy">Screenshots only? Copy a prompt for Claude</button></div>
+   </section>
+   ${IX.read?`<section class="panel stack"><h2>Check and save</h2>
+    <div class="fields"><label class="f">Exam<select id="ix-name">${[...new Set([IX.name,...FL_NAMES].filter(Boolean))].map(n=>`<option ${n===IX.name?"selected":""}>${esc(n)}</option>`).join("")}</select></label>
+     <label class="f">Date<input type="date" id="ix-date" value="${esc(IX.date)}"></label></div>
+    ${dup.length?`<div class="notice" style="margin:0"><span><b>${esc(IX.name)}</b> is already logged (${dup.map(f=>shortD(f.date)).join(", ")}).</span><select id="ix-tgt" style="width:auto">${dup.map(f=>`<option value="${f.id}" ${IX.target===f.id?"selected":""}>Add to the ${shortD(f.date)} exam</option>`).join("")}<option value="new" ${IX.target==="new"?"selected":""}>Save as a new attempt</option></select></div>`:""}
+    <div class="fields">${SEC_ORDER.map(k=>`<label class="f">${SEC_NAME[k]}<input type="number" min="118" max="132" id="ix-${k}" value="${esc(IX.scores[k]||(tgt&&tgt.scores[k])||"")}" placeholder="unknown"></label>`).join("")}</div>
+    <span class="muted small">${IX.meta&&Object.keys(IX.meta.scores).length?`Scores read from the page${IX.meta.total&&IX.meta.total!==SEC_ORDER.reduce((a,k)=>a+(+IX.meta.scores[k]||0),0)?` (page total ${IX.meta.total})`:""}. Check them.`:"No section scores found in the text. Leave blank if unknown."}</span>
+    <div id="imp-prev">${impPreview(pseudo,false)||`<p class="muted small">No question-level rows found. The scores will still be saved.</p>`}</div>
+    <div class="row"><button class="btn primary" id="ix-save">Save exam</button><button class="btn" id="ix-cancel">Cancel</button></div>
+   </section>`:""}
+  </div>`;
+  const keep=()=>{IX.text=$("#ix-text").value;if(IX.read){IX.name=$("#ix-name").value;IX.date=$("#ix-date").value||todayS();SEC_ORDER.forEach(k=>IX.scores[k]=$("#ix-"+k).value);const t=$("#ix-tgt");if(t)IX.target=t.value;}};
+  $("#ix-back").onclick=()=>{IX=null;IMP=null;go("fl");};
+  $("#imp-copy").onclick=()=>copy(impPrompt({name:IX.name||"MCAT full length"}),"Prompt copied. Paste it into Claude with your screenshots, then paste the reply here.");
+  $("#ix-read").onclick=()=>{keep(); if(!IX.text.trim()) return toast("Paste the page first.");
+    const m=parseExamMeta(IX.text); IX.meta=m; IX.read=true; if(m.name)IX.name=m.name; else if(!IX.name)IX.name=/^\s*Question\s+\d+/im.test(IX.text)?"Kaplan FL":"AAMC FL 1"; if(m.date)IX.date=m.date;
+    SEC_ORDER.forEach(k=>IX.scores[k]=m.scores[k]||""); IX.target="";
+    const d=(S.fls||[]).filter(f=>f.name===IX.name); const tg=d.length?d[d.length-1]:{id:"__new"};
+    const rows=impParse(IX.text,tg); IMP=rows&&rows.length?{flId:tg.id,rows,kap:!/\[\s*\{/.test(IX.text)}:null; render();};
+  if(!IX.read) return;
+  $("#ix-name").onchange=()=>{keep();IX.target="";const d=(S.fls||[]).filter(f=>f.name===IX.name);const tg=d.length?d[d.length-1]:{id:"__new"};if(IMP){const rows=impParse(IX.text,tg);IMP={...IMP,flId:tg.id,rows};}render();};
+  const t=$("#ix-tgt"); if(t) t.onchange=()=>{keep();const tg=IX.target==="new"?{id:"__new"}:(S.fls||[]).find(f=>f.id===IX.target);if(IMP){IMP={...IMP,flId:tg.id,rows:impParse(IX.text,tg)};}render();};
+  $("#imp-prev").addEventListener("change",e=>{const c=e.target.closest("[data-imp]");if(c)IMP.rows[+c.dataset.imp].on=c.checked;});
+  $("#imp-prev").addEventListener("click",e=>{if(e.target.id==="imp-clear"){IMP=null;$("#imp-prev").innerHTML="";}});
+  $("#ix-cancel").onclick=()=>{IX=null;IMP=null;go("fl");};
+  $("#ix-save").onclick=()=>{keep();
+    const sc={};for(const k of SEC_ORDER){const x=IX.scores[k];if(x&&(+x<118||+x>132))return toast(`${SEC_NAME[k]} score should be 118–132.`);sc[k]=x?+x:"";}
+    if(S.sample)leaveSample(); S.fls=S.fls||[];
+    let f=IX.target&&IX.target!=="new"?S.fls.find(x=>x.id===IX.target):null;
+    if(f){SEC_ORDER.forEach(k=>{if(sc[k])f.scores[k]=sc[k];});}
+    else{f={id:uid(),date:IX.date,name:IX.name,scores:sc,notes:"",source:"import"};S.fls.push(f);}
+    if(IMP&&IMP.rows) {IMP.flId=f.id; impApply(f,true);}
+    IX=null;IMP=null;save();toast("Exam saved.");go("fl",{id:f.id});};
 }
 const cpDone=r=>r.qs!==""&&r.wrong!==""&&+r.qs>0;
 function cpSummary(f){const rows=(f.carsP||[]).filter(cpDone);if(!rows.length)return "";const q=rows.reduce((a,r)=>a+ +r.qs,0),w=rows.reduce((a,r)=>a+ +r.wrong,0);return `${rows.length} passages · ${q-w}/${q} correct (${Math.round((q-w)/q*100)}%)`;}
@@ -862,6 +1025,7 @@ function vFLForm(v,editId){
   const f=ed||{name:"AAMC FL 1",scores:{CP:"",CARS:"",BB:"",PS:""},notes:""};
   v.innerHTML=`<div class="panel stack"><h2>${ed?"Edit full length":"Log a full length"}</h2>
     <label class="f">Exam<select id="f-name">${FL_NAMES.map(n=>`<option ${n===f.name?"selected":""}>${n}</option>`).join("")}${FL_NAMES.includes(f.name)?"":`<option selected>${esc(f.name)}</option>`}</select></label>
+    <label class="f" style="max-width:220px">Date<input type="date" id="f-date" value="${esc(f.date||todayS())}"></label>
     <div class="fields">${SEC_ORDER.map(k=>`<label class="f">${SEC_NAME[k]}<input type="number" min="118" max="132" id="f-${k}" value="${esc(f.scores[k]||"")}" placeholder="118–132"></label>`).join("")}</div>
     <label class="f">Notes<textarea id="f-notes" placeholder="e.g. tired by P/S, guessed last CARS passage">${esc(f.notes||"")}</textarea></label>
     <div class="row"><button class="btn primary" id="f-save">${ed?"Save":"Save and add missed questions"}</button><button class="btn" id="f-cancel">Cancel</button>${ed?`<button class="btn danger" id="f-del">Delete…</button><button class="btn danger" id="f-del2" hidden>Delete exam and its missed questions</button>`:""}</div></div>`;
@@ -869,7 +1033,7 @@ function vFLForm(v,editId){
   $("#f-save").onclick=()=>{
     const sc={};for(const k of SEC_ORDER){const x=$("#f-"+k).value;if(x&&(+x<118||+x>132))return toast(`${SEC_NAME[k]} score should be 118–132.`);sc[k]=x?+x:"";}
     if(S.sample&&!ed)leaveSample(); S.fls=S.fls||[];
-    const rec=Object.assign(ed||{id:uid(),date:todayS()},{name:$("#f-name").value,scores:sc,notes:$("#f-notes").value.trim()});
+    const rec=Object.assign(ed||{id:uid(),date:todayS()},{name:$("#f-name").value,date:$("#f-date").value||(ed&&ed.date)||todayS(),scores:sc,notes:$("#f-notes").value.trim()});
     if(!ed)S.fls.push(rec); S.items.filter(i=>i.flId===rec.id).forEach(i=>i.source=rec.name); save(); toast("Saved."); go("fl",{id:rec.id});
   };
   if(ed){$("#f-del").onclick=()=>{$("#f-del").hidden=true;$("#f-del2").hidden=false;};
@@ -941,7 +1105,7 @@ function impParse(txt,f){
   const a=txt.indexOf("["),b=txt.lastIndexOf("]"); let arr=null;
   if(a>=0&&b>a){try{arr=JSON.parse(txt.slice(a,b+1));}catch(e){arr=null;}}
   if(!Array.isArray(arr)){ if(!/^\s*Question\s+\d+\s*$/im.test(txt)) return null;
-    const kr=kapParse(txt); kapPassages(kr); arr=kr.map(r=>({sec:r.sec,q:r.q,result:r.result,subject:r.subject,topic:r.topic,note:r.note,passage:r.passage,qtype:r.qtype,category:r.disc,changed:r.changed})); }
+    const kr=kapParse(txt); kapPassages(kr); arr=kr.map(r=>({sec:r.sec,q:r.q,result:r.result,subject:r.subject,topic:r.topic,note:r.note,passage:r.passage,qtype:r.qtype,category:r.disc,changed:r.changed,time:r.t})); }
   const secMap={cp:"CP","c/p":"CP","chem/phys":"CP",cars:"CARS",bb:"BB","b/b":"BB","bio/biochem":"BB",ps:"PS","p/s":"PS","psych/soc":"PS"};
   const pick=(v,list)=>{if(!v)return "";const n=String(v).toLowerCase().trim();return list.find(x=>x.toLowerCase()===n)||list.find(x=>x.toLowerCase().startsWith(n)||n.startsWith(x.toLowerCase()))||"";};
   const have=new Set([...S.items.filter(i=>i.flId===f.id).map(i=>i.flSec+"|"+i.qn),...S.cq.filter(q=>q.flId===f.id).map(q=>"CARS|"+q.qn)]);
@@ -950,14 +1114,14 @@ function impParse(txt,f){
     const q=o.q!=null?String(o.q).replace(/\D/g,""):"";
     const res=/^(w|wrong|incorrect)/i.test(String(o.result||""))?"wrong":/^(c|correct|right)/i.test(String(o.result||""))?"correct":"";
     const r={sec,q,result:res,subject:pick(o.subject,SUBJECTS),topic:String(o.topic||"").trim(),note:String(o.note||"").trim(),
-      passage:o.passage?+String(o.passage).replace(/\D/g,"")||"":"",qtype:pick(o.qtype,CARS_QT)||pick(o.qtype,CARS_SKILLS.map(x=>x[0])),disc:pick(o.category,[...CARS_DISC_ALL,"Humanities","Social sciences"]),changed:o.changed||""};
+      passage:o.passage?+String(o.passage).replace(/\D/g,"")||"":"",qtype:pick(o.qtype,CARS_QT)||pick(o.qtype,CARS_SKILLS.map(x=>x[0])),disc:pick(o.category,[...CARS_DISC_ALL,"Humanities","Social sciences"]),changed:o.changed||"",time:+o.time||0};
     r.dup=have.has(sec+"|"+q); r.on=r.result==="wrong"&&!r.dup&&!!sec; return r;}).filter(r=>r.sec&&r.result);
 }
 function impPassages(rows){
   const by={}; rows.filter(r=>r.sec==="CARS"&&r.passage>=1&&r.passage<=12).forEach(r=>{const o=by[r.passage]=by[r.passage]||{qs:0,wrong:0,disc:{}};o.qs++;if(r.result==="wrong")o.wrong++;if(r.disc)o.disc[r.disc]=(o.disc[r.disc]||0)+1;});
   return Object.entries(by).map(([n,o])=>({n:+n,qs:o.qs,wrong:o.wrong,disc:Object.entries(o.disc).sort((a,b)=>b[1]-a[1]).map(x=>x[0])[0]||""})).sort((a,b)=>a.n-b.n);
 }
-function impPreview(f){
+function impPreview(f,withAdd=true){
   if(!IMP||IMP.flId!==f.id) return "";
   if(IMP.err) return `<p class="muted">${esc(IMP.err)}</p>`;
   const rows=IMP.rows, wr=rows.filter(r=>r.result==="wrong"), cor=rows.length-wr.length, ps=impPassages(rows);
@@ -971,83 +1135,148 @@ function impPreview(f){
       <td>${r.sec==="CARS"?`${esc(r.qtype||"—")}${r.passage?` <span class="muted">· P${r.passage}</span>`:""}`:esc(r.topic||"—")}</td>
       <td>${esc(r.sec==="CARS"?(r.disc||"—"):(r.subject||"—"))}</td></tr>`).join("")}</tbody></table></div>`:""}
     ${ps.length?`<label style="display:flex;gap:8px;align-items:flex-start;font-size:.88rem"><input type="checkbox" id="imp-cp" checked style="margin-top:3px"><span>Fill the CARS passages table${IMP.kap?" (passage breaks guessed from category changes and long first-question times)":""}: ${ps.map(p=>`P${p.n} ${p.qs-p.wrong}/${p.qs}`).join(", ")}</span></label>`:""}
-    <div class="row"><button class="btn primary" id="imp-add">Add to this full length</button><button class="btn" id="imp-clear">Clear</button></div>
+    ${withAdd?`<div class="row"><button class="btn primary" id="imp-add">Add to this full length</button><button class="btn" id="imp-clear">Clear</button></div>`:""}
   </div>`;
 }
-function impApply(f){
+function impApply(f,quiet){
   const t=todayS(); let nSci=0,nCq=0,skip=0;
   IMP.rows.forEach(r=>{if(!r.on||r.dup)return; const result="wrong";
-    if(r.sec==="CARS"){S.cq.push({id:uid(),flId:f.id,passageId:"",disc:r.disc,qn:r.q,qtype:r.qtype,result,traps:[],evidence:"",lure:r.note,date:f.date});nCq++;}
+    if(r.sec==="CARS"){S.cq.push({id:uid(),flId:f.id,passageId:"",disc:r.disc,qn:r.q,qtype:r.qtype,result,traps:[],evidence:"",lure:r.note,date:f.date,...(r.time?{time:r.time}:{})});nCq++;}
     else{ if(!r.topic){skip++;return;} const subj=r.subject||SEC_SUBJ[r.sec][0];
       const tid=findOrCreateTopic(r.topic,subj,matchOutline(r.topic,subj),false);
-      S.items.push({id:uid(),flId:f.id,flSec:r.sec,qn:r.q,subject:subj,topicId:tid,result,source:f.name,qref:r.q?"Q"+r.q:"",reasons:[],thought:r.note,nextTime:"",doneDate:f.date,reviewDate:t,created:t,cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[]});nSci++;}});
+      S.items.push({id:uid(),flId:f.id,flSec:r.sec,qn:r.q,subject:subj,topicId:tid,result,source:f.name,qref:r.q?"Q"+r.q:"",reasons:[],thought:r.note,nextTime:"",doneDate:f.date,reviewDate:t,created:t,cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[],...(r.time?{time:r.time}:{})});nSci++;}});
   const cpBox=$("#imp-cp");
   if(cpBox&&cpBox.checked){const ps=impPassages(IMP.rows); f.carsP=f.carsP||[];
     ps.forEach(p=>{while(f.carsP.length<p.n)f.carsP.push({qs:"",wrong:"",disc:""});f.carsP[p.n-1]={qs:p.qs,wrong:p.wrong,disc:p.disc||f.carsP[p.n-1].disc||""};});}
-  IMP=null; save(); toast(`Added ${nSci+nCq} question${nSci+nCq===1?"":"s"}${skip?` (${skip} skipped: no concept)`:""}.`); render();
+  if(quiet) return; IMP=null; save(); toast(`Added ${nSci+nCq} question${nSci+nCq===1?"":"s"}${skip?` (${skip} skipped: no concept)`:""}.`); render();
+}
+let QR={q:"",f:"all",pend:{}};
+function flSecStats(f,k){
+  const ms=flMisses(f.id).filter(m=>m.sec===k);
+  const cat={}, ec={}; let unrev=0, tsum=0, tn=0;
+  ms.forEach(m=>{ if(m.r.time){tsum+=+m.r.time;tn++;}
+    if(m.kind==="sci"){const t=topicById(m.r.topicId),o=t&&OUT[t.outline];const key=o?`${o.code} ${o.cat}`:tname(m.r.topicId);cat[key]=(cat[key]||0)+1;
+      const e=errOf(m.r); if(e==="unknown")unrev++; else ec[e]=(ec[e]||0)+1;}
+    else{const g=skillOf(m.r.qtype)||m.r.qtype||"Unknown type";cat[g]=(cat[g]||0)+1;(m.r.traps||[]).forEach(x=>ec[x]=(ec[x]||0)+1);if(!(m.r.traps||[]).length&&!m.r.review)unrev++;}});
+  return {ms,cats:Object.entries(cat).sort((a,b)=>b[1]-a[1]),ec:Object.entries(ec).sort((a,b)=>b[1]-a[1]),unrev,avgT:tn?Math.round(tsum/tn):null};
+}
+const mmss=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+function flBottlenecks(f){
+  const out=[], secs=SEC_ORDER.filter(k=>+f.scores[k]).sort((a,b)=>f.scores[a]-f.scores[b]);
+  if(secs.length>1&&f.scores[secs[1]]>f.scores[secs[0]]){const st=flSecStats(f,secs[0]);out.push({t:`${SEC_NAME[secs[0]]} is the lowest section (${f.scores[secs[0]]})`,a:st.cats.length?`Review its most-missed area first: ${st.cats[0][0]}.`:`Import or add its missed questions to see why.`});}
+  const ms=flMisses(f.id).filter(m=>m.kind==="sci"), cs=concepts();
+  const rep=cs.filter(c=>c.items.some(i=>i.flId===f.id)&&c.items.some(i=>i.flId!==f.id&&(i.doneDate||"")<=f.date)).slice(0,2);
+  rep.forEach(c=>out.push({t:`${c.name} was missed before this exam too`,a:conceptAction(c)}));
+  const un=ms.filter(m=>errOf(m.r)==="unknown"&&!(m.r.reasons||[]).length).length;
+  if(un) out.push({t:`${un} missed question${un>1?"s have":" has"} no reviewed cause`,a:"Open Question Review and mark why each one was wrong.",tab:"q"});
+  return out;
 }
 function vFLDetail(v,id){
   const f=(S.fls||[]).find(x=>x.id===id); if(!f){go("fl");return;}
-  const ms=flMisses(id);
-  const bySec=s=>ms.filter(m=>m.sec===s);
-  const catCount={}; ms.filter(m=>m.kind==="sci").forEach(m=>{const t=topicById(m.r.topicId);const o=t&&OUT[t.outline];const k=o?`${o.code} ${o.cat}`:"Not on the map";catCount[k]=(catCount[k]||0)+1;});
-  const topCats=Object.entries(catCount).sort((a,b)=>b[1]-a[1]).slice(0,4);
-  if(!SEC_SUBJ[FM.sec]&&FM.sec!=="CARS")FM.sec="CP";
-  v.innerHTML=`<div class="stack" style="gap:16px">
-    <button class="btn link" data-go="fl" style="align-self:flex-start">← All full lengths</button>
-    <section class="panel stack"><div class="sec-title"><div><h2>${esc(f.name)}</h2><span class="muted" style="font-size:.82rem">${fmtD(f.date)}</span></div><button class="btn small" id="fl-edit">Edit scores</button></div>
-      <div class="tablewrap"><table><thead><tr>${SEC_ORDER.map(k=>`<th>${SEC_NAME[k]}</th>`).join("")}<th>Total</th></tr></thead><tbody><tr>${SEC_ORDER.map(k=>`<td class="num">${f.scores[k]||"—"} <span class="muted">(${bySec(k).length} missed)</span></td>`).join("")}<td class="num"><b>${flTotal(f)??"—"}</b></td></tr></tbody></table></div>
-      ${topCats.length?`<div class="why">Most missed areas: ${topCats.map(([k,c])=>`${esc(k)} (${c})`).join(", ")}</div>`:""}
-      ${f.notes?`<div class="sub">${esc(f.notes)}</div>`:""}
-    </section>
-    <section class="panel stack" id="imp"><h2>Import results</h2>
-      <p class="muted" style="margin:0;font-size:.88rem">Kaplan: select the whole review table, copy, and paste it below. Other sources: <button class="btn link" id="imp-copy">copy this prompt</button> into Claude with your screenshots and paste its reply.</p>
-      <textarea id="imp-text" placeholder="Paste the Kaplan review page or Claude's reply" style="min-height:90px"></textarea>
-      <div class="row"><button class="btn" id="imp-read">Read</button></div>
-      <div id="imp-prev">${impPreview(f)}</div>
-    </section>
-    <details class="panel" ${(f.carsP||[]).some(cpDone)?"open":""}><summary>CARS passages</summary><div class="stack">
-      <div class="tablewrap"><table id="fl-cp"><thead><tr><th>#</th><th>Questions</th><th>Wrong</th><th>Correct</th><th>Category</th><th></th></tr></thead><tbody>
-      ${(f.carsP=f.carsP?f.carsP:Array.from({length:9},()=>({qs:"",wrong:"",disc:""}))).map((r,i)=>`<tr><td class="num"><b>${i+1}</b></td>
-        <td><input type="number" min="1" max="12" inputmode="numeric" data-cp="${i}" data-f="qs" value="${esc(r.qs)}" style="width:70px"></td>
-        <td><input type="number" min="0" max="12" inputmode="numeric" data-cp="${i}" data-f="wrong" value="${esc(r.wrong)}" style="width:70px"></td>
-        <td class="num" id="cp-pct-${i}">${r.qs!==""&&r.wrong!==""?Math.round((r.qs-r.wrong)/r.qs*100)+"%":"—"}</td>
-        <td><select data-cp="${i}" data-f="disc" style="min-width:150px">${discOpts(r.disc)}</select></td>
-        <td><button class="btn small" data-cprm="${i}" aria-label="Remove passage ${i+1}">Remove</button></td></tr>`).join("")}
-      </tbody></table></div>
-      <div class="row"><button class="btn small" id="cp-add">+ Add a passage</button><span class="muted" style="font-size:.82rem" id="cp-sum">${cpSummary(f)}</span></div>
-    </div></details>
-    <details class="panel"><summary>Add a missed question by hand</summary><div class="stack">
-      <div class="seg" id="fm-sec">${SEC_ORDER.map(k=>`<button type="button" data-v="${k}" aria-pressed="${FM.sec===k}">${SEC_NAME[k]}</button>`).join("")}</div>
-      <div id="fm-body"></div>
-    </div></details>
-    <section class="panel stack"><h2>Missed questions (${ms.length})</h2>
-      ${ms.length?SEC_ORDER.filter(k=>bySec(k).length).map(k=>`<div class="stack tight"><span class="label">${SEC_NAME[k]} · ${bySec(k).length}</span><ul class="list">${bySec(k).sort((a,b)=>(+(a.r.qn||0))-(+(b.r.qn||0))).map(m=>m.kind==="sci"
-        ?`<li><div class="main">${m.r.qn?`<span class="muted num">Q${esc(m.r.qn)}</span> `:""}<button class="btn link" data-topic="${m.r.topicId}" style="font-weight:700">${esc(tname(m.r.topicId))}</button> <span class="muted" style="font-size:.82rem">· ${esc(m.r.subject)} · ${m.r.result==="wrong"?"wrong":"guessed"}${(m.r.reasons||[]).length?" · "+m.r.reasons.map(r=>REASONS[r]).join(", "):""}</span>${m.r.thought?`<div class="sub">${esc(m.r.thought)}</div>`:""}</div><button class="btn small" data-rm-item="${m.r.id}">Remove</button></li>`
-        :`<li><div class="main">${m.r.qn?`<span class="muted num">Q${esc(m.r.qn)}</span> `:""}<b>${esc(m.r.qtype)}</b> <span class="muted" style="font-size:.82rem">· ${esc(m.r.disc||"")} · ${m.r.result==="wrong"?"wrong":"guessed"}${(m.r.traps||[]).length?" · "+m.r.traps.map(t=>CARS_TRAPS[t]).join(", "):""}</span>${m.r.lure?`<div class="sub">${esc(m.r.lure)}</div>`:""}</div><button class="btn small" data-rm-cq="${m.r.id}">Remove</button></li>`).join("")}</ul></div>`).join(""):`<p class="muted">None yet.</p>`}
-    </section></div>`;
+  const tab=(viewArg&&viewArg.tab)||"o", ms=flMisses(id), pv=prevComparable(f);
+  v.innerHTML=`<div class="stack" style="gap:20px">
+    <button class="btn link" data-go="fl" style="align-self:flex-start">← Full-Length</button>
+    <div class="sec-title"><div><h2 style="font-size:1.3rem">${esc(f.name)}</h2><span class="muted small">${fmtD(f.date)}</span> ${provTag(f)}</div><button class="btn small" id="fl-edit">Edit</button></div>
+    <div class="seg" id="fl-tabs" role="tablist">${[["o","Overview"],["s","Section Analysis"],["q",`Question Review (${ms.length})`]].map(([k,l])=>`<button type="button" role="tab" data-t="${k}" aria-pressed="${tab===k}">${l}</button>`).join("")}</div>
+    <div id="fl-body"></div></div>`;
   bindCommon(v);
   $("#fl-edit").onclick=()=>go("fl",{editId:id});
-  $("#fl-cp").onchange=e=>{const el=e.target.closest("[data-cp]");if(!el)return;const i=+el.dataset.cp,k=el.dataset.f;let val=el.value;
-    if(k!=="disc")val=val===""?"":Math.max(0,+val);f.carsP[i][k]=val;const r=f.carsP[i];
-    if(r.qs!==""&&r.wrong!==""&&+r.wrong>+r.qs){toast("Wrong can't be more than the number of questions.");}
-    $("#cp-pct-"+i).textContent=r.qs!==""&&r.wrong!==""&&+r.qs?Math.round((r.qs-r.wrong)/r.qs*100)+"%":"—";$("#cp-sum").textContent=cpSummary(f);save();};
-  $("#cp-add").onclick=()=>{f.carsP.push({qs:"",wrong:"",disc:""});save();render();};
+  $("#fl-tabs").onclick=e=>{const b=e.target.closest("[data-t]");if(b){viewArg={id,tab:b.dataset.t};render();}};
+  const body=$("#fl-body");
+  if(tab==="o"){
+    const B=flBottlenecks(f);
+    body.innerHTML=`<div class="stack" style="gap:20px">
+      <div class="scores"><div class="sc big"><span class="small muted">Total</span><span class="num v">${flTotal(f)??"—"}${dlt(flTotal(f),pv&&flTotal(pv))}</span></div>${SEC_ORDER.map(k=>`<div class="sc"><span class="small muted">${SEC_NAME[k]}</span><span class="num v">${f.scores[k]||"—"}${dlt(+f.scores[k]||null,pv&&(+pv.scores[k]||null))}</span><span class="small muted">${ms.filter(m=>m.sec===k).length} missed</span></div>`).join("")}</div>
+      <span class="muted small">${pv?`Change vs ${esc(pv.name)} (${shortD(pv.date)}).`:`No earlier ${isAAMC(f)?"AAMC":provOf(f.name)} exam to compare with.`}</span>
+      ${B.length?`<section class="stack tight"><h3 class="eyebrow">Bottlenecks</h3>${insightList(B)}</section>`:`<p class="muted small">${ms.length?"No clear bottleneck yet.":"Import this exam's review page to find bottlenecks."}</p>`}
+      ${f.notes?`<div class="sub">${esc(f.notes)}</div>`:""}
+    </div>`;
+  } else if(tab==="s"){
+    body.innerHTML=`<div class="stack" style="gap:20px">${SEC_ORDER.map(k=>{const st=flSecStats(f,k);
+      const conf=st.ec.reduce((a,x)=>a+x[1],0), cn=(st.ec.find(x=>x[0]==="content")||[0,0])[1];
+      return `<section class="stack tight"><div class="sec-title"><h3 class="eyebrow">${SEC_NAME[k]} · ${f.scores[k]||"score unknown"}</h3><span class="muted small">${st.ms.length} missed${st.avgT!=null?` · avg ${mmss(st.avgT)} on missed`:""}</span></div>
+        ${st.ms.length?`<ul class="list">${st.cats.slice(0,4).map(([c,n])=>`<li><span>${esc(c)}</span><span class="num muted">${n}</span></li>`).join("")}</ul>
+        <div class="small">${k==="CARS"?(st.ec.length?`Traps: ${st.ec.slice(0,3).map(([t,n])=>`${esc(CARS_TRAPS[t]||t)} ${n}`).join(", ")}`:""):(conf?`Reviewed causes: ${st.ec.map(([e,n])=>`${ERR[e]} ${n}`).join(", ")}`:"")}${st.unrev?`${conf?" · ":""}<span class="muted">${st.unrev} not reviewed</span>`:""}</div>
+        ${k!=="CARS"&&conf>=3?`<div class="pa">${cn/conf>=.6?"Mostly content gaps: review content before doing more questions.":cn/conf<=.4?"Mostly reasoning and execution errors: practice with passages, not flashcards.":"A mix of content and reasoning errors."}</div>`:""}`:`<p class="muted small">No missed questions recorded.</p>`}
+        ${k==="CARS"?`<details${(f.carsP||[]).some(cpDone)?" open":""}><summary>Passages</summary><div class="stack" style="margin-top:8px">
+          <div class="tablewrap"><table id="fl-cp"><thead><tr><th>#</th><th>Questions</th><th>Wrong</th><th>Correct</th><th>Category</th><th></th></tr></thead><tbody>
+          ${(f.carsP=f.carsP?f.carsP:Array.from({length:9},()=>({qs:"",wrong:"",disc:""}))).map((r,i)=>`<tr><td class="num"><b>${i+1}</b></td>
+            <td><input type="number" min="1" max="12" inputmode="numeric" data-cp="${i}" data-f="qs" value="${esc(r.qs)}" style="width:70px"></td>
+            <td><input type="number" min="0" max="12" inputmode="numeric" data-cp="${i}" data-f="wrong" value="${esc(r.wrong)}" style="width:70px"></td>
+            <td class="num" id="cp-pct-${i}">${r.qs!==""&&r.wrong!==""?Math.round((r.qs-r.wrong)/r.qs*100)+"%":"—"}</td>
+            <td><select data-cp="${i}" data-f="disc" style="min-width:150px">${discOpts(r.disc)}</select></td>
+            <td><button class="btn small" data-cprm="${i}" aria-label="Remove passage ${i+1}">Remove</button></td></tr>`).join("")}
+          </tbody></table></div>
+          <div class="row"><button class="btn small" id="cp-add">+ Add a passage</button><span class="muted" style="font-size:.82rem" id="cp-sum">${cpSummary(f)}</span></div></div></details>`:""}
+      </section>`;}).join("")}</div>`;
+    $("#fl-cp").onchange=e=>{const el=e.target.closest("[data-cp]");if(!el)return;const i=+el.dataset.cp,k=el.dataset.f;let val=el.value;
+      if(k!=="disc")val=val===""?"":Math.max(0,+val);f.carsP[i][k]=val;const r=f.carsP[i];
+      if(r.qs!==""&&r.wrong!==""&&+r.wrong>+r.qs){toast("Wrong can't be more than the number of questions.");}
+      $("#cp-pct-"+i).textContent=r.qs!==""&&r.wrong!==""&&+r.qs?Math.round((r.qs-r.wrong)/r.qs*100)+"%":"—";$("#cp-sum").textContent=cpSummary(f);save();};
+    $("#cp-add").onclick=()=>{f.carsP.push({qs:"",wrong:"",disc:""});save();render();};
+    $("#fl-cp").onclick=e=>{const b=e.target.closest("[data-cprm]");if(!b)return;const i=+b.dataset.cprm,r=f.carsP[i];
+      if((r.qs!==""||r.wrong!==""||r.disc)&&!b.dataset.sure){b.dataset.sure="1";b.textContent="Remove?";b.classList.add("danger");return;}
+      f.carsP.splice(i,1);save();toast("Passage removed.");render();};
+  } else vFLQuestions(body,f);
+}
+function vFLQuestions(body,f){
+  const id=f.id; if(QR.fl!==id) QR={fl:id,q:"",f:"all",pend:{}};
+  if(!SEC_SUBJ[FM.sec]&&FM.sec!=="CARS")FM.sec="CP";
+  body.innerHTML=`<div class="stack" style="gap:16px">
+    <div class="row"><input id="qr-q" type="search" placeholder="Search concept, note or Q#" value="${esc(QR.q)}" style="flex:1;min-width:160px" aria-label="Search questions">
+     <select id="qr-f" style="width:auto" aria-label="Filter">${[["all","All"],["un","Not reviewed"],...SEC_ORDER.map(k=>[k,SEC_NAME[k]])].map(([k,l])=>`<option value="${k}" ${QR.f===k?"selected":""}>${l}</option>`).join("")}</select></div>
+    <div id="qr-list"></div>
+    <div class="row" id="qr-bar" style="position:sticky;bottom:0;background:var(--bg);padding:10px 0;border-top:1px solid var(--line)" ${Object.keys(QR.pend).length?"":"hidden"}><button class="btn primary" id="qr-save">Save review</button><span class="muted small" id="qr-n"></span></div>
+    <details class="panel" id="imp"><summary>Import more questions</summary><div class="stack" style="margin-top:10px">
+      <textarea id="imp-text" placeholder="Paste the Kaplan review page, or Claude's JSON reply" style="min-height:90px"></textarea>
+      <div class="row"><button class="btn" id="imp-read">Read</button><button class="btn link small" id="imp-copy">Copy a screenshot prompt for Claude</button></div>
+      <div id="imp-prev">${impPreview(f)}</div></div></details>
+    <details class="panel"><summary>Add a missed question by hand</summary><div class="stack">
+      <div class="seg" id="fm-sec">${SEC_ORDER.map(k=>`<button type="button" data-v="${k}" aria-pressed="${FM.sec===k}">${SEC_NAME[k]}</button>`).join("")}</div>
+      <div id="fm-body"></div></div></details>
+  </div>`;
+  const isUn=m=>m.kind==="sci"?errOf(m.r)==="unknown"&&!(m.r.reasons||[]).length:!(m.r.traps||[]).length&&!m.r.review;
+  const draw=()=>{const q=QR.q.toLowerCase().trim(), ms=flMisses(id).filter(m=>QR.f==="all"||(QR.f==="un"?isUn(m):m.sec===QR.f))
+      .filter(m=>!q||[m.r.qn,m.kind==="sci"?tname(m.r.topicId):m.r.qtype,m.r.thought,m.r.lure,m.r.review,m.r.subject,m.r.disc].join(" ").toLowerCase().includes(q))
+      .sort((a,b)=>SEC_ORDER.indexOf(a.sec)-SEC_ORDER.indexOf(b.sec)||(+(a.r.qn||0))-(+(b.r.qn||0)));
+    $("#qr-list").innerHTML=ms.length?`<div class="clist">${ms.map(m=>{const r=m.r,p=QR.pend[r.id]||{};
+      const cur=m.kind==="sci"?(p.err??errOf(r)):(p.trap??((r.traps||[])[0]||""));
+      return `<details class="crow"><summary><span class="main"><span>${r.qn?`<span class="muted num">Q${esc(r.qn)}</span> `:""}<b>${esc(m.kind==="sci"?tname(r.topicId):(r.qtype||"CARS question"))}</b> <span class="muted small">· ${SEC_NAME[m.sec]}${m.kind==="cars"&&r.disc?" · "+esc(r.disc):""}</span></span>
+        <span class="pw">${m.kind==="sci"?esc(evidOf(r)):((r.traps||[]).length?"Trap: "+esc(r.traps.map(t=>CARS_TRAPS[t]).join(", ")):(r.review?"Reviewed":"Tested skill · cause not reviewed"))}</span></span>${isUn(m)&&!QR.pend[r.id]?`<span class="status plain">Not reviewed</span>`:""}</summary>
+        <div class="stack tight cbody">
+          ${m.kind==="sci"&&r.thought?`<div class="small"><span class="muted">From the page:</span> ${esc(r.thought)}</div>`:""}${m.kind==="cars"&&r.lure?`<div class="small"><span class="muted">From the page:</span> ${esc(r.lure)}</div>`:""}
+          ${m.kind==="sci"?`<div class="muted small">${esc(r.subject)}${(()=>{const t=topicById(r.topicId),o=t&&OUT[t.outline];return o?` · ${esc(o.code)} ${esc(o.cat)}`:"";})()}${r.time?` · ${mmss(+r.time)}`:""}</div>`:`<div class="muted small">${esc(skillOf(r.qtype)||"")}${r.time?` · ${mmss(+r.time)}`:""}</div>`}
+          <label class="f">Why I missed it${m.kind==="sci"?`<select data-qe="${r.id}">${Object.entries(ERR).map(([k,l])=>`<option value="${k}" ${cur===k?"selected":""}>${k==="unknown"?"Not reviewed yet":l}</option>`).join("")}</select>`
+            :`<select data-qt="${r.id}"><option value="">Not reviewed yet</option>${Object.entries(CARS_TRAPS).map(([k,l])=>`<option value="${k}" ${cur===k?"selected":""}>${esc(l)}</option>`).join("")}</select>`}</label>
+          <label class="f">My note<textarea data-qn="${r.id}" rows="2" placeholder="What I misunderstood, in my own words">${esc(p.note??(r.review||""))}</textarea></label>
+          <div class="row">${m.kind==="sci"?`<button class="btn link small" data-topic="${r.topicId}">Open concept</button>`:""}<button class="btn small" data-rm-${m.kind==="sci"?"item":"cq"}="${r.id}">Remove</button></div>
+        </div></details>`;}).join("")}</div>`:`<p class="muted">${flMisses(id).length?"No matches.":"No missed questions yet. Import the review page below."}</p>`;};
+  draw();
+  const bar=()=>{const n=Object.keys(QR.pend).length;$("#qr-bar").hidden=!n;$("#qr-n").textContent=n?`${n} change${n>1?"s":""} not saved`:"";};
+  $("#qr-q").oninput=e=>{QR.q=e.target.value;draw();};
+  $("#qr-f").onchange=e=>{QR.f=e.target.value;draw();};
+  $("#qr-list").addEventListener("change",e=>{const el=e.target;const k=el.dataset.qe||el.dataset.qt;if(!k)return;QR.pend[k]=QR.pend[k]||{};if(el.dataset.qe)QR.pend[k].err=el.value;else QR.pend[k].trap=el.value;bar();});
+  $("#qr-list").addEventListener("input",e=>{const k=e.target.dataset.qn;if(!k)return;(QR.pend[k]=QR.pend[k]||{}).note=e.target.value;bar();});
+  $("#qr-save").onclick=()=>{let n=0;Object.entries(QR.pend).forEach(([rid,p])=>{const it=S.items.find(i=>i.id===rid),q=S.cq.find(x=>x.id===rid);
+      if(it){if(p.err!=null)it.reasons=ERR_REASON[p.err]?[ERR_REASON[p.err]]:[];if(p.note!=null)it.review=p.note.trim();n++;}
+      else if(q){if(p.trap!=null)q.traps=p.trap?[p.trap]:[];if(p.note!=null)q.review=p.note.trim();n++;}});
+    QR.pend={};save();toast(`Saved review for ${n} question${n===1?"":"s"}.`);render();};
+  bar();
+  body.addEventListener("click",e=>{
+    const a=e.target.closest("[data-rm-item]");if(a){if(!a.dataset.sure){a.dataset.sure="1";a.textContent="Remove?";a.classList.add("danger");return;}S.items=S.items.filter(i=>i.id!==a.dataset.rmItem);save();render();return;}
+    const c=e.target.closest("[data-rm-cq]");if(c){if(!c.dataset.sure){c.dataset.sure="1";c.textContent="Remove?";c.classList.add("danger");return;}S.cq=S.cq.filter(q=>q.id!==c.dataset.rmCq);save();render();}
+  });
   $("#imp-copy").onclick=()=>copy(impPrompt(f),"Prompt copied. Paste it into Claude with your screenshots.");
   $("#imp-read").onclick=()=>{const rows=impParse($("#imp-text").value,f);
     IMP=rows&&rows.length?{flId:f.id,rows,kap:!/\[\s*\{/.test($("#imp-text").value)}:{flId:f.id,err:"Couldn't find questions in that text. Paste the whole Kaplan review table, or Claude's whole reply."};
-    $("#imp-prev").innerHTML=impPreview(f);};
+    $("#imp-prev").innerHTML=impPreview(f,true);};
   $("#imp-prev").addEventListener("click",e=>{if(e.target.id==="imp-add")impApply(f);if(e.target.id==="imp-clear"){IMP=null;$("#imp-prev").innerHTML="";$("#imp-text").value="";}});
   $("#imp-prev").addEventListener("change",e=>{const c=e.target.closest("[data-imp]");if(c)IMP.rows[+c.dataset.imp].on=c.checked;});
-  $("#fl-cp").onclick=e=>{const b=e.target.closest("[data-cprm]");if(!b)return;const i=+b.dataset.cprm,r=f.carsP[i];
-    if((r.qs!==""||r.wrong!==""||r.disc)&&!b.dataset.sure){b.dataset.sure="1";b.textContent="Remove?";b.classList.add("danger");return;}
-    f.carsP.splice(i,1);save();toast("Passage removed.");render();};
-  $("#fm-sec").onclick=e=>{const b=e.target.closest("[data-v]");if(!b)return;FM.sec=b.dataset.v;FM.subject="";$("#fm-sec").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===FM.sec));body();};
-  v.addEventListener("click",e=>{
-    const a=e.target.closest("[data-rm-item]");if(a){S.items=S.items.filter(i=>i.id!==a.dataset.rmItem);save();render();return;}
-    const c=e.target.closest("[data-rm-cq]");if(c){S.cq=S.cq.filter(q=>q.id!==c.dataset.rmCq);save();render();}
-  });
-  function body(){
+  $("#fm-sec").onclick=e=>{const b=e.target.closest("[data-v]");if(!b)return;FM.sec=b.dataset.v;FM.subject="";$("#fm-sec").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===FM.sec));fmBody(f);};
+  fmBody(f);
+}
+function fmBody(f){const id=f.id;
+
     const el=$("#fm-body");
     const chips=(name,list,sel,multi)=>`<div class="chips" data-grp="${name}">${list.map(([k,l])=>`<button type="button" class="chip" data-k="${esc(k)}" aria-pressed="${multi?sel.includes(k):sel===k}">${esc(l)}</button>`).join("")}</div>`;
     if(FM.sec==="CARS"){
@@ -1096,8 +1325,6 @@ function vFLDetail(v,id){
       save();toast("Added.");render();setTimeout(()=>{const x=$("#fm-qn");if(x)x.scrollIntoView({block:"center"});},0);
     };
   }
-  body();
-}
 
 /* ================= BACKUP ================= */
 function backupHTML(){return `<details class="panel"><summary>Backup and restore</summary><div class="stack" style="margin-top:10px">
@@ -1281,12 +1508,16 @@ function vSettings(v){
 }
 
 /* ================= CONCEPTS (grouped by AAMC subtopic) ================= */
-const ERR={content:"Content gap",application:"Application",reasoning:"Reasoning",calculation:"Calculation",interpretation:"Interpretation"};
-const ERR_REASON={content:"gap",application:"apply",reasoning:"reason",calculation:"calc",interpretation:"misread"};
-const errOf=it=>{const r=it.reasons||[];if(r.includes("calc"))return"calculation";if(r.includes("misread"))return"interpretation";if(r.includes("reason"))return"reasoning";if(r.includes("apply"))return"application";return"content";};
+const ERR={content:"Content gap",application:"Application",reasoning:"Reasoning",calculation:"Calculation",interpretation:"Interpretation",unknown:"Cause unclear"};
+const ERR_REASON={content:"gap",application:"apply",reasoning:"reason",calculation:"calc",interpretation:"misread",unknown:""};
+const errOf=it=>{const r=it.reasons||[];if(r.includes("calc"))return"calculation";if(r.includes("misread"))return"interpretation";if(r.includes("reason"))return"reasoning";if(r.includes("apply"))return"application";if(r.includes("gap")||r.includes("mixup"))return"content";return"unknown";};
+/* evidence label: an imported FL miss names a tested concept, not a confirmed misunderstanding */
+const evidOf=it=>{const e=errOf(it);if(e==="unknown"&&(it.reasons||[]).length)return "Confirmed: "+it.reasons.map(r=>(REASONS[r]||r).toLowerCase()).join(", ");if(e==="unknown")return it.flId?"Tested concept · cause not reviewed":"Cause not given";return e==="content"?"Confirmed misunderstanding":`Confirmed ${ERR[e].toLowerCase()} error`;};
 const conceptKey=it=>{const t=topicById(it.topicId);return t&&t.outline?t.outline:"t:"+it.topicId;};
 const conceptName=k=>k.startsWith("t:")?tname(k.slice(2)):(OUT[k]?OUT[k].name.replace(/\s*\([^)]*\)\s*$/,""):k);
-const STATUS={practice:["Needs more practice","no"],weak:["Weak, not reviewed","part"],reviewed:["Reviewed","plain"],resolved:["Retested right","yes"]};
+const conceptSubj=c=>{const s={};c.items.forEach(i=>{if(i.subject)s[i.subject]=(s[i.subject]||0)+1;});return (Object.entries(s).sort((a,b)=>b[1]-a[1])[0]||[""])[0];};
+const STATUS={weak:["Weak","no"],retestdue:["Retest due","part"],reviewing:["Reviewing","plain"],verified:["Verified","yes"]};
+const ctxOf=i=>i.flId?"fl:"+i.flId:"src:"+(i.source||"other");
 function concepts(){
   const t=todayS(), by={};
   S.items.forEach(it=>{const k=conceptKey(it);const c=by[k]=by[k]||{k,items:[],wins:[],tids:new Set()};c.items.push(it);c.tids.add(it.topicId);});
@@ -1294,36 +1525,61 @@ function concepts(){
   return Object.values(by).map(c=>{
     const md=i=>i.doneDate||i.created||t;
     const misses=c.items.map(md).sort(), lastMiss=misses[misses.length-1];
-    const atts=c.items.flatMap(i=>i.attempts||[]).sort((a,b)=>a.date<b.date?-1:1);
-    const failed=c.items.some(i=>{const l=lastAttempt(i);return l&&l.self==="no";});
-    const winAfter=c.wins.some(w=>w.date>=lastMiss);
-    const firstReview=[...atts.map(a=>a.date),...c.wins.map(w=>w.date)].sort()[0];
-    const missedAgain=!!firstReview&&misses.some(d=>d>firstReview);
-    const status=winAfter&&!failed?"resolved":(failed||missedAgain)?"practice":atts.some(a=>a.date>=lastMiss&&a.self!=="no")?"reviewed":"weak";
+    /* outcome events after the last miss decide the status */
+    const ev=[...c.items.flatMap(i=>(i.attempts||[]).map(a=>({d:a.date,ts:a.ts,k:a.self==="yes"?"pos":a.self==="no"?"neg":"rev"}))),
+      ...c.wins.map(w=>({d:w.date,ts:w.ts,k:"pos"})),...c.items.filter(i=>i.reviewedOn).map(i=>({d:i.reviewedOn,ts:i.reviewedTs,k:"rev"}))].sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:(a.ts||0)-(b.ts||0));
+    /* same-day tie: a miss logged after the review wins (timestamps exist for new records only) */
+    const missTs=Math.max(0,...c.items.filter(i=>md(i)===lastMiss&&i.ts).map(i=>i.ts));
+    const after=ev.filter(e=>e.d>lastMiss||(e.d===lastMiss&&(!missTs||(e.ts&&e.ts>missTs)))), lastOut=after.filter(e=>e.k!=="rev").pop();
+    const fr=ev[0]||null;
+    const missedAgain=!!fr&&c.items.some(i=>md(i)>fr.d||(md(i)===fr.d&&i.ts&&fr.ts&&i.ts>fr.ts));
+    const failed=!!lastOut&&lastOut.k==="neg";
+    const reviewed=after.find(e=>e.k==="rev");
+    const cardDue=c.items.some(i=>i.due&&i.due<=t&&(i.needsNewQ||i.cards[i.cardIdx]));
+    let status="weak";
+    if(failed) status="weak";
+    else if(lastOut&&lastOut.k==="pos") status="verified";
+    else if(reviewed) status=cardDue||diffDays(t,reviewed.d)>=2?"retestdue":"reviewing";
+    const ctx=new Set(c.items.map(ctxOf)).size;
     const w=c.items.reduce((a,i)=>a+Math.exp(-Math.max(0,diffDays(t,md(i)))/21)*(i.flId?1.25:1),0);
-    const qs=c.items.length;
-    const score=w*(1+.35*(qs-1))*{practice:1.6,weak:1,reviewed:.55,resolved:.12}[status];
-    const ec={};c.items.forEach(i=>{const e=errOf(i);ec[e]=(ec[e]||0)+1;});
-    const err=Object.entries(ec).sort((a,b)=>b[1]-a[1])[0][0];
+    const qs=c.items.length, recurring=failed||missedAgain;
+    const score=w*(1+.35*(qs-1))*(ctx>=2?1.2:1)*(status==="weak"?(recurring?1.6:1):{retestdue:.8,reviewing:.35,verified:.1}[status]);
+    const ec={};c.items.forEach(i=>{const e=errOf(i);if(e!=="unknown")ec[e]=(ec[e]||0)+1;});
+    const err=(Object.entries(ec).sort((a,b)=>b[1]-a[1])[0]||["unknown"])[0];
     const recent=c.items.filter(i=>diffDays(t,md(i))<=14).length;
-    return {k:c.k,items:c.items,wins:c.wins,tids:[...c.tids],status,score,err,lastMiss,recent,qs,failed,name:conceptName(c.k),code:OUT[c.k]?OUT[c.k].code:""};
+    const nfl=new Set(c.items.filter(i=>i.flId).map(i=>i.flId)).size;
+    return {k:c.k,items:c.items,wins:c.wins,tids:[...c.tids],status,score,err,lastMiss,recent,qs,failed,missedAgain,recurring,ctx,nfl,cardDue,
+      reviewedOn:reviewed?reviewed.d:"",name:conceptName(c.k),code:OUT[c.k]?OUT[c.k].code:"",subject:conceptSubj(c)};
   }).sort((a,b)=>b.score-a.score);
 }
+/* short evidence line for Today */
 function conceptWhy(c){
   const b=[c.recent?`${c.recent} miss${c.recent>1?"es":""} in 2 weeks`:`${c.qs} miss${c.qs>1?"es":""}, last ${shortD(c.lastMiss)}`];
-  if(c.status==="practice")b.push(c.failed?"retest failed":"missed again after review");
-  else if(c.status==="weak")b.push("not reviewed");
-  else if(c.status==="reviewed")b.push("not yet right on a new question");
-  if(c.err!=="content")b.push(ERR[c.err].toLowerCase()+" errors");
+  if(c.nfl) b.push(c.nfl>1?`in ${c.nfl} full lengths`:"seen on a full length");
+  else if(c.ctx>=2) b.push("across sources");
+  if(c.failed) b.push("retest failed");
+  else if(c.missedAgain&&c.status==="weak") b.push("missed again after review");
+  else if(c.status==="weak") b.push("not reviewed");
+  else if(c.status==="retestdue") b.push("reviewed, not yet retested");
+  if(c.err!=="content"&&c.err!=="unknown") b.push(ERR[c.err].toLowerCase()+" errors");
   return b.join(" · ");
 }
+/* concise description of the weakness itself */
+function conceptGap(c){
+  const n=c.items.filter(i=>(i.review||i.thought||"").trim()).sort((a,b)=>(a.doneDate||"")<(b.doneDate||"")?1:-1)[0];
+  const s=n?(n.review||n.thought).trim().replace(/^Q\d+\s*·\s*/,""):"";
+  return s?(s.length>90?s.slice(0,88)+"…":s):(c.err==="unknown"?"Missed on "+(c.nfl?"a full length":"practice")+"; cause not reviewed":ERR[c.err]);
+}
 function conceptAction(c){
+  if(c.status==="verified") return "Keep it in mixed practice";
+  if(c.status==="reviewing") return "Retest in a day or two with new questions";
+  if(c.status==="retestdue") return c.cardDue?"Do the retention check":"Do 3 new questions on it to confirm";
+  if(c.recurring) return "Re-learn it, then do 5 new questions";
   const note=c.items.filter(i=>i.nextTime&&i.nextTime.trim()).sort((a,b)=>a.created<b.created?1:-1)[0];
   if(note) return note.nextTime.trim();
-  if(c.status==="reviewed") return "Do 3 new questions on it to confirm";
-  if(c.status==="practice") return "Re-learn it, then do 5 new questions";
-  return {content:"Review the concept, then do 3 new questions",application:"Do 3 passage-based questions on it",reasoning:"Redo the missed questions and say why each wrong choice is wrong",calculation:"Do 5 calculation questions, writing units at each step",interpretation:"Redo the missed questions, restating the stem and figure first"}[c.err];
+  return {content:"Review the concept, then do 3 new questions",application:"Do 3 passage-based questions on it",reasoning:"Redo the missed questions and say why each wrong choice is wrong",calculation:"Do 5 calculation questions, writing units at each step",interpretation:"Redo the missed questions, restating the stem and figure first",unknown:"Redo the missed questions and note why each one was wrong"}[c.err];
 }
+function markReviewed(k){const t=todayS(),n=Date.now();S.items.forEach(i=>{if(conceptKey(i)===k){i.reviewedOn=t;i.reviewedTs=n;}});save();}
 const SKILL_TEST={"Foundations of Comprehension":.3,"Reasoning Within the Text":.3,"Reasoning Beyond the Text":.4};
 const SKILL_SHORT={"Foundations of Comprehension":"Foundations","Reasoning Within the Text":"Reasoning Within","Reasoning Beyond the Text":"Reasoning Beyond"};
 const SKILL_TASK={"Foundations of Comprehension":"2 passages: write each paragraph's point in 5 words before the questions","Reasoning Within the Text":"2 passages: for each answer, point to the line that supports it","Reasoning Beyond the Text":"2 passages: before the choices, predict how the new idea affects the author's claim"};
@@ -1335,7 +1591,7 @@ function carsFocus(){const s=carsSkillShares();if(s.tot<4)return null;const b=s.
 function vHome(v){
   const left=Math.max(0,diffDays(S.settings.testDate,todayS()));
   const lf=(S.fls||[]).slice().sort((a,b)=>a.date<b.date?1:-1)[0], tot=lf?flTotal(lf):null, tg=+S.settings.target||0;
-  const cf=carsFocus(), cs=concepts().filter(c=>c.status!=="resolved");
+  const cf=carsFocus(), all=concepts(), cs=all.filter(c=>c.status==="weak"||c.status==="retestdue");
   const pr=cs.slice(0,cf?2:3).map(c=>({c})); if(cf) pr.push({cf});
   const nn=needsNewItems(), due=dueItems(), cr=todaysReading(), site=SITES[Math.floor(parseD(todayS()).getTime()/DAY)%SITES.length];
   v.innerHTML=`<div class="home">
@@ -1346,12 +1602,13 @@ function vHome(v){
    <section class="stack tight"><h3 class="eyebrow">Today</h3>
      ${pr.length?`<ol class="prio">${pr.map((p,i)=>p.c?`<li><span class="pn num">${i+1}</span><div class="main"><button class="plink" data-concept="${esc(p.c.k)}">${esc(p.c.name)}${p.c.code?` <span class="code">${p.c.code}</span>`:""}</button><div class="pw">${esc(conceptWhy(p.c))}</div><div class="pa">${esc(conceptAction(p.c))}</div></div></li>`
        :`<li><span class="pn num">${i+1}</span><div class="main"><button class="plink" data-go="cars">CARS · ${esc(SKILL_SHORT[p.cf.g])}</button><div class="pw">${Math.round(p.cf.share*100)}% of your CARS misses, ${Math.round(p.cf.test*100)}% of the test</div><div class="pa">${esc(p.cf.task)}</div></div></li>`).join("")}</ol>`
-     :`<p class="muted">Log a practice session or import a full length to get priorities.</p>`}
+     :`<p class="muted">${all.length?`Nothing weak to review today.${(()=>{const nx=S.items.filter(i=>i.due&&i.due>todayS()).map(i=>i.due).sort()[0];return nx?` Next retest ${relDue(nx)}.`:"";})()}`:"Log a practice session or import a full length to get priorities."}</p>`}
    </section>
    <div class="lines">
      ${nn.length?`<div class="line"><span><b>New retest question needed</b> <span class="muted">· ${esc(tname(nn[0].topicId))}${nn.length>1?` +${nn.length-1}`:""}</span></span><button class="btn small" data-addcard="${nn[0].id}">Add</button></div>`:""}
      ${due.length?`<div class="line"><span><b>Retention checks</b> <span class="muted">· ${due.length} due</span></span><button class="btn small" data-go="retest">Start</button></div>`:""}
-     ${cf?"":`<div class="line"><span><b>CARS</b> <span class="muted">· read one ${esc(cr.disc.toLowerCase())} article</span></span><a class="btn small" target="_blank" rel="noopener" href="https://www.google.com/search?q=site%3A${site[1]}+${encodeURIComponent(cr.disc)}">Find one</a></div>`}
+     ${(()=>{const rd=all.filter(c=>c.status==="retestdue"&&!c.cardDue&&!pr.some(p=>p.c&&p.c.k===c.k));return rd.length?`<div class="line"><span><b>Retest with new questions</b> <span class="muted">· ${esc(rd[0].name)}${rd.length>1?` +${rd.length-1}`:""}</span></span><button class="btn small" data-concept="${esc(rd[0].k)}">Open</button></div>`:"";})()}
+     ${cf?"":`<div class="line"><span><b>CARS</b> <span class="muted">· one ${esc(cr.disc.toLowerCase())} article</span><span class="pa" style="display:block">${esc(cr.task)}</span></span><a class="btn small" target="_blank" rel="noopener" href="https://www.google.com/search?q=site%3A${site[1]}+${encodeURIComponent(cr.disc)}">Find one</a></div>`}
    </div>
    <div class="row"><button class="btn primary big" data-go="practice">Log practice</button><button class="btn big" data-go="hub">Review mistakes</button></div>
   </div>`;
@@ -1372,7 +1629,8 @@ function classifyErr(s){
   if(/misread|mis-read|read (it |the question )?wrong|graph|figure|table|chart|axis|careless|overlook|didn'?t see|skipped|missed the word|\bexcept\b|\bnot\b.*stem/i.test(s))return"interpretation";
   if(/reason|logic|infer|assum|two answers|narrowed|50\/50|second.?guess|changed my answer|justify|evidence/i.test(s))return"reasoning";
   if(/appl(y|ied|ication)|couldn'?t use|how to use|new context|experiment|in context|connect/i.test(s))return"application";
-  return"content";
+  if(/forg[oe]t|didn'?t know|don'?t know|did not know|not know|never (learned|knew|seen)|remember|recall|memori|confus|mix(ed)? ?up|definition|unfamiliar|blank(ed)?|weak on|no idea|what .+ (is|are|does)|need to (review|learn)/i.test(s))return"content";
+  return"unknown";
 }
 const cleanConcept=s=>s.replace(/^(i\s+)?(totally\s+|completely\s+|kind of\s+)?(forgot|didn'?t know|did not know|don'?t know|was confused (about|on|by)|confused|mixed up|misread|messed up|couldn'?t (remember|recall|figure out)|wasn'?t sure (about|of)?|unsure (about|of)|need to review|review|weak on|struggled with|missed)\s+/i,"").replace(/^(that|about|the|how|what|on)\s+/i,"").replace(/[.?!,;:]+$/,"").split(/\s+/).slice(0,9).join(" ").trim();
 const CARS_QT_KW=[[/main idea|central|thesis|summar/i,"Main idea"],[/detail|paraphras|stated/i,"Detail"],[/meaning|word|phrase|term/i,"Meaning in context"],[/tone|attitude|author.*(think|feel|believe)|opinion/i,"Author's attitude"],[/purpose|function|why the author (mention|include)/i,"Argument structure"],[/infer|deduc|impl/i,"Inference"],[/support|evidence|evaluat/i,"Support for a claim"],[/strength|weaken|challenge|undermin/i,"Strengthen / weaken"],[/analog|example|similar/i,"Analogy"],[/appl|new situation|predict|would the author/i,"Application"]];
@@ -1395,7 +1653,7 @@ function extractGaps(text,sec){
 function gapAction(g){
   if(g.kind==="cars") return g.qtype?SKILL_TASK[skillOf(g.qtype)]||"Redo it and point to the supporting line":"Redo it and point to the supporting line";
   if(g.seen>=2) return "Recurring: re-learn it, then do 5 new questions";
-  return {content:"Review the concept, then do 3 new questions",application:"Do 3 passage-based questions on it",reasoning:"Say why each wrong choice is wrong",calculation:"Do 5 calculation questions, writing units",interpretation:"Restate the stem and figure before answering"}[g.err];
+  return {content:"Review the concept, then do 3 new questions",application:"Do 3 passage-based questions on it",reasoning:"Say why each wrong choice is wrong",calculation:"Do 5 calculation questions, writing units",interpretation:"Restate the stem and figure before answering",unknown:"Redo it and write down why the right answer is right"}[g.err];
 }
 let PD=null;
 const freshPD=()=>({source:S.settings.lastSource||"UWorld",sec:"",total:"",correct:"",notes:"",paste:"",step:"form",gaps:[]});
@@ -1414,7 +1672,7 @@ function vPractice(v){
      <details><summary>Paste an analysis page</summary><textarea id="ps-paste" rows="4" style="margin-top:8px" placeholder="Paste a Kaplan review table here">${esc(PD.paste)}</textarea></details>
      <div class="row"><button class="btn primary" id="ps-go">Analyze</button><button class="btn link" data-go="log">Log one question</button></div>
    </section>
-   ${ss.length?`<section class="stack tight"><h3 class="eyebrow">Recent sessions</h3><ul class="list">${ss.slice(0,6).map(s=>`<li><div class="main">${shortD(s.date)} · ${esc(s.source)} · ${esc(SEC_LABEL[s.sec]||s.sec)}</div><span class="num muted small">${s.total?`${s.correct??"—"}/${s.total}${s.correct!=null?` · ${Math.round(s.correct/s.total*100)}%`:""}`:""}${(s.gapIds||[]).length?` · ${s.gapIds.length} gap${s.gapIds.length>1?"s":""}`:""}</span></li>`).join("")}</ul></section>`:""}
+   ${ss.length?`<section class="stack tight"><h3 class="eyebrow">Recent sessions</h3><ul class="list">${ss.slice(0,6).map(s=>`<li><div class="main">${s.notes||s.paste?`<details><summary style="font-weight:400;color:var(--ink)">${shortD(s.date)} · ${esc(s.source)} · ${esc(SEC_LABEL[s.sec]||s.sec)}</summary><div class="small" style="white-space:pre-wrap;margin-top:6px">${esc(s.notes||"")}${s.paste?`<span class="muted">${s.notes?"\n":""}+ pasted analysis saved</span>`:""}</div></details>`:`${shortD(s.date)} · ${esc(s.source)} · ${esc(SEC_LABEL[s.sec]||s.sec)}`}</div><span class="num muted small">${s.total?`${s.correct??"—"}/${s.total}${s.correct!=null?` · ${Math.round(s.correct/s.total*100)}%`:""}`:""}${(s.gapIds||[]).length?` · ${s.gapIds.length} gap${s.gapIds.length>1?"s":""}`:""}</span></li>`).join("")}</ul></section>`:""}
   </div>`;
   bindCommon(v);
   const single=(id,key)=>$("#"+id).onclick=e=>{const c=e.target.closest("[data-v]");if(!c)return;PD[key]=c.dataset.v;$("#"+id).querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===PD[key]));};
@@ -1451,56 +1709,63 @@ function vPracticeConfirm(v){
     g.filter(x=>x.on).forEach(x=>{const id=uid();
       if(x.kind==="cars"){S.cq.push({id,passageId:"",qtype:x.qtype||"",result:"wrong",traps:x.traps||[],evidence:"",lure:x.text,date:t,qn:x.qn||"",sessionId:sid});}
       else{const tid=x.topicId&&norm(tname(x.topicId))===norm(x.topic)?x.topicId:findOrCreateTopic(x.topic,x.subject,x.outline||matchOutline(x.topic,x.subject),false);
-        S.items.push({id,subject:x.subject,topicId:tid,result:"wrong",source:PD.source,qref:x.qn?"Q"+x.qn:"",reasons:[ERR_REASON[x.err]],thought:x.text,nextTime:"",doneDate:t,reviewDate:t,created:t,cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[],sessionId:sid});}
+        S.items.push({id,subject:x.subject,topicId:tid,result:"wrong",source:PD.source,qref:x.qn?"Q"+x.qn:"",reasons:ERR_REASON[x.err]?[ERR_REASON[x.err]]:[],thought:x.text,nextTime:"",doneDate:t,reviewDate:t,created:t,cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[],sessionId:sid});}
       ids.push(id);});
-    (S.sessions=S.sessions||[]).push({id:sid,date:t,source:PD.source,sec:PD.sec,total:PD.total?+PD.total:null,correct:PD.correct!==""?+PD.correct:null,notes:PD.notes,gapIds:ids});
+    (S.sessions=S.sessions||[]).push({id:sid,date:t,source:PD.source,sec:PD.sec,total:PD.total?+PD.total:null,correct:PD.correct!==""?+PD.correct:null,notes:PD.notes,paste:(PD.paste||"").slice(0,20000),gapIds:ids});
     S.settings.lastSource=PD.source; PD=null; save(); toast(`Saved${ids.length?` with ${ids.length} gap${ids.length>1?"s":""}`:""}.`); go("today");
   };
 }
 
 /* ================= KNOWLEDGE HUB ================= */
-let hubF="open";
+let hubF="open", hubQ="";
+const srcOfItem=i=>i.flId?(((S.fls||[]).find(f=>f.id===i.flId)||{}).name||"Full length")+(i.qn?` Q${i.qn}`:""):[i.source,i.qref].filter(Boolean).join(" ")||"Practice";
+function conceptHistory(c){
+  const h=[...c.items.flatMap(i=>(i.attempts||[]).map(a=>({d:a.date,t:`Retention check: ${SELF[a.self].toLowerCase()}`,cls:SELF_CLS[a.self]}))),
+    ...c.wins.map(w=>({d:w.date,t:`Right on a new question${w.source?` (${w.source})`:""}`,cls:"yes"})),
+    ...[...new Set(c.items.map(i=>i.reviewedOn).filter(Boolean))].map(d=>({d,t:"Marked reviewed",cls:"plain"}))];
+  return h.sort((a,b)=>a.d<b.d?1:-1);
+}
+function hubRow(c,open){
+  const hist=conceptHistory(c);
+  return `<details class="crow" ${open?"open":""} data-ck="${esc(c.k)}"><summary><span class="main"><span><b>${esc(c.name)}</b>${c.code?` <span class="code">${c.code}</span>`:""} <span class="muted small">· ${esc(c.subject)}</span></span><span class="pw">${esc(conceptGap(c))}</span><span class="pa">${esc(conceptAction(c))}</span></span><span class="status ${STATUS[c.status][1]}">${STATUS[c.status][0]}</span></summary>
+   <div class="stack tight cbody">
+    <span class="muted small">${esc(conceptWhy(c))}</span>
+    <span class="label">Evidence</span>
+    <ul class="list">${c.items.slice().sort((a,b)=>(a.doneDate||"")<(b.doneDate||"")?1:-1).map(i=>`<li><div class="main">${i.review?`<div>${esc(i.review)}</div>`:i.thought?`<div>${esc(i.thought)}</div>`:`<div>${esc(tname(i.topicId))}</div>`}<div class="muted small">${[shortD(i.doneDate),srcOfItem(i),evidOf(i)].filter(Boolean).map(esc).join(" · ")}</div></div><button class="btn link small" data-topic="${i.topicId}">Open</button></li>`).join("")}</ul>
+    ${hist.length?`<span class="label">Review and retests</span><ul class="list">${hist.map(x=>`<li><span>${esc(x.t)}</span><span class="muted small num">${shortD(x.d)}</span></li>`).join("")}</ul>`:""}
+    <div class="row">${c.status==="weak"?`<button class="btn small primary" data-rev="${esc(c.k)}">Mark reviewed</button>`:""}<button class="btn small ${c.status==="retestdue"?"primary":""}" data-win="${c.tids[0]}">Got a new one right</button><button class="btn small" data-topic="${c.tids[0]}">Add a retest question</button></div>
+   </div></details>`;
+}
 function vHub(v){
   const cs=concepts(), cnt=k=>cs.filter(c=>c.status===k).length, open=viewArg&&viewArg.open;
-  const list=cs.filter(c=>hubF==="open"?c.status!=="resolved":c.status===hubF);
   v.innerHTML=`<div class="stack" style="gap:24px">
    <div class="statusbar">${Object.keys(STATUS).map(k=>`<button type="button" data-hf="${k}" aria-pressed="${hubF===k}"><span class="num n">${cnt(k)}</span><span class="small">${STATUS[k][0]}</span></button>`).join("")}</div>
-   <section class="stack tight"><div class="sec-title"><h3 class="eyebrow">${hubF==="open"?"Open concepts":STATUS[hubF][0]}</h3>${hubF!=="open"?`<button class="btn link small" data-hf="open">All open</button>`:""}</div>
-    ${list.length?`<div class="clist">${list.map(c=>`<details class="crow" ${open===c.k?"open":""}><summary><span class="main"><span><b>${esc(c.name)}</b>${c.code?` <span class="code">${c.code}</span>`:""}</span><span class="pw">${esc(conceptWhy(c))}</span></span><span class="status ${STATUS[c.status][1]}">${STATUS[c.status][0]}</span></summary>
-       <div class="stack tight cbody"><div class="pa">${esc(conceptAction(c))}</div>
-       <ul class="list">${c.items.slice().sort((a,b)=>(a.doneDate||"")<(b.doneDate||"")?1:-1).map(i=>`<li><div class="main"><button class="btn link" data-topic="${i.topicId}">${esc(tname(i.topicId))}</button><div class="muted small">${[shortD(i.doneDate),srcLabel(i),ERR[errOf(i)]].filter(Boolean).map(esc).join(" · ")}</div>${i.thought?`<div class="small">${esc(i.thought)}</div>`:""}</div></li>`).join("")}</ul>
-       <div class="row"><button class="btn small" data-win="${c.tids[0]}">Got a new one right</button><button class="btn small" data-topic="${c.tids[0]}">Add a retest question</button></div></div></details>`).join("")}</div>`
-      :`<p class="muted">Nothing here yet.</p>`}
+   <section class="stack tight">
+    <input id="hub-q" type="search" placeholder="Search concepts" value="${esc(hubQ)}" aria-label="Search concepts">
+    <div class="sec-title"><h3 class="eyebrow" id="hub-h"></h3>${hubF!=="open"?`<button class="btn link small" data-hf="open">Show all open</button>`:""}</div>
+    <div class="clist" id="hub-list"></div>
    </section>
-   <section class="stack tight"><h3 class="eyebrow">Content map</h3><div id="hub-map"></div></section>
+   <details class="panel"><summary>Content map</summary><div id="hub-map" style="margin-top:12px"></div></details>
   </div>`;
+  const draw=()=>{const q=hubQ.toLowerCase().trim();
+    const list=cs.filter(c=>q?true:hubF==="open"?c.status!=="verified":c.status===hubF).filter(c=>!q||(c.name+" "+c.subject+" "+c.code+" "+c.items.map(i=>tname(i.topicId)+" "+(i.thought||"")).join(" ")).toLowerCase().includes(q));
+    $("#hub-h").textContent=q?`${list.length} match${list.length===1?"":"es"}`:hubF==="open"?"Open concepts":STATUS[hubF][0];
+    $("#hub-list").innerHTML=list.length?list.map(c=>hubRow(c,open===c.k)).join(""):`<p class="muted">${cs.length?"Nothing here.":"Log a practice session or import a full length to build this list."}</p>`;};
+  draw();
   bindCommon(v);
+  $("#hub-q").oninput=e=>{hubQ=e.target.value;draw();};
   v.querySelectorAll("[data-hf]").forEach(b=>b.onclick=()=>{hubF=hubF===b.dataset.hf?"open":b.dataset.hf;render();});
+  v.addEventListener("click",e=>{const r=e.target.closest("[data-rev]");if(r){markReviewed(r.dataset.rev);toast("Marked reviewed. Retest it in a day or two.");go("hub",{open:r.dataset.rev});}});
   vMap($("#hub-map"));
-  if(open){const d=v.querySelector("details[open]");if(d)setTimeout(()=>d.scrollIntoView({block:"start"}),0);}
-}
-
-/* ================= FULL-LENGTH: what limits the score ================= */
-function flLimits(){
-  const fls=(S.fls||[]).slice().sort((a,b)=>a.date<b.date?1:-1), lf=fls.find(f=>SEC_ORDER.some(k=>+f.scores[k]));
-  const out=[];
-  if(lf){const secs=SEC_ORDER.filter(k=>+lf.scores[k]).sort((a,b)=>lf.scores[a]-lf.scores[b]);const lo=secs[0];
-    out.push(`Lowest section on ${lf.name}: <b>${SEC_NAME[lo]} ${lf.scores[lo]}</b>`);
-    const tg=+S.settings.target; if(tg&&flTotal(lf)) out.push(`${tg-flTotal(lf)>0?`${tg-flTotal(lf)} points to your target`:"At or above your target"}`);}
-  const cat={};S.items.filter(i=>i.flId).forEach(i=>{const t=topicById(i.topicId),o=t&&OUT[t.outline];if(o){const k=`${o.code} ${o.cat}`;cat[k]=(cat[k]||0)+1;}});
-  const top=Object.entries(cat).sort((a,b)=>b[1]-a[1]).slice(0,3);
-  if(top.length) out.push(`Most missed: ${top.map(([k,n])=>`${esc(k)} (${n})`).join(", ")}`);
-  const os=orderStats(); if(os.length>=6){const part=(a,b)=>{const xs=os.filter(o=>o.i>=a&&o.i<b);const q=xs.reduce((s,o)=>s+o.q,0),w=xs.reduce((s,o)=>s+o.w,0);return q?(q-w)/q:null;};const e=part(0,3),l=part(6,99);
-    if(e!=null&&l!=null&&e-l>=.1) out.push(`CARS accuracy drops from ${Math.round(e*100)}% (passages 1–3) to ${Math.round(l*100)}% (7–9)`);}
-  return out;
+  if(open){const d=v.querySelector("details.crow[open]");if(d)setTimeout(()=>d.scrollIntoView({block:"start"}),0);}
 }
 
 /* ================= boot ================= */
-load();
+load(); KNOWN=new Set([...S.items,...S.wins].map(x=>x.id));
 const h0=(location.hash||"").slice(1); if(ROUTES.includes(h0)) view=h0;
 window.addEventListener("hashchange",()=>{const k=location.hash.slice(1);if(ROUTES.includes(k)&&k!==view)go(k);});
 if(view==="retest") R=null;
 render();
 </script>
-</body>
-</html>
+
+</body></html>
