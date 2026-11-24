@@ -3,16 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MCAT Gap Tracker</title>
+<title>MCAT Tracker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
-/* Plain and simple: white page, Arial, one blue for main actions. */
+/* Calm and minimal: white page, Inter, one accent, thin dividers instead of boxes. */
 :root{
   --bg:#ffffff; --panel:#ffffff; --sunk:#f4f5f7; --ink:#111111; --ink-2:#444444; --ink-3:#777777; --line:#e2e2e2;
   --accent:#1a56db; --accent-ink:#ffffff; --accent-soft:#e8effc;
   --no:#c0392b; --no-soft:#fbe9e7; --part:#9a6700; --part-soft:#fbf1d9; --yes:#1e7d46; --yes-soft:#e3f3e9;
   --h0:#f1f1f1; --h1:#fde3d2; --h2:#f8b996; --h3:#ee8a5e; --h4:#d4462f; --hok:#e3f3e9;
-  --font:Arial,"Helvetica Neue",Helvetica,sans-serif;
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#121212; --panel:#121212; --sunk:#1e1e1e; --ink:#eeeeee; --ink-2:#bbbbbb; --ink-3:#888888; --line:#2e2e2e;
@@ -111,14 +112,53 @@ button.cell{cursor:pointer}
 .cell b{display:block;font-weight:400;font-size:.7rem;opacity:.85;margin-top:2px}
 .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.78rem;color:var(--ink-2);align-items:center}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+h1{letter-spacing:-.01em}
+.panel{border-radius:10px;padding:20px}
+.eyebrow{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3)}
+.small{font-size:.8rem}
+.menu{position:relative}
+.menu summary{list-style:none;cursor:pointer;font:600 .82rem var(--font);color:var(--ink-2);padding:6px 10px;border:1px solid var(--line);border-radius:8px}
+.menu summary::-webkit-details-marker{display:none}
+.menu-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:20;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px;display:flex;flex-direction:column;min-width:190px;box-shadow:0 6px 24px rgba(0,0,0,.08)}
+.menu-pop button{all:unset;cursor:pointer;padding:8px 10px;border-radius:6px;font-size:.88rem;color:var(--ink)}
+.menu-pop button:hover,.menu-pop button:focus-visible{background:var(--sunk)}
+.home{display:flex;flex-direction:column;gap:28px;padding-top:8px}
+.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.hero .right{text-align:right}
+.bignum{font-size:2.6rem;font-weight:700;letter-spacing:-.04em;line-height:1}
+.bignum2{font-size:1.6rem;font-weight:700;letter-spacing:-.03em;line-height:1.1}
+.prio{list-style:none;margin:0;padding:0}
+.prio li{display:flex;gap:14px;padding:14px 0;border-top:1px solid var(--line)}
+.prio li:first-child{border-top:0}
+.pn{color:var(--ink-3);font-size:.85rem;width:14px;flex:none;padding-top:2px}
+.plink{all:unset;cursor:pointer;font-weight:600;font-size:1rem}
+.plink:hover{color:var(--accent)} .plink:focus-visible{outline:2px solid var(--accent)}
+.pw{font-size:.82rem;color:var(--ink-3);margin-top:2px}
+.pa{font-size:.85rem;color:var(--accent);margin-top:4px}
+.lines{display:flex;flex-direction:column}
+.line{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line);font-size:.92rem}
+.line:last-child{border-bottom:1px solid var(--line)}
+.statusbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:8px}
+.statusbar button{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:12px 14px;border:1px solid var(--line);border-radius:10px}
+.statusbar button[aria-pressed="true"]{border-color:var(--ink);}
+.statusbar .n{font-size:1.4rem;font-weight:700}
+.clist{display:flex;flex-direction:column}
+.crow{border-top:1px solid var(--line)} .crow:last-child{border-bottom:1px solid var(--line)}
+.crow>summary{list-style:none;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:12px 0;cursor:pointer;font-weight:400;color:var(--ink);font-size:.95rem}
+.crow>summary::-webkit-details-marker{display:none}
+.crow>summary .main{display:flex;flex-direction:column;min-width:0}
+.cbody{padding:0 0 14px}
+details.panel>summary{font-size:1.05rem;font-weight:700;color:var(--ink)}
+details.panel[open]>summary{margin-bottom:12px}
+.gaps>li{align-items:flex-start}
 </style>
 </head>
 <body>
 
 <div class="wrap">
   <header class="top">
-    <h1>MCAT Gap Tracker</h1>
-    <div class="count"><b class="num" id="daysLeft">–</b> <span id="daysLabel">days to test day</span></div>
+    <h1>MCAT Tracker</h1>
+    <details class="menu" id="menu"><summary aria-label="More">More</summary><div class="menu-pop"><button data-mgo="weekly">Weekly review</button><button data-mgo="records">All records</button><button data-mgo="settings">Settings and backup</button></div></details>
   </header>
   <div id="sampleNote" class="notice" hidden>
     <span>Example records. Your first save replaces them.</span>
@@ -127,15 +167,16 @@ button.cell{cursor:pointer}
   <nav class="tabs" role="tablist" id="tabs"></nav>
   <main id="view"></main>
 </div>
-<button class="btn primary big fab" id="fab">+ Log a question</button>
 <div class="toast" id="toast" hidden role="status"></div>
 
 <script>
 /* ================= constants ================= */
 const SUBJECTS=["Biology","Biochemistry","General Chemistry","Organic Chemistry","Physics","Psychology","Sociology","Research & stats"];
 const SCI_SOURCES=["UWorld","AAMC","Jack Westin","Other"];
-const REASONS={gap:"Knowledge gap",mixup:"Confused similar concepts",misread:"Misread stem or figure",calc:"Math or units",time:"Time pressure",other:"Other"};
+const REASONS={gap:"Knowledge gap",mixup:"Confused similar concepts",misread:"Misread stem or figure",calc:"Math or units",time:"Time pressure",apply:"Application error",reason:"Reasoning error",other:"Other"};
 const REASON_ACTION={
+  apply:"Do 3 passage-based questions that use this concept in a new setting.",
+  reason:"Redo the missed questions and say why each wrong choice is wrong.",
   gap:"Re-learn it from your content source, then write the rule in one sentence from memory.",
   mixup:"Write a two-column contrast of the two concepts you mixed up, then do 2 questions that test the difference.",
   misread:"Do 2 questions on this topic and underline what the stem or figure actually asks before answering.",
@@ -217,7 +258,7 @@ const SECTIONS={BB:"Bio/Biochem",CP:"Chem/Phys",PS:"Psych/Soc"};
 const OUT={}; for(const sec in OUTLINE) OUTLINE[sec].forEach(([code,cat,subs])=>subs.forEach((name,i)=>{const id=sec+"-"+code+"-"+i;OUT[id]={id,sec,code,cat,name};}));
 const SUBJ_SEC={"Biology":["BB"],"Biochemistry":["BB","CP"],"General Chemistry":["CP"],"Organic Chemistry":["CP"],"Physics":["CP"],"Psychology":["PS"],"Sociology":["PS"],"Research & stats":["PS","BB","CP"]};
 // extra words that point to an outline subtopic
-const ALIAS={"BB-1D-1":"carbohydrate glucose","BB-1A-2":"nonenzymatic","CP-4C-3":"electrochemistry electrochemical electrolytic galvanic","PS-7C-1":"reinforcement punishment skinner schedule extinction","PS-7C-0":"pavlov unconditioned conditioned stimulus","BB-1A-3":"enzyme kinetics lineweaver","BB-1A-4":"inhibitor inhibition allosteric competitive","CP-5C-2":"chromatography exchange hplc column gel filtration affinity","BB-1A-5":"purification exchange sds page isoelectric","CP-4C-4":"nernst cell potential","CP-5A-1":"henderson hasselbalch buffer titration equivalence","BB-1D-4":"etc atp synthase proton gradient","CP-4D-2":"lens mirror focal magnification refraction snell","PS-9A-0":"functionalism conflict theory symbolic interactionism","BB-3B-4":"nephron kidney glomerulus loop henle","PS-6B-6":"encoding retrieval decay amnesia","PS-8B-0":"fundamental attribution error actor observer"};
+const ALIAS={"BB-3B-1":"hemoglobin oxygen dissociation curve bohr myoglobin blood pressure heart","BB-3B-0":"lung alveoli ventilation surfactant","BB-1D-1":"carbohydrate glucose","BB-1A-2":"nonenzymatic","CP-4C-3":"electrochemistry electrochemical electrolytic galvanic","PS-7C-1":"reinforcement punishment skinner schedule extinction","PS-7C-0":"pavlov unconditioned conditioned stimulus","BB-1A-3":"enzyme kinetics lineweaver","BB-1A-4":"inhibitor inhibition allosteric competitive","CP-5C-2":"chromatography exchange hplc column gel filtration affinity","BB-1A-5":"purification exchange sds page isoelectric","CP-4C-4":"nernst cell potential","CP-5A-1":"henderson hasselbalch buffer titration equivalence","BB-1D-4":"etc atp synthase proton gradient","CP-4D-2":"lens mirror focal magnification refraction snell","PS-9A-0":"functionalism conflict theory symbolic interactionism","BB-3B-4":"nephron kidney glomerulus loop henle","PS-6B-6":"encoding retrieval decay amnesia","PS-8B-0":"fundamental attribution error actor observer"};
 const stemTok=s=>String(s).toLowerCase().replace(/[^a-z0-9 ]+/g," ").split(/\s+/).filter(w=>w.length>3&&!["with","from","that","between","versus","system","systems","structure","function"].includes(w)).map(w=>w.replace(/(ies|es|s)$/,""));
 const outCode=name=>{const m=String(name).match(/(?:^|[^0-9a-z])(10A|[1-9][A-E])(?![0-9a-z])/i);if(!m)return "";const c=m[1].toUpperCase();return Object.values(OUT).some(o=>o.code===c)?c:"";};
 function matchOutline(name,subject){
@@ -281,10 +322,10 @@ function relDue(s){const n=diffDays(s,todayS());return n<0?`overdue ${-n}d`:n===
 /* ================= storage ================= */
 const KEY="mcat-tracker-v2", OLD_KEY="mcat-gap-tracker-v1";
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
-function blank(){return {v:2,settings:{testDate:"2027-02-12",iv:{no:1,partial:2,yes:5},style:"quick"},topics:[],items:[],wins:[],passages:[],cq:[],weeks:{},legacy:{blocks:[],reads:{}},fls:[],sample:false};}
+function blank(){return {v:2,settings:{testDate:"2027-02-12",iv:{no:1,partial:2,yes:5},style:"quick"},topics:[],items:[],wins:[],passages:[],cq:[],weeks:{},legacy:{blocks:[],reads:{}},fls:[],sessions:[],sample:false};}
 let S;
 function load(){
-  try{const raw=localStorage.getItem(KEY);if(raw){S=Object.assign(blank(),JSON.parse(raw));S.settings=Object.assign(blank().settings,S.settings);S.settings.iv=Object.assign({no:1,partial:2,yes:5},S.settings.iv);S.topics.forEach(t=>{if(t.outline===undefined||(!t.outline&&outCode(t.name)))t.outline=matchOutline(t.name,t.subject);});[...S.passages,...S.cq,...(S.fls||[]).flatMap(f=>f.carsP||[])].forEach(x=>{if(DISC_MIGRATE[x.disc])x.disc=DISC_MIGRATE[x.disc];});return;}}catch(e){}
+  try{const raw=localStorage.getItem(KEY);if(raw){S=Object.assign(blank(),JSON.parse(raw));S.settings=Object.assign(blank().settings,S.settings);S.settings.iv=Object.assign({no:1,partial:2,yes:5},S.settings.iv);S.topics.forEach(t=>{if(t.outline===undefined||(!t.outline&&outCode(t.name)))t.outline=matchOutline(t.name,t.subject);});fixKaplanTopics();[...S.passages,...S.cq,...(S.fls||[]).flatMap(f=>f.carsP||[])].forEach(x=>{if(DISC_MIGRATE[x.disc])x.disc=DISC_MIGRATE[x.disc];});return;}}catch(e){}
   S=blank();
   try{const old=JSON.parse(localStorage.getItem(OLD_KEY)||"null");
     if(old){S.legacy.blocks=(old.blocks||[]).filter(b=>!b.sample);S.legacy.reads=old.reads||{};S.settings.testDate=(old.settings&&old.settings.testDate)||S.settings.testDate;}}catch(e){}
@@ -397,23 +438,21 @@ function todaysReading(){
 const siteLinks=disc=>{const q=encodeURIComponent(disc.replace("&","and"));return SITES.map(([n,s])=>`<a class="btn small" target="_blank" rel="noopener" href="https://www.google.com/search?q=site%3A${s}+${q}">${n}</a>`).join("");};
 
 /* ================= routing ================= */
-const TABS=[["today","Today"],["log","Science log"],["cars","CARS log"],["fl","Full lengths"],["retest","Retest"],["map","Heatmap"],["weekly","Weekly review"],["records","Records"]];
+const TABS=[["today","Today"],["practice","Daily Practice"],["fl","Full-Length"],["hub","Knowledge Hub"],["cars","CARS"]];
+const ROUTES=["today","practice","fl","hub","cars","weekly","records","settings","log","retest","map"];
 let view="today", viewArg=null;
-function go(v,arg){if(v==="retest"&&(!R||R.i>=R.queue.length))R=null;view=v;viewArg=arg??null;try{const h=TABS.some(t=>t[0]===v)?"#"+v:"";if(h&&location.hash!==h)history.replaceState(null,"",h);}catch(e){}render();window.scrollTo({top:0});}
+function go(v,arg){if(v==="retest"&&(!R||R.i>=R.queue.length))R=null;view=v;viewArg=arg??null;try{const h=ROUTES.includes(v)?"#"+v:"";if(h&&location.hash!==h)history.replaceState(null,"",h);}catch(e){}render();window.scrollTo({top:0});}
 function render(){
-  const left=diffDays(S.settings.testDate,todayS());
-  $("#daysLeft").textContent=Math.max(0,left);
-  $("#daysLabel").textContent=left>=0?`days to test day · ${shortD(S.settings.testDate)}`:"test day has passed";
   $("#sampleNote").hidden=!S.sample;
-  const due=dueItems().length;
-  const active=view==="topic"?"records":view==="logcars"?"cars":view;
-  $("#tabs").innerHTML=TABS.map(([k,l])=>`<button role="tab" aria-selected="${k===active}" data-tab="${k}">${l}${k==="retest"&&due?`<span class="dot num">${due}</span>`:""}</button>`).join("");
-  $("#fab").hidden=(view==="log"||view==="retest");
+  const active={log:"practice",retest:"today",topic:"hub",map:"hub",logcars:"cars"}[view]||view;
+  $("#tabs").innerHTML=TABS.map(([k,l])=>`<button role="tab" aria-selected="${k===active}" data-tab="${k}">${l}</button>`).join("");
+  $("#menu").open=false;
   const old=$("#view");const v=old.cloneNode(false);old.replaceWith(v);
-  ({today:vToday,log:vLog,retest:vRetest,cars:vCars,logcars:vLogCars,weekly:vWeekly,records:vRecords,topic:vTopic,settings:vSettings,map:vMap,fl:vFL})[view](v);
+  ({today:vHome,practice:vPractice,hub:vHub,log:vLog,retest:vRetest,cars:vCars,logcars:vLogCars,weekly:vWeekly,records:vRecords,topic:vTopic,settings:vSettings,map:vMap,fl:vFL})[view](v);
 }
 $("#tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b)go(b.dataset.tab);});
-$("#fab").onclick=()=>go("log");
+$("#menu").addEventListener("click",e=>{const b=e.target.closest("[data-mgo]");if(b)go(b.dataset.mgo);});
+document.addEventListener("click",e=>{const m=$("#menu");if(m.open&&!m.contains(e.target))m.open=false;});
 $("#clearSample").onclick=()=>{leaveSample();save();render();toast("Examples cleared.");};
 
 /* ================= TODAY ================= */
@@ -451,6 +490,7 @@ function bindCommon(v){
   v.addEventListener("click",e=>{
     const g=e.target.closest("[data-go]");if(g){go(g.dataset.go);return;}
     const t=e.target.closest("[data-topic]");if(t){go("topic",t.dataset.topic);return;}
+    const ck=e.target.closest("[data-concept]");if(ck){go("hub",{open:ck.dataset.concept});return;}
     const w=e.target.closest("[data-win]");if(w){go("log",{mode:"win",topicId:w.dataset.win});return;}
     const c=e.target.closest("[data-addcard]");if(c){go("topic",{itemId:c.dataset.addcard});return;}
     const r=e.target.closest("[data-logread]");if(r){go("logcars",{mode:"passage",readingOnly:true,disc:r.dataset.logread,source:"Aeon"});return;}
@@ -720,25 +760,28 @@ function vCars(v){
   const hs=sentenceList();
   v.innerHTML=`<div class="stack" style="gap:16px">
   <div class="row"><button class="btn primary" data-lc="passage">+ Log a passage</button><button class="btn" data-lc="q">+ Log a question</button><button class="btn" data-logread="${esc(cr.disc)}">+ Log an article I read</button></div>
-  <section class="panel stack"><div class="sec-title"><h2>Your pattern</h2><span class="muted" style="font-size:.82rem">${n} passage${n===1?"":"s"} · ${S.cq.length} missed question${S.cq.length===1?"":"s"} · ${reads} article${reads===1?"":"s"} read</span></div>
+  <section class="panel stack"><h2>Pattern</h2>
     ${n||S.cq.length?`<div class="grid2">
+      <div class="stack tight"><span class="label">By AAMC skill</span>${Object.keys(A.sk).length?(()=>{const tot=Object.values(A.sk).reduce((a,b)=>a+b,0);return `<ul class="list">${CARS_SKILLS.map(([g,pct])=>`<li><span>${g}</span><span class="num muted">${A.sk[g]||0} missed · ${Math.round((A.sk[g]||0)/tot*100)}% of misses (test ${pct})</span></li>`).join("")}</ul>`;})():`<p class="muted">—</p>`}</div>
+      <div class="stack tight"><span class="label">By passage order (full lengths)</span>${(()=>{const os=orderStats();if(!os.length)return `<p class="muted">Fill the CARS passages table in a full length.</p>`;const part=(a,b)=>{const xs=os.filter(o=>o.i>=a&&o.i<b);const q=xs.reduce((s,o)=>s+o.q,0),w=xs.reduce((s,o)=>s+o.w,0);return q?Math.round((q-w)/q*100)+"%":"—";};return `<ul class="list"><li><span>Passages 1–3</span><span class="num muted">${part(0,3)}</span></li><li><span>4–6</span><span class="num muted">${part(3,6)}</span></li><li><span>7–9</span><span class="num muted">${part(6,99)}</span></li></ul>`;})()}</div>
+      <div class="stack tight"><span class="label">Traps</span>${A.traps.length?`<ul class="list">${A.traps.slice(0,4).map(t=>`<li><span>${esc(CARS_TRAPS[t.k])}</span><span class="num muted">${t.n} in ${t.np} passage${t.np>1?"s":""}</span></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
+    </div>
+    <details><summary>More stats</summary><div class="grid2" style="margin-top:12px">
       <div class="stack tight"><span class="label">Passage types you miss most</span>${weak.length?`<ul class="list">${weak.map(d=>`<li><div class="main"><b>${esc(d.k)}</b><div class="muted" style="font-size:.82rem">${d.n?`${d.n} passage${d.n>1?"s":""}`:"from full lengths"}${d.pct!=null?` · avg ${Math.round(d.pct*100)}%`:""}${d.avgMin?` · ${d.avgMin.toFixed(1)} min`:""} · ${d.miss} missed</div></div></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
       <div class="stack tight"><span class="label">Where you get stuck</span>${A.snags.length?`<ul class="list">${A.snags.slice(0,4).map(([k,c])=>`<li><span>${esc(k)}</span><span class="num muted">${c} of ${n}</span></li>`).join("")}</ul>`:`<p class="muted">Tag "where I got stuck" when logging a passage.</p>`}</div>
       <div class="stack tight"><span class="label">Question types you miss</span>${A.qtypes.length?`<ul class="list">${A.qtypes.slice(0,4).map(([k,c])=>`<li><span>${esc(k)}</span><span class="num muted">${c}</span></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
-      <div class="stack tight"><span class="label">By AAMC skill</span>${Object.keys(A.sk).length?(()=>{const tot=Object.values(A.sk).reduce((a,b)=>a+b,0);return `<ul class="list">${CARS_SKILLS.map(([g,pct])=>`<li><span>${g}</span><span class="num muted">${A.sk[g]||0} missed · ${Math.round((A.sk[g]||0)/tot*100)}% of misses (test ${pct})</span></li>`).join("")}</ul>`;})():`<p class="muted">—</p>`}</div>
       <div class="stack tight"><span class="label">Humanities vs. social sciences</span>${Object.keys(A.grp).length?`<ul class="list">${["Humanities","Social sciences"].filter(g=>A.grp[g]).map(g=>`<li><span>${g}</span><span class="num muted">${Math.round(A.grp[g].sc/A.grp[g].of*100)}% · ${A.grp[g].n} passage${A.grp[g].n>1?"s":""}</span></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
       <div class="stack tight"><span class="label">By style</span>${A.styles.length?`<ul class="list">${A.styles.slice(0,4).map(x=>`<li><span>${esc(x.k)}</span><span class="num muted">${x.pct!=null?Math.round(x.pct*100)+"% · ":""}${x.n} passage${x.n>1?"s":""}</span></li>`).join("")}</ul>`:`<p class="muted">Tag a style when logging a passage.</p>`}</div>
-      <div class="stack tight"><span class="label">Traps</span>${A.traps.length?`<ul class="list">${A.traps.slice(0,4).map(t=>`<li><span>${esc(CARS_TRAPS[t.k])}</span><span class="num muted">${t.n} in ${t.np} passage${t.np>1?"s":""}</span></li>`).join("")}</ul>`:`<p class="muted">—</p>`}</div>
-    </div>`:`<p class="muted">Log a passage to see your pattern.</p>`}
+    </div></details>`:`<p class="muted">Log a passage to see your pattern.</p>`}
   </section>
   <section class="panel stack"><h2>Read next</h2>
     ${topSnag?`<div class="qcard"><span class="label">Practice for "${esc(topSnag[0])}"</span><br>${esc(SNAG_TIP[topSnag[0]]||READ_TASKS[0])}</div>`:""}
     <ul class="list">${(weak.length?weak.map(d=>d.k):[cr.disc]).map(k=>`<li><div class="main stack tight"><b>${esc(k)}</b><div class="row">${siteLinks(k)}</div></div></li>`).join("")}</ul>
   </section>
-  <section class="panel stack"><h2>Hard sentences</h2>
+  <details class="panel"><summary>Hard sentences</summary><div class="stack">
     ${hs.length?`<ul class="list">${hs.map(({s,p})=>`<li><div class="main">${esc(s)}<div class="muted" style="font-size:.8rem">${esc(p.title||p.disc)}</div></div><button class="btn small" data-hs="${esc(s)}">Copy for breakdown</button></li>`).join("")}</ul>`:`<p class="muted">Paste sentences you didn't understand when you log a passage. They'll collect here.</p>`}
     <details><summary>Common CARS sentence patterns</summary><ul class="list" style="margin-top:6px">${SENTENCE_PATTERNS.map(([t,ex,how])=>`<li><div class="main"><b>${esc(t)}</b><div style="font-size:.88rem;font-style:italic;margin-top:2px">${esc(ex)}</div><div class="sub">${esc(how)}</div></div></li>`).join("")}</ul></details>
-  </section>
+  </div></details>
   <section class="panel stack"><h2>Passages</h2>${passageList(S.passages.slice().sort((a,b)=>a.date<b.date?1:-1).slice(0,10))}</section>
   </div>`;
   bindCommon(v);
@@ -794,14 +837,15 @@ function vFL(v){
   const fls=(S.fls||[]).slice().sort((x,y)=>x.date<y.date?1:-1);
   v.innerHTML=`<div class="stack" style="gap:16px">
     <div class="row"><button class="btn primary" id="fl-new">+ Log a full length</button></div>
-    <section class="panel stack"><h2>Full-length exams</h2>
+    ${(()=>{const L=flLimits();return L.length?`<section class="panel stack"><h2>What's limiting your score</h2><ul class="list">${L.map(x=>`<li><span>${x}</span></li>`).join("")}</ul></section>`:"";})()}
+    <section class="panel stack"><h2>Exams</h2>
     ${fls.length?`<div class="tablewrap"><table><thead><tr><th>Date</th><th>Exam</th><th>C/P</th><th>CARS</th><th>B/B</th><th>P/S</th><th>Total</th><th>Missed</th></tr></thead><tbody>
       ${fls.map(f=>`<tr><td class="num">${shortD(f.date)}</td><td><button class="btn link" data-fl="${f.id}">${esc(f.name)}</button></td>${SEC_ORDER.map(k=>`<td class="num">${f.scores[k]||"—"}</td>`).join("")}<td class="num"><b>${flTotal(f)??"—"}</b></td><td class="num">${flMisses(f.id).length}</td></tr>`).join("")}</tbody></table></div>`
       :`<p class="muted">No full lengths logged yet.</p>`}</section>
     ${(()=>{const os=orderStats();if(!os.length)return "";const third=(a,b)=>{const xs=os.filter(o=>o.i>=a&&o.i<b);const q=xs.reduce((s,o)=>s+o.q,0),w=xs.reduce((s,o)=>s+o.w,0);return q?Math.round((q-w)/q*100)+"%":"—";};
-      return `<section class="panel stack"><h2>CARS accuracy by passage order</h2>
+      return `<details class="panel"><summary>CARS accuracy by passage order</summary><div class="stack">
       <div class="tablewrap"><table><thead><tr><th>Passage #</th><th>Exams</th><th>Correct</th><th style="width:45%"></th></tr></thead><tbody>${os.map(o=>`<tr><td class="num"><b>${o.i+1}</b></td><td class="num">${o.n}</td><td class="num">${o.q-o.w}/${o.q} (${Math.round(o.pct*100)}%)</td><td><div class="meter" style="height:10px"><i style="width:${o.pct*100}%"></i></div></td></tr>`).join("")}</tbody></table></div>
-      <p class="sub">Passages 1–3: <b>${third(0,3)}</b> · 4–6: <b>${third(3,6)}</b> · 7–9: <b>${third(6,99)}</b></p></section>`;})()}
+      <p class="sub">Passages 1–3: <b>${third(0,3)}</b> · 4–6: <b>${third(3,6)}</b> · 7–9: <b>${third(6,99)}</b></p></div></details>`;})()}
   </div>`;
   $("#fl-new").onclick=()=>go("fl",{mode:"new"});
   v.addEventListener("click",e=>{const b=e.target.closest("[data-fl]");if(b)go("fl",{id:b.dataset.fl});});
@@ -852,6 +896,16 @@ For every CARS question (correct or wrong), also add:
 
 Leave out any field you can't see. Don't guess my answer.`;}
 const KAP_QT={"summarize text":"Main idea","paraphrase detail":"Detail","interpret meaning":"Meaning in context","recognize opinion":"Author's attitude","describe purpose":"Argument structure","make deduction":"Inference","evaluate reasoning":"Support for a claim","strengthen/weaken argument":"Strengthen / weaken","imagine example/analogy":"Analogy","anticipate response":"Application","predict outcome/explanation":"Application"};
+const KAP_CODE=/^(BEH|BIO|BIOCHEM|BC|GC|GCHEM|OC|OCHEM|ORGO|PHYS|PHY|CHEM|PSY|PSYCH|SOC)\s?\d{1,2}\b/i;
+function fixKaplanTopics(){
+  S.topics.slice().forEach(t=>{ if(!KAP_CODE.test(t.name)) return;
+    const code=outCode(t.name); let rest=t.name.replace(KAP_CODE,"").replace(/\(?\b(10A|[1-9][A-E])\b\)?/ig,"").replace(/^[:.\-\s]+|[:.\-\s]+$/g,"").trim();
+    const o=OUT[t.outline]; if(!rest) rest=o?o.cat:(code?(Object.values(OUT).find(x=>x.code===code)||{}).cat||t.subject:t.subject);
+    const nm=rest+(code||(o&&o.code)?` (${code||o.code})`:"");
+    const dup=S.topics.find(x=>x!==t&&norm(x.name)===norm(nm));
+    if(dup){S.items.forEach(i=>{if(i.topicId===t.id)i.topicId=dup.id;});S.wins.forEach(w=>{if(w.topicId===t.id)w.topicId=dup.id;});S.topics=S.topics.filter(x=>x!==t);}
+    else t.name=nm; });
+}
 function kapParse(txt){
   const lines=txt.replace(/\r/g,"").split("\n"); const rows=[]; let cur=null;
   const sec4code=c=>{const o=Object.values(OUT).find(o=>o.code===c);return o?o.sec:"";};
@@ -874,7 +928,8 @@ function kapParse(txt){
     let subj=SUBJECTS.find(x=>txtAll.includes(x.toLowerCase()))||(/behavio/.test(txtAll)?"Psychology":/biolog/.test(txtAll)?"Biology":/physic/.test(txtAll)?"Physics":/organic/.test(txtAll)?"Organic Chemistry":/chem/.test(txtAll)?"General Chemistry":"");
     if(!sec&&subj) sec=(SUBJ_SEC[subj]||[""])[0];
     if(!subj&&sec) subj=SEC_SUBJ[sec][0];
-    const name=(chap||cat.replace(/^\s*(10A|[1-9][A-E])\b[:.\-\s]*/i,"")||qt).trim();
+    const chapT=chap.replace(KAP_CODE,"").replace(/^[:.\-\s]+/,"").trim(), catT=cat.replace(/^\s*(10A|[1-9][A-E])\b[:.\-\s]*/i,"").trim();
+    const name=(chapT||catT||(code?(Object.values(OUT).find(o=>o.code===code)||{}).cat||"":"")||qt).trim();
     return Object.assign(o,{sec,subject:subj,topic:name?name+(code&&!outCode(name)?` (${code})`:""):""});
   }).filter(Boolean);
 }
@@ -951,7 +1006,7 @@ function vFLDetail(v,id){
       <div class="row"><button class="btn" id="imp-read">Read</button></div>
       <div id="imp-prev">${impPreview(f)}</div>
     </section>
-    <section class="panel stack"><div class="sec-title"><h2>CARS passages</h2><span class="muted" style="font-size:.82rem">in the order you saw them</span></div>
+    <details class="panel" ${(f.carsP||[]).some(cpDone)?"open":""}><summary>CARS passages</summary><div class="stack">
       <div class="tablewrap"><table id="fl-cp"><thead><tr><th>#</th><th>Questions</th><th>Wrong</th><th>Correct</th><th>Category</th><th></th></tr></thead><tbody>
       ${(f.carsP=f.carsP?f.carsP:Array.from({length:9},()=>({qs:"",wrong:"",disc:""}))).map((r,i)=>`<tr><td class="num"><b>${i+1}</b></td>
         <td><input type="number" min="1" max="12" inputmode="numeric" data-cp="${i}" data-f="qs" value="${esc(r.qs)}" style="width:70px"></td>
@@ -961,11 +1016,11 @@ function vFLDetail(v,id){
         <td><button class="btn small" data-cprm="${i}" aria-label="Remove passage ${i+1}">Remove</button></td></tr>`).join("")}
       </tbody></table></div>
       <div class="row"><button class="btn small" id="cp-add">+ Add a passage</button><span class="muted" style="font-size:.82rem" id="cp-sum">${cpSummary(f)}</span></div>
-    </section>
-    <section class="panel stack"><h2>Add a missed question</h2>
+    </div></details>
+    <details class="panel"><summary>Add a missed question by hand</summary><div class="stack">
       <div class="seg" id="fm-sec">${SEC_ORDER.map(k=>`<button type="button" data-v="${k}" aria-pressed="${FM.sec===k}">${SEC_NAME[k]}</button>`).join("")}</div>
       <div id="fm-body"></div>
-    </section>
+    </div></details>
     <section class="panel stack"><h2>Missed questions (${ms.length})</h2>
       ${ms.length?SEC_ORDER.filter(k=>bySec(k).length).map(k=>`<div class="stack tight"><span class="label">${SEC_NAME[k]} · ${bySec(k).length}</span><ul class="list">${bySec(k).sort((a,b)=>(+(a.r.qn||0))-(+(b.r.qn||0))).map(m=>m.kind==="sci"
         ?`<li><div class="main">${m.r.qn?`<span class="muted num">Q${esc(m.r.qn)}</span> `:""}<button class="btn link" data-topic="${m.r.topicId}" style="font-weight:700">${esc(tname(m.r.topicId))}</button> <span class="muted" style="font-size:.82rem">· ${esc(m.r.subject)} · ${m.r.result==="wrong"?"wrong":"guessed"}${(m.r.reasons||[]).length?" · "+m.r.reasons.map(r=>REASONS[r]).join(", "):""}</span>${m.r.thought?`<div class="sub">${esc(m.r.thought)}</div>`:""}</div><button class="btn small" data-rm-item="${m.r.id}">Remove</button></li>`
@@ -1199,8 +1254,8 @@ let confirmReset=false;
 function vSettings(v){
   const iv=S.settings.iv;
   v.innerHTML=`<div class="grid2">
-  <section class="panel stack"><h2>Test date and retest spacing</h2>
-    <label class="f">Test date<input type="date" id="s-date" value="${esc(S.settings.testDate)}"></label>
+  <section class="panel stack"><h2>Test date and target</h2>
+    <div class="fields"><label class="f">Test date<input type="date" id="s-date" value="${esc(S.settings.testDate)}"></label><label class="f">Target score<input type="number" min="472" max="528" inputmode="numeric" id="s-target" value="${esc(S.settings.target||"")}" placeholder="e.g. 515"></label></div>
     <p class="sub">Days until the next retest.</p>
     <div class="fields"><label class="f">Couldn't<input type="number" min="1" id="s-no" value="${iv.no}"></label><label class="f">Partly<input type="number" min="1" id="s-part" value="${iv.partial}"></label><label class="f">Got it (new question)<input type="number" min="1" id="s-yes" value="${iv.yes}"></label></div>
     <button class="btn primary" id="s-save" style="align-self:flex-start">Save</button></section>
@@ -1211,7 +1266,7 @@ function vSettings(v){
     <details><summary>Or paste backup text</summary><div class="stack" style="margin-top:8px"><textarea id="s-paste"></textarea><button class="btn small" id="s-import" style="align-self:flex-start">Restore pasted backup</button></div></details></section>
   <section class="panel stack"><h2>Start fresh</h2>
     ${confirmReset?`<div class="row"><button class="btn danger" id="s-yes2">Yes, delete everything</button><button class="btn" id="s-no2">Cancel</button></div>`:`<button class="btn danger" id="s-reset" style="align-self:flex-start">Delete all data…</button>`}</section></div>`;
-  $("#s-save").onclick=()=>{S.settings.testDate=$("#s-date").value||"2027-02-12";S.settings.iv={no:Math.max(1,+$("#s-no").value||1),partial:Math.max(1,+$("#s-part").value||2),yes:Math.max(1,+$("#s-yes").value||5)};save();render();toast("Saved.");};
+  $("#s-save").onclick=()=>{S.settings.testDate=$("#s-date").value||"2027-02-12";S.settings.target=$("#s-target").value?Math.min(528,Math.max(472,+$("#s-target").value)):"";S.settings.iv={no:Math.max(1,+$("#s-no").value||1),partial:Math.max(1,+$("#s-part").value||2),yes:Math.max(1,+$("#s-yes").value||5)};save();render();toast("Saved.");};
   const data=()=>JSON.stringify({app:"mcat-tracker",version:2,exported:new Date().toISOString(),...S});
   $("#s-export").onclick=()=>{try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data()],{type:"application/json"}));a.download="mcat-tracker-backup-"+todayS()+".json";document.body.appendChild(a);a.click();a.remove();toast("If no file appeared, use Copy backup text instead.");}catch(e){toast("Download was blocked. Use Copy backup text.");}};
   $("#s-copy").onclick=()=>copy(data(),"Backup copied. Paste it into a note or email to yourself.");
@@ -1225,10 +1280,225 @@ function vSettings(v){
   else $("#s-reset").onclick=()=>{confirmReset=true;render();};
 }
 
+/* ================= CONCEPTS (grouped by AAMC subtopic) ================= */
+const ERR={content:"Content gap",application:"Application",reasoning:"Reasoning",calculation:"Calculation",interpretation:"Interpretation"};
+const ERR_REASON={content:"gap",application:"apply",reasoning:"reason",calculation:"calc",interpretation:"misread"};
+const errOf=it=>{const r=it.reasons||[];if(r.includes("calc"))return"calculation";if(r.includes("misread"))return"interpretation";if(r.includes("reason"))return"reasoning";if(r.includes("apply"))return"application";return"content";};
+const conceptKey=it=>{const t=topicById(it.topicId);return t&&t.outline?t.outline:"t:"+it.topicId;};
+const conceptName=k=>k.startsWith("t:")?tname(k.slice(2)):(OUT[k]?OUT[k].name.replace(/\s*\([^)]*\)\s*$/,""):k);
+const STATUS={practice:["Needs more practice","no"],weak:["Weak, not reviewed","part"],reviewed:["Reviewed","plain"],resolved:["Retested right","yes"]};
+function concepts(){
+  const t=todayS(), by={};
+  S.items.forEach(it=>{const k=conceptKey(it);const c=by[k]=by[k]||{k,items:[],wins:[],tids:new Set()};c.items.push(it);c.tids.add(it.topicId);});
+  S.wins.forEach(w=>{const k=conceptKey({topicId:w.topicId});if(by[k])by[k].wins.push(w);});
+  return Object.values(by).map(c=>{
+    const md=i=>i.doneDate||i.created||t;
+    const misses=c.items.map(md).sort(), lastMiss=misses[misses.length-1];
+    const atts=c.items.flatMap(i=>i.attempts||[]).sort((a,b)=>a.date<b.date?-1:1);
+    const failed=c.items.some(i=>{const l=lastAttempt(i);return l&&l.self==="no";});
+    const winAfter=c.wins.some(w=>w.date>=lastMiss);
+    const firstReview=[...atts.map(a=>a.date),...c.wins.map(w=>w.date)].sort()[0];
+    const missedAgain=!!firstReview&&misses.some(d=>d>firstReview);
+    const status=winAfter&&!failed?"resolved":(failed||missedAgain)?"practice":atts.some(a=>a.date>=lastMiss&&a.self!=="no")?"reviewed":"weak";
+    const w=c.items.reduce((a,i)=>a+Math.exp(-Math.max(0,diffDays(t,md(i)))/21)*(i.flId?1.25:1),0);
+    const qs=c.items.length;
+    const score=w*(1+.35*(qs-1))*{practice:1.6,weak:1,reviewed:.55,resolved:.12}[status];
+    const ec={};c.items.forEach(i=>{const e=errOf(i);ec[e]=(ec[e]||0)+1;});
+    const err=Object.entries(ec).sort((a,b)=>b[1]-a[1])[0][0];
+    const recent=c.items.filter(i=>diffDays(t,md(i))<=14).length;
+    return {k:c.k,items:c.items,wins:c.wins,tids:[...c.tids],status,score,err,lastMiss,recent,qs,failed,name:conceptName(c.k),code:OUT[c.k]?OUT[c.k].code:""};
+  }).sort((a,b)=>b.score-a.score);
+}
+function conceptWhy(c){
+  const b=[c.recent?`${c.recent} miss${c.recent>1?"es":""} in 2 weeks`:`${c.qs} miss${c.qs>1?"es":""}, last ${shortD(c.lastMiss)}`];
+  if(c.status==="practice")b.push(c.failed?"retest failed":"missed again after review");
+  else if(c.status==="weak")b.push("not reviewed");
+  else if(c.status==="reviewed")b.push("not yet right on a new question");
+  if(c.err!=="content")b.push(ERR[c.err].toLowerCase()+" errors");
+  return b.join(" · ");
+}
+function conceptAction(c){
+  const note=c.items.filter(i=>i.nextTime&&i.nextTime.trim()).sort((a,b)=>a.created<b.created?1:-1)[0];
+  if(note) return note.nextTime.trim();
+  if(c.status==="reviewed") return "Do 3 new questions on it to confirm";
+  if(c.status==="practice") return "Re-learn it, then do 5 new questions";
+  return {content:"Review the concept, then do 3 new questions",application:"Do 3 passage-based questions on it",reasoning:"Redo the missed questions and say why each wrong choice is wrong",calculation:"Do 5 calculation questions, writing units at each step",interpretation:"Redo the missed questions, restating the stem and figure first"}[c.err];
+}
+const SKILL_TEST={"Foundations of Comprehension":.3,"Reasoning Within the Text":.3,"Reasoning Beyond the Text":.4};
+const SKILL_SHORT={"Foundations of Comprehension":"Foundations","Reasoning Within the Text":"Reasoning Within","Reasoning Beyond the Text":"Reasoning Beyond"};
+const SKILL_TASK={"Foundations of Comprehension":"2 passages: write each paragraph's point in 5 words before the questions","Reasoning Within the Text":"2 passages: for each answer, point to the line that supports it","Reasoning Beyond the Text":"2 passages: before the choices, predict how the new idea affects the author's claim"};
+function carsSkillShares(){const sk={};let tot=0;S.cq.forEach(q=>{const g=skillOf(q.qtype);if(g){sk[g]=(sk[g]||0)+1;tot++;}});
+  return {tot,rows:Object.keys(SKILL_TEST).map(g=>({g,n:sk[g]||0,share:tot?(sk[g]||0)/tot:0,test:SKILL_TEST[g]})).map(r=>({...r,over:r.share-r.test})).sort((a,b)=>b.over-a.over)};}
+function carsFocus(){const s=carsSkillShares();if(s.tot<4)return null;const b=s.rows[0];return b.over>=.08?{...b,task:SKILL_TASK[b.g]}:null;}
+
+/* ================= TODAY ================= */
+function vHome(v){
+  const left=Math.max(0,diffDays(S.settings.testDate,todayS()));
+  const lf=(S.fls||[]).slice().sort((a,b)=>a.date<b.date?1:-1)[0], tot=lf?flTotal(lf):null, tg=+S.settings.target||0;
+  const cf=carsFocus(), cs=concepts().filter(c=>c.status!=="resolved");
+  const pr=cs.slice(0,cf?2:3).map(c=>({c})); if(cf) pr.push({cf});
+  const nn=needsNewItems(), due=dueItems(), cr=todaysReading(), site=SITES[Math.floor(parseD(todayS()).getTime()/DAY)%SITES.length];
+  v.innerHTML=`<div class="home">
+   <div class="hero">
+     <div><div class="bignum num">${left}</div><div class="muted small">days to ${shortD(S.settings.testDate)}</div></div>
+     <div class="right"><div class="bignum2 num">${tot??"—"}${tg?`<span class="muted"> / ${tg}</span>`:""}</div><div class="muted small">${lf?`Latest full length${tg?" / target":""}`:"No full length yet"}${tg?"":` · <button class="btn link" data-go="settings">Set target</button>`}</div></div>
+   </div>
+   <section class="stack tight"><h3 class="eyebrow">Today</h3>
+     ${pr.length?`<ol class="prio">${pr.map((p,i)=>p.c?`<li><span class="pn num">${i+1}</span><div class="main"><button class="plink" data-concept="${esc(p.c.k)}">${esc(p.c.name)}${p.c.code?` <span class="code">${p.c.code}</span>`:""}</button><div class="pw">${esc(conceptWhy(p.c))}</div><div class="pa">${esc(conceptAction(p.c))}</div></div></li>`
+       :`<li><span class="pn num">${i+1}</span><div class="main"><button class="plink" data-go="cars">CARS · ${esc(SKILL_SHORT[p.cf.g])}</button><div class="pw">${Math.round(p.cf.share*100)}% of your CARS misses, ${Math.round(p.cf.test*100)}% of the test</div><div class="pa">${esc(p.cf.task)}</div></div></li>`).join("")}</ol>`
+     :`<p class="muted">Log a practice session or import a full length to get priorities.</p>`}
+   </section>
+   <div class="lines">
+     ${nn.length?`<div class="line"><span><b>New retest question needed</b> <span class="muted">· ${esc(tname(nn[0].topicId))}${nn.length>1?` +${nn.length-1}`:""}</span></span><button class="btn small" data-addcard="${nn[0].id}">Add</button></div>`:""}
+     ${due.length?`<div class="line"><span><b>Retention checks</b> <span class="muted">· ${due.length} due</span></span><button class="btn small" data-go="retest">Start</button></div>`:""}
+     ${cf?"":`<div class="line"><span><b>CARS</b> <span class="muted">· read one ${esc(cr.disc.toLowerCase())} article</span></span><a class="btn small" target="_blank" rel="noopener" href="https://www.google.com/search?q=site%3A${site[1]}+${encodeURIComponent(cr.disc)}">Find one</a></div>`}
+   </div>
+   <div class="row"><button class="btn primary big" data-go="practice">Log practice</button><button class="btn big" data-go="hub">Review mistakes</button></div>
+  </div>`;
+  bindCommon(v);
+}
+
+/* ================= DAILY PRACTICE ================= */
+const SEC_LABEL={CP:"Chem/Phys",CARS:"CARS",BB:"Bio/Biochem",PS:"Psych/Soc",MIX:"Mixed"};
+const CODE_SUBJ=c=>({"1A":"Biochemistry","1D":"Biochemistry","4A":"Physics","4B":"Physics","4C":"Physics","4D":"Physics","4E":"General Chemistry","5A":"General Chemistry","5B":"General Chemistry","5C":"Organic Chemistry","5D":"Organic Chemistry","5E":"General Chemistry","9A":"Sociology","9B":"Sociology","10A":"Sociology"})[c]||(/^[123]/.test(c)?"Biology":/^[678]/.test(c)?"Psychology":"");
+const XSTOP=new Set("forgot forget didnt dont knew know confused confusing mixed mixup thought question answer wrong right missed miss really still again careless choice passage which what when where while about because remember understand understood figure graph table data read misread calculation math unit time guess guessed between need review couldnt wasnt sure unsure how".split(" ").map(w=>w.replace(/(ies|es|s)$/,"")));
+function bestOutline(text,secs){
+  const toks=stemTok(text).filter(t=>!XSTOP.has(t)); let best="",bs=0;
+  for(const id in OUT){const o=OUT[id]; if(secs&&!secs.includes(o.sec)) continue; const hay=new Set(stemTok(o.name+" "+(ALIAS[id]||""))); const sc=toks.filter(t=>hay.has(t)).length; if(sc>bs){bs=sc;best=id;}}
+  return {id:best,sc:bs,toks};
+}
+function classifyErr(s){
+  if(/calc|math|arithmetic|\bunits?\b|convert|conversion|sig ?fig|algebra|equation|plug|comput|log ?rule|exponent/i.test(s))return"calculation";
+  if(/misread|mis-read|read (it |the question )?wrong|graph|figure|table|chart|axis|careless|overlook|didn'?t see|skipped|missed the word|\bexcept\b|\bnot\b.*stem/i.test(s))return"interpretation";
+  if(/reason|logic|infer|assum|two answers|narrowed|50\/50|second.?guess|changed my answer|justify|evidence/i.test(s))return"reasoning";
+  if(/appl(y|ied|ication)|couldn'?t use|how to use|new context|experiment|in context|connect/i.test(s))return"application";
+  return"content";
+}
+const cleanConcept=s=>s.replace(/^(i\s+)?(totally\s+|completely\s+|kind of\s+)?(forgot|didn'?t know|did not know|don'?t know|was confused (about|on|by)|confused|mixed up|misread|messed up|couldn'?t (remember|recall|figure out)|wasn'?t sure (about|of)?|unsure (about|of)|need to review|review|weak on|struggled with|missed)\s+/i,"").replace(/^(that|about|the|how|what|on)\s+/i,"").replace(/[.?!,;:]+$/,"").split(/\s+/).slice(0,9).join(" ").trim();
+const CARS_QT_KW=[[/main idea|central|thesis|summar/i,"Main idea"],[/detail|paraphras|stated/i,"Detail"],[/meaning|word|phrase|term/i,"Meaning in context"],[/tone|attitude|author.*(think|feel|believe)|opinion/i,"Author's attitude"],[/purpose|function|why the author (mention|include)/i,"Argument structure"],[/infer|deduc|impl/i,"Inference"],[/support|evidence|evaluat/i,"Support for a claim"],[/strength|weaken|challenge|undermin/i,"Strengthen / weaken"],[/analog|example|similar/i,"Analogy"],[/appl|new situation|predict|would the author/i,"Application"]];
+const CARS_TRAP_KW=[[/extreme|always|never|absolute/i,"extreme"],[/scope|beyond|outside|too broad/i,"scope"],[/who said|whose view|critic|attribut|author'?s view vs/i,"attrib"],[/detail.*main|too narrow/i,"detail"],[/\bnot\b|except|negat|qualif/i,"qualifier"],[/true but|true statement/i,"wrongq"]];
+function extractGaps(text,sec){
+  const parts=String(text||"").split(/\n+|;|•|(?<=[.!?])\s+/).map(s=>s.replace(/^[\s\-*\d.)]+/,"").trim()).filter(s=>s.length>3);
+  const secs=sec&&sec!=="MIX"&&sec!=="CARS"?[sec]:null;
+  return parts.map(s=>{
+    const err=classifyErr(s);
+    if(sec==="CARS"){const qt=(CARS_QT_KW.find(([r])=>r.test(s))||[0,""])[1];return {kind:"cars",text:s,err,qtype:qt,traps:CARS_TRAP_KW.filter(([r])=>r.test(s)).map(x=>x[1]),on:true};}
+    const topic=cleanConcept(s)||s; let m=bestOutline(topic,secs); if(m.sc<1&&secs){const m2=bestOutline(topic,null);if(m2.sc>=1)m=m2;}
+    // existing topic with shared words
+    let ex=null,exs=0; S.topics.forEach(t=>{const tt=new Set(stemTok(t.name).filter(x=>!XSTOP.has(x)));const sc=m.toks.filter(x=>tt.has(x)).length;if(sc>exs&&(sc>=2||(sc>=1&&tt.size<=2))){exs=sc;ex=t;}});
+    const outline=ex&&ex.outline?ex.outline:(m.sc>=1?m.id:"");
+    const subject=ex?ex.subject:outline?CODE_SUBJ(OUT[outline].code)||(SEC_SUBJ[OUT[outline].sec]||[""])[0]:(secs?SEC_SUBJ[sec][0]:"Biology");
+    const seen=S.items.filter(i=>{const t=topicById(i.topicId);return (ex&&i.topicId===ex.id)||(outline&&t&&t.outline===outline);}).length;
+    return {kind:"sci",text:s,topic:ex?ex.name:topic,topicId:ex?ex.id:"",outline,subject,err,seen,on:true};
+  });
+}
+function gapAction(g){
+  if(g.kind==="cars") return g.qtype?SKILL_TASK[skillOf(g.qtype)]||"Redo it and point to the supporting line":"Redo it and point to the supporting line";
+  if(g.seen>=2) return "Recurring: re-learn it, then do 5 new questions";
+  return {content:"Review the concept, then do 3 new questions",application:"Do 3 passage-based questions on it",reasoning:"Say why each wrong choice is wrong",calculation:"Do 5 calculation questions, writing units",interpretation:"Restate the stem and figure before answering"}[g.err];
+}
+let PD=null;
+const freshPD=()=>({source:S.settings.lastSource||"UWorld",sec:"",total:"",correct:"",notes:"",paste:"",step:"form",gaps:[]});
+function vPractice(v){
+  if(!PD) PD=freshPD();
+  if(PD.step==="confirm") return vPracticeConfirm(v);
+  const ss=(S.sessions||[]).slice().sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
+  const chipRow=(id,list,sel)=>`<div class="chips" id="${id}">${list.map(([k,l])=>`<button type="button" class="chip" data-v="${esc(k)}" aria-pressed="${sel===k}">${esc(l)}</button>`).join("")}</div>`;
+  v.innerHTML=`<div class="stack" style="gap:24px">
+   <section class="panel stack">
+     <h2>Log a session</h2>
+     <div class="stack tight"><span class="label">Source</span>${chipRow("ps-src",["UWorld","AAMC","Kaplan","Other"].map(x=>[x,x]),PD.source)}</div>
+     <div class="stack tight"><span class="label">Section</span>${chipRow("ps-sec",Object.entries(SEC_LABEL),PD.sec)}</div>
+     <div class="fields"><label class="f">Questions<input id="ps-total" type="number" min="1" inputmode="numeric" value="${esc(PD.total)}"></label><label class="f">Correct<input id="ps-correct" type="number" min="0" inputmode="numeric" value="${esc(PD.correct)}"></label></div>
+     <label class="f">Mistakes and confusion<textarea id="ps-notes" rows="5" placeholder="One per line, for example:&#10;forgot competitive inhibitors raise Km&#10;mixed up Ka and Kb in a buffer calculation&#10;misread the y-axis on the enzyme graph">${esc(PD.notes)}</textarea></label>
+     <details><summary>Paste an analysis page</summary><textarea id="ps-paste" rows="4" style="margin-top:8px" placeholder="Paste a Kaplan review table here">${esc(PD.paste)}</textarea></details>
+     <div class="row"><button class="btn primary" id="ps-go">Analyze</button><button class="btn link" data-go="log">Log one question</button></div>
+   </section>
+   ${ss.length?`<section class="stack tight"><h3 class="eyebrow">Recent sessions</h3><ul class="list">${ss.slice(0,6).map(s=>`<li><div class="main">${shortD(s.date)} · ${esc(s.source)} · ${esc(SEC_LABEL[s.sec]||s.sec)}</div><span class="num muted small">${s.total?`${s.correct??"—"}/${s.total}${s.correct!=null?` · ${Math.round(s.correct/s.total*100)}%`:""}`:""}${(s.gapIds||[]).length?` · ${s.gapIds.length} gap${s.gapIds.length>1?"s":""}`:""}</span></li>`).join("")}</ul></section>`:""}
+  </div>`;
+  bindCommon(v);
+  const single=(id,key)=>$("#"+id).onclick=e=>{const c=e.target.closest("[data-v]");if(!c)return;PD[key]=c.dataset.v;$("#"+id).querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===PD[key]));};
+  single("ps-src","source");single("ps-sec","sec");
+  $("#ps-go").onclick=()=>{
+    PD.total=$("#ps-total").value;PD.correct=$("#ps-correct").value;PD.notes=$("#ps-notes").value;PD.paste=$("#ps-paste").value;
+    if(!PD.sec) return toast("Pick a section.");
+    if(PD.total&&PD.correct&&+PD.correct>+PD.total) return toast("Correct can't be more than questions.");
+    let gaps=extractGaps(PD.notes,PD.sec);
+    if(/^\s*Question\s+\d+\s*$/im.test(PD.paste)){const kr=kapParse(PD.paste);
+      if(!PD.total){PD.total=String(kr.length);PD.correct=String(kr.filter(r=>r.result==="correct").length);}
+      kr.filter(r=>r.result==="wrong").forEach(r=>{
+        if(r.sec==="CARS") gaps.push({kind:"cars",text:`Q${r.q}${r.note?" · "+r.note:""}`,qn:r.q,err:"reasoning",qtype:r.qtype,traps:[],on:true});
+        else if(r.topic){const g=extractGaps(r.topic,r.sec)[0];if(g)gaps.push({...g,qn:r.q,text:`Q${r.q} · ${r.topic}`,subject:r.subject||g.subject});}});
+    } else if(PD.paste.trim()) gaps=gaps.concat(extractGaps(PD.paste,PD.sec));
+    gaps.forEach(g=>g.action=gapAction(g));
+    PD.gaps=gaps; PD.step="confirm"; render(); window.scrollTo({top:0});
+  };
+}
+function vPracticeConfirm(v){
+  const g=PD.gaps, pct=PD.total&&PD.correct!==""?Math.round(PD.correct/PD.total*100):null;
+  v.innerHTML=`<div class="panel stack">
+   <div class="sec-title"><h2>Check and save</h2><span class="muted small num">${esc(PD.source)} · ${esc(SEC_LABEL[PD.sec])}${PD.total?` · ${PD.correct||0}/${PD.total}${pct!=null?` (${pct}%)`:""}`:""}</span></div>
+   ${g.length?`<p class="muted small">${g.length} gap${g.length>1?"s":""} found. Untick anything that isn't a real gap.</p><ul class="list gaps">${g.map((x,i)=>`<li><input type="checkbox" data-gon="${i}" ${x.on?"checked":""} aria-label="Keep this gap" style="margin-top:4px"><div class="main stack tight">
+      ${x.kind==="cars"?`<b>${esc(x.qtype||"CARS question")}${x.qtype&&skillOf(x.qtype)?` <span class="muted small">· ${esc(SKILL_SHORT[skillOf(x.qtype)])}</span>`:""}</b><span class="small muted">${esc(x.text)}</span>`
+        :`<input data-gt="${i}" value="${esc(x.topic)}" aria-label="Concept"><span class="small muted">${esc(x.subject)}${x.outline?` · ${esc(OUT[x.outline].name)} <span class="code">${OUT[x.outline].code}</span>`:" · not matched to the outline"}</span>`}
+      <div class="row">${x.seen?`<span class="status no">Seen ${x.seen}× before</span>`:""}<select data-ge="${i}" aria-label="Error type" style="width:auto">${Object.entries(ERR).map(([k,l])=>`<option value="${k}" ${x.err===k?"selected":""}>${l}</option>`).join("")}</select></div>
+      <div class="pa">${esc(x.action)}</div></div></li>`).join("")}</ul>`:`<p class="muted">No gaps found in your notes. The session score is still saved.</p>`}
+   <div class="row"><button class="btn primary" id="pc-save">Save session</button><button class="btn" id="pc-back">Back</button></div></div>`;
+  v.addEventListener("change",e=>{const a=e.target.closest("[data-gon]");if(a)g[+a.dataset.gon].on=a.checked;const b=e.target.closest("[data-ge]");if(b){g[+b.dataset.ge].err=b.value;}const c=e.target.closest("[data-gt]");if(c)g[+c.dataset.gt].topic=c.value.trim()||g[+c.dataset.gt].topic;});
+  $("#pc-back").onclick=()=>{PD.step="form";render();};
+  $("#pc-save").onclick=()=>{
+    leaveSample(); const sid=uid(), t=todayS(), ids=[];
+    g.filter(x=>x.on).forEach(x=>{const id=uid();
+      if(x.kind==="cars"){S.cq.push({id,passageId:"",qtype:x.qtype||"",result:"wrong",traps:x.traps||[],evidence:"",lure:x.text,date:t,qn:x.qn||"",sessionId:sid});}
+      else{const tid=x.topicId&&norm(tname(x.topicId))===norm(x.topic)?x.topicId:findOrCreateTopic(x.topic,x.subject,x.outline||matchOutline(x.topic,x.subject),false);
+        S.items.push({id,subject:x.subject,topicId:tid,result:"wrong",source:PD.source,qref:x.qn?"Q"+x.qn:"",reasons:[ERR_REASON[x.err]],thought:x.text,nextTime:"",doneDate:t,reviewDate:t,created:t,cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[],sessionId:sid});}
+      ids.push(id);});
+    (S.sessions=S.sessions||[]).push({id:sid,date:t,source:PD.source,sec:PD.sec,total:PD.total?+PD.total:null,correct:PD.correct!==""?+PD.correct:null,notes:PD.notes,gapIds:ids});
+    S.settings.lastSource=PD.source; PD=null; save(); toast(`Saved${ids.length?` with ${ids.length} gap${ids.length>1?"s":""}`:""}.`); go("today");
+  };
+}
+
+/* ================= KNOWLEDGE HUB ================= */
+let hubF="open";
+function vHub(v){
+  const cs=concepts(), cnt=k=>cs.filter(c=>c.status===k).length, open=viewArg&&viewArg.open;
+  const list=cs.filter(c=>hubF==="open"?c.status!=="resolved":c.status===hubF);
+  v.innerHTML=`<div class="stack" style="gap:24px">
+   <div class="statusbar">${Object.keys(STATUS).map(k=>`<button type="button" data-hf="${k}" aria-pressed="${hubF===k}"><span class="num n">${cnt(k)}</span><span class="small">${STATUS[k][0]}</span></button>`).join("")}</div>
+   <section class="stack tight"><div class="sec-title"><h3 class="eyebrow">${hubF==="open"?"Open concepts":STATUS[hubF][0]}</h3>${hubF!=="open"?`<button class="btn link small" data-hf="open">All open</button>`:""}</div>
+    ${list.length?`<div class="clist">${list.map(c=>`<details class="crow" ${open===c.k?"open":""}><summary><span class="main"><span><b>${esc(c.name)}</b>${c.code?` <span class="code">${c.code}</span>`:""}</span><span class="pw">${esc(conceptWhy(c))}</span></span><span class="status ${STATUS[c.status][1]}">${STATUS[c.status][0]}</span></summary>
+       <div class="stack tight cbody"><div class="pa">${esc(conceptAction(c))}</div>
+       <ul class="list">${c.items.slice().sort((a,b)=>(a.doneDate||"")<(b.doneDate||"")?1:-1).map(i=>`<li><div class="main"><button class="btn link" data-topic="${i.topicId}">${esc(tname(i.topicId))}</button><div class="muted small">${[shortD(i.doneDate),srcLabel(i),ERR[errOf(i)]].filter(Boolean).map(esc).join(" · ")}</div>${i.thought?`<div class="small">${esc(i.thought)}</div>`:""}</div></li>`).join("")}</ul>
+       <div class="row"><button class="btn small" data-win="${c.tids[0]}">Got a new one right</button><button class="btn small" data-topic="${c.tids[0]}">Add a retest question</button></div></div></details>`).join("")}</div>`
+      :`<p class="muted">Nothing here yet.</p>`}
+   </section>
+   <section class="stack tight"><h3 class="eyebrow">Content map</h3><div id="hub-map"></div></section>
+  </div>`;
+  bindCommon(v);
+  v.querySelectorAll("[data-hf]").forEach(b=>b.onclick=()=>{hubF=hubF===b.dataset.hf?"open":b.dataset.hf;render();});
+  vMap($("#hub-map"));
+  if(open){const d=v.querySelector("details[open]");if(d)setTimeout(()=>d.scrollIntoView({block:"start"}),0);}
+}
+
+/* ================= FULL-LENGTH: what limits the score ================= */
+function flLimits(){
+  const fls=(S.fls||[]).slice().sort((a,b)=>a.date<b.date?1:-1), lf=fls.find(f=>SEC_ORDER.some(k=>+f.scores[k]));
+  const out=[];
+  if(lf){const secs=SEC_ORDER.filter(k=>+lf.scores[k]).sort((a,b)=>lf.scores[a]-lf.scores[b]);const lo=secs[0];
+    out.push(`Lowest section on ${lf.name}: <b>${SEC_NAME[lo]} ${lf.scores[lo]}</b>`);
+    const tg=+S.settings.target; if(tg&&flTotal(lf)) out.push(`${tg-flTotal(lf)>0?`${tg-flTotal(lf)} points to your target`:"At or above your target"}`);}
+  const cat={};S.items.filter(i=>i.flId).forEach(i=>{const t=topicById(i.topicId),o=t&&OUT[t.outline];if(o){const k=`${o.code} ${o.cat}`;cat[k]=(cat[k]||0)+1;}});
+  const top=Object.entries(cat).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  if(top.length) out.push(`Most missed: ${top.map(([k,n])=>`${esc(k)} (${n})`).join(", ")}`);
+  const os=orderStats(); if(os.length>=6){const part=(a,b)=>{const xs=os.filter(o=>o.i>=a&&o.i<b);const q=xs.reduce((s,o)=>s+o.q,0),w=xs.reduce((s,o)=>s+o.w,0);return q?(q-w)/q:null;};const e=part(0,3),l=part(6,99);
+    if(e!=null&&l!=null&&e-l>=.1) out.push(`CARS accuracy drops from ${Math.round(e*100)}% (passages 1–3) to ${Math.round(l*100)}% (7–9)`);}
+  return out;
+}
+
 /* ================= boot ================= */
 load();
-const h0=(location.hash||"").slice(1); if(TABS.some(t=>t[0]===h0)) view=h0;
-window.addEventListener("hashchange",()=>{const k=location.hash.slice(1);if(TABS.some(t=>t[0]===k)&&k!==view)go(k);});
+const h0=(location.hash||"").slice(1); if(ROUTES.includes(h0)) view=h0;
+window.addEventListener("hashchange",()=>{const k=location.hash.slice(1);if(ROUTES.includes(k)&&k!==view)go(k);});
 if(view==="retest") R=null;
 render();
 </script>
