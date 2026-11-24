@@ -172,6 +172,7 @@ details.panel[open]>summary{margin-bottom:12px}
 .sa .it b{font-weight:700}.sa .it .d{font-size:.92rem;margin-top:3px}.sa .it .a{font-size:.85rem;color:var(--accent);margin-top:3px}
 .pill-rec{font-size:.72rem;font-weight:700;color:var(--no);background:var(--no-soft);border-radius:4px;padding:2px 7px;white-space:nowrap}
 .tile{background:var(--sunk);border-radius:6px;padding:10px 12px;font-weight:700;font-size:.92rem}
+.qrow{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0}.qrow .main{display:flex;flex-direction:column;min-width:0}
 </style>
 </head>
 <body>
@@ -1231,13 +1232,12 @@ function vFLQuestions(body,f){
   const id=f.id; if(QR.fl!==id) QR={fl:id,q:"",f:"all",pend:{}};
   if(!SEC_SUBJ[FM.sec]&&FM.sec!=="CARS")FM.sec="CP";
   body.innerHTML=`<div class="stack" style="gap:16px">
-    <details class="panel" open id="fm-box"><summary>Log a wrong question</summary><div class="stack">
+    <details class="panel" open id="fm-box"><summary>${FM.editId?"Review a wrong question":"Log a wrong question"}</summary><div class="stack">
       <div class="seg" id="fm-sec">${SEC_ORDER.map(k=>`<button type="button" data-v="${k}" aria-pressed="${FM.sec===k}">${SEC_NAME[k]}</button>`).join("")}</div>
       <div id="fm-body"></div></div></details>
     <div class="row"><input id="qr-q" type="search" placeholder="Search concept, note or Q#" value="${esc(QR.q)}" style="flex:1;min-width:160px" aria-label="Search questions">
      <select id="qr-f" style="width:auto" aria-label="Filter">${[["all","All"],["un","Not reviewed"],...SEC_ORDER.map(k=>[k,SEC_NAME[k]])].map(([k,l])=>`<option value="${k}" ${QR.f===k?"selected":""}>${l}</option>`).join("")}</select></div>
     <div id="qr-list"></div>
-    <div class="row" id="qr-bar" style="position:sticky;bottom:0;background:var(--bg);padding:10px 0;border-top:1px solid var(--line)" ${Object.keys(QR.pend).length?"":"hidden"}><button class="btn primary" id="qr-save">Save review</button><span class="muted small" id="qr-n"></span></div>
     <details class="panel" id="imp"><summary>Import more questions</summary><div class="stack" style="margin-top:10px">
       <textarea id="imp-text" placeholder="Paste the Kaplan review page, or Claude's JSON reply" style="min-height:90px"></textarea>
       <div class="row"><button class="btn" id="imp-read">Read</button><button class="btn link small" id="imp-copy">Copy a screenshot prompt for Claude</button></div>
@@ -1249,27 +1249,13 @@ function vFLQuestions(body,f){
       .sort((a,b)=>SEC_ORDER.indexOf(a.sec)-SEC_ORDER.indexOf(b.sec)||(+(a.r.qn||0))-(+(b.r.qn||0)));
     $("#qr-list").innerHTML=ms.length?`<div class="clist">${ms.map(m=>{const r=m.r,p=QR.pend[r.id]||{};
       const cur=m.kind==="sci"?(p.err??errOf(r)):(p.trap??((r.traps||[])[0]||""));
-      return `<details class="crow"><summary><span class="main"><span>${r.qn?`<span class="muted num">Q${esc(r.qn)}</span> `:""}<b>${esc(m.kind==="sci"?tname(r.topicId):(r.qtype||"CARS question"))}</b> <span class="muted small">· ${SEC_NAME[m.sec]}${m.kind==="cars"&&r.disc?" · "+esc(r.disc):""}</span></span>
-        <span class="pw">${m.kind==="sci"?esc(evidOf(r)):((r.traps||[]).length?"Trap: "+esc(r.traps.map(t=>CARS_TRAPS[t]).join(", ")):(r.review?"Reviewed":"Tested skill · cause not reviewed"))}</span></span>${isUn(m)&&!QR.pend[r.id]?`<span class="status plain">Not reviewed</span>`:""}</summary>
-        <div class="stack tight cbody">
-          ${m.kind==="sci"&&r.thought?`<div class="small"><span class="muted">From the page:</span> ${esc(r.thought)}</div>`:""}${m.kind==="cars"&&r.lure?`<div class="small"><span class="muted">From the page:</span> ${esc(r.lure)}</div>`:""}
-          ${m.kind==="sci"?`<div class="muted small">${esc(r.subject)}${(()=>{const t=topicById(r.topicId),o=t&&OUT[t.outline];return o?` · ${esc(o.code)} ${esc(o.cat)}`:"";})()}${r.time?` · ${mmss(+r.time)}`:""}</div>`:`<div class="muted small">${esc(skillOf(r.qtype)||"")}${r.time?` · ${mmss(+r.time)}`:""}</div>`}
-          <label class="f">Why I missed it${m.kind==="sci"?`<select data-qe="${r.id}">${Object.entries(ERR).map(([k,l])=>`<option value="${k}" ${cur===k?"selected":""}>${k==="unknown"?"Not reviewed yet":l}</option>`).join("")}</select>`
-            :`<select data-qt="${r.id}"><option value="">Not reviewed yet</option>${Object.entries(CARS_TRAPS).map(([k,l])=>`<option value="${k}" ${cur===k?"selected":""}>${esc(l)}</option>`).join("")}</select>`}</label>
-          <label class="f">My note<textarea data-qn="${r.id}" rows="2" placeholder="What I misunderstood, in my own words">${esc(p.note??(r.review||""))}</textarea></label>
-          <div class="row">${m.kind==="sci"?`<button class="btn link small" data-topic="${r.topicId}">Open concept</button>`:""}<button class="btn small" data-rm-${m.kind==="sci"?"item":"cq"}="${r.id}">Remove</button></div>
-        </div></details>`;}).join("")}</div>`:`<p class="muted">${flMisses(id).length?"No matches.":"No missed questions yet. Import the review page below."}</p>`;};
+      return `<div class="crow"><div class="qrow"><span class="main"><span>${r.qn?`<span class="muted num">Q${esc(r.qn)}</span> `:""}<b>${esc(m.kind==="sci"?tname(r.topicId):(r.qtype||"CARS question"))}</b> <span class="muted small">· ${SEC_NAME[m.sec]}${m.kind==="sci"?(()=>{const t=topicById(r.topicId),o=t&&OUT[t.outline];return o?` · ${esc(o.code)} ${esc(o.cat)}`:"";})():(r.disc?" · "+esc(r.disc):"")}</span></span>
+        <span class="pw">${m.kind==="sci"?esc(evidOf(r)):((r.traps||[]).length?"Trap: "+esc(r.traps.map(t=>CARS_TRAPS[t]).join(", ")):(r.review?"Reviewed":"Tested skill · cause not reviewed"))}${r.review?` · <span style="color:var(--ink-2)">${esc(r.review)}</span>`:""}</span></span>
+        <button class="btn small ${isUn(m)?"primary":""}" data-fmedit="${r.id}">${isUn(m)?"Review":"Edit"}</button></div></div>`;}).join("")}</div>`:`<p class="muted">${flMisses(id).length?"No matches.":"No missed questions yet. Import the review page below."}</p>`;};
   draw();
-  const bar=()=>{const n=Object.keys(QR.pend).length;$("#qr-bar").hidden=!n;$("#qr-n").textContent=n?`${n} change${n>1?"s":""} not saved`:"";};
   $("#qr-q").oninput=e=>{QR.q=e.target.value;draw();};
   $("#qr-f").onchange=e=>{QR.f=e.target.value;draw();};
-  $("#qr-list").addEventListener("change",e=>{const el=e.target;const k=el.dataset.qe||el.dataset.qt;if(!k)return;QR.pend[k]=QR.pend[k]||{};if(el.dataset.qe)QR.pend[k].err=el.value;else QR.pend[k].trap=el.value;bar();});
-  $("#qr-list").addEventListener("input",e=>{const k=e.target.dataset.qn;if(!k)return;(QR.pend[k]=QR.pend[k]||{}).note=e.target.value;bar();});
-  $("#qr-save").onclick=()=>{let n=0;Object.entries(QR.pend).forEach(([rid,p])=>{const it=S.items.find(i=>i.id===rid),q=S.cq.find(x=>x.id===rid);
-      if(it){if(p.err!=null)it.reasons=ERR_REASON[p.err]?[ERR_REASON[p.err]]:[];if(p.note!=null)it.review=p.note.trim();n++;}
-      else if(q){if(p.trap!=null)q.traps=p.trap?[p.trap]:[];if(p.note!=null)q.review=p.note.trim();n++;}});
-    QR.pend={};save();toast(`Saved review for ${n} question${n===1?"":"s"}.`);render();};
-  bar();
+  $("#qr-list").addEventListener("click",e=>{const b=e.target.closest("[data-fmedit]");if(!b)return;fmLoad(f,b.dataset.fmedit);render();setTimeout(()=>{const x=$("#fm-box");if(x){x.open=true;x.scrollIntoView({block:"start"});}},0);});
   body.addEventListener("click",e=>{
     const a=e.target.closest("[data-rm-item]");if(a){if(!a.dataset.sure){a.dataset.sure="1";a.textContent="Remove?";a.classList.add("danger");return;}S.items=S.items.filter(i=>i.id!==a.dataset.rmItem);save();render();return;}
     const c=e.target.closest("[data-rm-cq]");if(c){if(!c.dataset.sure){c.dataset.sure="1";c.textContent="Remove?";c.classList.add("danger");return;}S.cq=S.cq.filter(q=>q.id!==c.dataset.rmCq);save();render();}
@@ -1280,41 +1266,55 @@ function vFLQuestions(body,f){
     $("#imp-prev").innerHTML=impPreview(f,true);};
   $("#imp-prev").addEventListener("click",e=>{if(e.target.id==="imp-add")impApply(f);if(e.target.id==="imp-clear"){IMP=null;$("#imp-prev").innerHTML="";$("#imp-text").value="";}});
   $("#imp-prev").addEventListener("change",e=>{const c=e.target.closest("[data-imp]");if(c)IMP.rows[+c.dataset.imp].on=c.checked;});
-  $("#fm-sec").onclick=e=>{const b=e.target.closest("[data-v]");if(!b)return;FM.sec=b.dataset.v;FM.subject="";$("#fm-sec").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===FM.sec));fmBody(f);};
+  $("#fm-sec").onclick=e=>{const b=e.target.closest("[data-v]");if(!b)return;if(FM.editId&&(FM.sec==="CARS")!==(b.dataset.v==="CARS"))return toast("Remove it and log it again to move it between CARS and science.");FM.sec=b.dataset.v;FM.subject=SEC_SUBJ[FM.sec]&&SEC_SUBJ[FM.sec].includes(FM.subject)?FM.subject:"";$("#fm-sec").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===FM.sec));fmBody(f);};
   fmBody(f);
 }
+function fmLoad(f,rid){
+  const it=S.items.find(i=>i.id===rid), q=S.cq.find(x=>x.id===rid);
+  if(it){const t=topicById(it.topicId);FM={sec:it.flSec||"CP",subject:it.subject||"",topic:t?t.name:"",outline:t?t.outline||"":"",outManual:true,result:it.result||"wrong",reasons:(it.reasons||[]).slice(),note:it.review||"",qn:it.qn||"",disc:"",qtype:"",traps:[],editId:rid};}
+  else if(q){FM={sec:"CARS",subject:"",topic:"",outline:"",outManual:false,result:q.result||"wrong",reasons:[],note:q.review||"",qn:q.qn||"",disc:q.disc||"",qtype:q.qtype||"",traps:(q.traps||[]).slice(),editId:rid};}
+}
+const fmFresh=sec=>({sec:sec||"CP",subject:"",topic:"",outline:"",outManual:false,result:"wrong",reasons:[],note:"",qn:"",disc:"",qtype:"",traps:[]});
 function fmBody(f){const id=f.id;
-
-    const el=$("#fm-body");
+    const el=$("#fm-body"), ed=FM.editId?(S.items.find(i=>i.id===FM.editId)||S.cq.find(x=>x.id===FM.editId)):null;
+    if(FM.editId&&!ed) FM=fmFresh(FM.sec);
+    const page=ed?(ed.thought||ed.lure||""):"";
     const chips=(name,list,sel,multi)=>`<div class="chips" data-grp="${name}">${list.map(([k,l])=>`<button type="button" class="chip" data-k="${esc(k)}" aria-pressed="${multi?sel.includes(k):sel===k}">${esc(l)}</button>`).join("")}</div>`;
+    const head=ed?`<div class="notice" style="margin:0"><span><b>Reviewing Q${esc(FM.qn||"?")}</b> · ${SEC_NAME[FM.sec]}${ed.flId&&!ed.reasons?.length&&!ed.review?" · auto-logged from your import":""}</span><button class="btn small" id="fm-cancel">Done, log a new one</button></div>${page?`<div class="small"><span class="muted">From the page:</span> ${esc(page)}</div>`:""}`:"";
+    const btns=`<div class="row"><button class="btn primary" id="fm-add">${ed?"Save changes":"Add"}</button>${ed?`<button class="btn small danger" id="fm-rm" style="margin-left:auto">Remove…</button>`:""}</div>`;
     if(FM.sec==="CARS"){
-      el.innerHTML=`<div class="stack">
+      el.innerHTML=`<div class="stack">${head}
         <div class="fields"><label class="f">Q#<input id="fm-qn" inputmode="numeric" value="${esc(FM.qn)}" placeholder="optional"></label>
         <label class="f">Passage type<select id="fm-disc">${discOpts(FM.disc)}</select></label></div>
         <div class="stack tight"><span class="label req">Question type</span>${qtChips("data-k",FM.qtype,'data-grp="qtype"')}</div>
         <div class="stack tight"><span class="label">Result</span>${chips("result",[["wrong","Wrong"],["guess","Guessed right"]],FM.result)}</div>
         <div class="stack tight"><span class="label">Trap</span>${chips("traps",Object.entries(CARS_TRAPS),FM.traps,true)}</div>
         <label class="f">What happened<input id="fm-note" value="${esc(FM.note)}" placeholder="e.g. picked the critic's view"></label>
-        <button class="btn primary" id="fm-add" style="align-self:flex-start">Add</button></div>`;
+        ${btns}</div>`;
     } else {
-      el.innerHTML=`<div class="stack">
+      el.innerHTML=`<div class="stack">${head}
         <div class="fields"><label class="f">Q#<input id="fm-qn" inputmode="numeric" value="${esc(FM.qn)}" placeholder="optional"></label></div>
         <div class="stack tight"><span class="label req">Subject</span>${chips("subject",SEC_SUBJ[FM.sec].map(x=>[x,x]),FM.subject)}</div>
         <label class="f"><span class="req">Concept</span><input id="fm-topic" list="fm-dl" autocomplete="off" value="${esc(FM.topic)}" placeholder="e.g. anion-exchange chromatography"></label>
         <datalist id="fm-dl">${S.topics.map(t=>`<option value="${esc(t.name)}">`).join("")}</datalist>
-        <label class="f">Heatmap spot${outlineSelect("fm-out",FM.outline)}</label>
+        <label class="f">Heatmap spot (AAMC category)${outlineSelect("fm-out",FM.outline)}</label>
         <div class="stack tight"><span class="label">Result</span>${chips("result",[["wrong","Wrong"],["guess","Guessed right"]],FM.result)}</div>
         <div class="stack tight"><span class="label">Why</span>${chips("reasons",Object.entries(REASONS),FM.reasons,true)}</div>
         <label class="f">What I missed<input id="fm-note" value="${esc(FM.note)}" placeholder="e.g. forgot that pH > pI means negative charge"></label>
-        <button class="btn primary" id="fm-add" style="align-self:flex-start">Add</button></div>`;
+        ${btns}</div>`;
       const auto=()=>{if(FM.outManual)return;const ex=S.topics.find(t=>norm(t.name)===norm(FM.topic));FM.outline=ex&&ex.outline?ex.outline:matchOutline(FM.topic,FM.subject);$("#fm-out").value=FM.outline;};
-      $("#fm-topic").oninput=e=>{FM.topic=e.target.value;auto();};
+      $("#fm-topic").oninput=e=>{FM.topic=e.target.value;if(FM.editId)FM.outManual=false;auto();};
       $("#fm-out").onchange=e=>{FM.outline=e.target.value;FM.outManual=true;};
       el._auto=auto;
     }
     $("#fm-qn").oninput=e=>FM.qn=e.target.value.trim();
+    $("#fm-qn").onchange=()=>{if(FM.editId||!FM.qn)return;const m=flMisses(id).find(m=>m.sec===FM.sec&&String(m.r.qn)===String(FM.qn));
+      if(m){fmLoad(f,m.r.id);const q=FM.qn;render();toast(`Q${q} is already logged. Opened it so you can review it.`);}};
     $("#fm-note").oninput=e=>FM.note=e.target.value;
     const d=$("#fm-disc");if(d)d.onchange=e=>FM.disc=e.target.value;
+    const cn=$("#fm-cancel");if(cn)cn.onclick=()=>{FM=fmFresh(FM.sec);render();};
+    const rm=$("#fm-rm");if(rm)rm.onclick=()=>{if(!rm.dataset.sure){rm.dataset.sure="1";rm.textContent="Remove this question";return;}
+      S.items=S.items.filter(i=>i.id!==FM.editId);S.cq=S.cq.filter(q=>q.id!==FM.editId);FM=fmFresh(FM.sec);save();toast("Removed.");render();};
     el.onclick=e=>{const c=e.target.closest("[data-k]");if(!c)return;const g=c.closest("[data-grp]").dataset.grp,k=c.dataset.k;
       if(Array.isArray(FM[g]))FM[g]=FM[g].includes(k)?FM[g].filter(x=>x!==k):[...FM[g],k];else FM[g]=k;
       c.closest("[data-grp]").querySelectorAll("[data-k]").forEach(x=>x.setAttribute("aria-pressed",Array.isArray(FM[g])?FM[g].includes(x.dataset.k):FM[g]===x.dataset.k));
@@ -1322,17 +1322,23 @@ function fmBody(f){const id=f.id;
     $("#fm-add").onclick=()=>{
       const t=todayS();
       if(FM.sec==="CARS"){ if(!FM.qtype)return toast("Pick the question type.");
-        S.cq.push({id:uid(),flId:id,passageId:"",disc:FM.disc,qn:FM.qn,qtype:FM.qtype,result:FM.result,traps:FM.traps,evidence:"",lure:FM.note.trim(),date:f.date});
-        FM.qtype="";FM.traps=[];
+        if(ed){Object.assign(ed,{disc:FM.disc,qn:FM.qn,qtype:FM.qtype,result:FM.result,traps:FM.traps,review:FM.note.trim()});}
+        else S.cq.push({id:uid(),flId:id,passageId:"",disc:FM.disc,qn:FM.qn,qtype:FM.qtype,result:FM.result,traps:FM.traps,evidence:"",lure:"",review:FM.note.trim(),date:f.date});
       } else { if(!FM.subject)return toast("Pick a subject.");if(!FM.topic.trim())return toast("Add the concept.");
-        const tid=findOrCreateTopic(FM.topic,FM.subject,FM.outline,FM.outManual);
-        S.items.push({id:uid(),flId:id,flSec:FM.sec,qn:FM.qn,subject:FM.subject,topicId:tid,result:FM.result,source:f.name,qref:FM.qn?"Q"+FM.qn:"",reasons:FM.reasons,thought:FM.note.trim(),nextTime:"",doneDate:f.date,reviewDate:t,created:t,cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[]});
-        FM.topic="";FM.outline="";FM.outManual=false;FM.reasons=[];
+        if(ed){const cur=topicById(ed.topicId);
+          if(!cur||norm(cur.name)!==norm(FM.topic)) ed.topicId=findOrCreateTopic(FM.topic,FM.subject,FM.outline,true);
+          else if((cur.outline||"")!==FM.outline){ if(S.items.some(i=>i!==ed&&i.topicId===cur.id)){const nt={id:uid(),name:cur.name,subject:FM.subject,created:t,outline:FM.outline};
+              /* same name, different category: keep the other questions where they were */ nt.name=cur.name+(FM.outline&&OUT[FM.outline]?` (${OUT[FM.outline].code})`:"");if(norm(nt.name)===norm(cur.name))nt.name+=" ";
+              ed.topicId=findOrCreateTopic(nt.name,FM.subject,FM.outline,true);} else cur.outline=FM.outline; }
+          Object.assign(ed,{flSec:FM.sec,qn:FM.qn,qref:FM.qn?"Q"+FM.qn:"",subject:FM.subject,result:FM.result,reasons:FM.reasons,review:FM.note.trim()});}
+        else{const tid=findOrCreateTopic(FM.topic,FM.subject,FM.outline,FM.outManual);
+          S.items.push({id:uid(),flId:id,flSec:FM.sec,qn:FM.qn,subject:FM.subject,topicId:tid,result:FM.result,source:f.name,qref:FM.qn?"Q"+FM.qn:"",reasons:FM.reasons,thought:"",review:FM.note.trim(),nextTime:"",doneDate:f.date,reviewDate:t,created:t,cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[]});}
       }
-      FM.note="";FM.qn=FM.qn&&/^\d+$/.test(FM.qn)?String(+FM.qn+1):"";FM.result="wrong";
-      save();toast("Added.");render();setTimeout(()=>{const x=$("#fm-qn");if(x)x.scrollIntoView({block:"center"});},0);
+      const wasEdit=!!ed, qn=FM.qn;
+      FM={...fmFresh(FM.sec),qn:!wasEdit&&qn&&/^\d+$/.test(qn)?String(+qn+1):""};
+      save();toast(wasEdit?`Saved Q${qn}.`:"Added.");render();setTimeout(()=>{const x=$("#fm-qn");if(x)x.scrollIntoView({block:"center"});},0);
     };
-  }
+}
 
 /* ================= BACKUP ================= */
 function backupHTML(){return `<details class="panel"><summary>Backup and restore</summary><div class="stack" style="margin-top:10px">
