@@ -109,6 +109,15 @@ button.cell{cursor:pointer}
 .cell[data-l="u"]{background:repeating-linear-gradient(135deg,var(--h0) 0 6px,transparent 6px 10px);border-color:var(--line);color:var(--ink-3)}
 .cell[data-l="0"]{background:var(--hok)}
 .cell[data-l="1"]{background:var(--h1)} .cell[data-l="2"]{background:var(--h2)} .cell[data-l="3"]{background:var(--h3);color:#fff} .cell[data-l="4"]{background:var(--h4);color:#fff}
+.pics{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pic{position:relative;display:inline-block}
+.pic img{width:72px;height:72px;object-fit:cover;border-radius:4px;border:1px solid var(--line);cursor:zoom-in;display:block;background:var(--sunk)}
+.pics.sm{gap:4px}.pics.sm img{width:40px;height:40px}
+.pic.missing img{cursor:default}
+.pic-x{position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;line-height:1;padding:0;cursor:pointer}
+.imgview{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:100;padding:48px 12px 12px}
+.imgview img{max-width:100%;max-height:100%;object-fit:contain;border-radius:4px}
+.imgview button{position:absolute;top:10px;right:12px}
 .cell b{display:block;font-weight:400;font-size:.7rem;opacity:.85;margin-top:2px}
 .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.78rem;color:var(--ink-2);align-items:center}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:4px}
@@ -534,9 +543,58 @@ function bindCommon(v){
   });
 }
 
+/* ================= PICTURES (stored in IndexedDB; records keep only the picture ids in .imgs) ================= */
+const IDB={p:null,
+  db(){return this.p||(this.p=new Promise((res,rej)=>{try{const r=indexedDB.open("mcat-tracker-img",1);r.onupgradeneeded=()=>r.result.createObjectStore("imgs",{keyPath:"id"});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}}));},
+  async run(mode,fn){const db=await this.db();return new Promise((res,rej)=>{const t=db.transaction("imgs",mode),q=fn(t.objectStore("imgs"));t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);});},
+  put(r){return this.run("readwrite",s=>s.put(r));}, get(id){return this.run("readonly",s=>s.get(id));},
+  del(id){return this.run("readwrite",s=>s.delete(id));}, all(){return this.run("readonly",s=>s.getAll());}};
+const IMGURL={};
+async function shrinkImg(file){
+  try{const bmp=await createImageBitmap(file); const sc=Math.min(1,2000/Math.max(bmp.width,bmp.height));
+    const c=document.createElement("canvas"); c.width=Math.round(bmp.width*sc); c.height=Math.round(bmp.height*sc);
+    const x=c.getContext("2d"); x.fillStyle="#fff"; x.fillRect(0,0,c.width,c.height); x.drawImage(bmp,0,0,c.width,c.height);
+    const b=await new Promise(r=>c.toBlob(r,"image/jpeg",0.85)); return b&&(b.size<file.size||sc<1)?b:file;}catch(e){return file;}
+}
+async function addImg(file){
+  const blob=await shrinkImg(file), id="img"+uid();
+  await IDB.put({id,blob,name:file.name||"",created:Date.now()});
+  try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}
+  return id;
+}
+async function imgURL(id){if(IMGURL[id])return IMGURL[id];const r=await IDB.get(id);return r?(IMGURL[id]=URL.createObjectURL(r.blob)):"";}
+const BLANK_GIF="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+function hydrateImgs(){document.querySelectorAll("img[data-img]:not([src])").forEach(im=>{im.src=BLANK_GIF;
+  imgURL(im.dataset.img).then(u=>{if(u)im.src=u;else{const p=im.closest(".pic");if(p){p.classList.add("missing");p.title="Picture not stored in this browser";}}}).catch(()=>{});});}
+new MutationObserver(hydrateImgs).observe(document.body,{childList:true,subtree:true});
+const thumbs=(ids,sm)=>(ids||[]).length?`<span class="pics${sm?" sm":""}">${ids.map(id=>`<span class="pic"><img data-img="${esc(id)}" data-imgview="${esc(id)}" alt="Question picture"></span>`).join("")}</span>`:"";
+const picsField=ids=>`<div class="stack tight" data-pics><span class="label">Pictures</span><div class="pics">${ids.map(id=>`<span class="pic"><img data-img="${esc(id)}" data-imgview="${esc(id)}" alt="Question picture"><button type="button" class="pic-x" data-picrm="${esc(id)}" aria-label="Remove picture">×</button></span>`).join("")}<label class="btn small">Add picture<input type="file" accept="image/*" multiple hidden data-picin></label></div><span class="small muted">Or paste a screenshot while this form is open.</span></div>`;
+/* root: the form; get/set: the form's picture id list */
+function bindPics(root,get,set){
+  const redraw=()=>{const w=root.querySelector("[data-pics]");if(w)w.outerHTML=picsField(get());};
+  const take=async files=>{files=[...files].filter(f=>/^image\//.test(f.type));if(!files.length)return;
+    try{for(const f of files){const id=await addImg(f);set([...get(),id]);}redraw();toast(files.length>1?`${files.length} pictures added. Save to keep them.`:"Picture added. Save to keep it.");}
+    catch(e){toast("This browser won't store pictures here. Try the site in a normal (not private) window.");}};
+  root.addEventListener("change",e=>{if(e.target.matches("[data-picin]")){take(e.target.files);e.target.value="";}});
+  root.addEventListener("click",e=>{const x=e.target.closest("[data-picrm]");if(!x)return;e.preventDefault();e.stopPropagation();set(get().filter(i=>i!==x.dataset.picrm));redraw();});
+  root.addEventListener("paste",e=>{const fs=[...(e.clipboardData&&e.clipboardData.files||[])];if(fs.some(f=>/^image\//.test(f.type))){e.preventDefault();take(fs);}});
+}
+document.addEventListener("click",async e=>{const im=e.target.closest("[data-imgview]");if(!im||im.closest(".pic.missing"))return;e.preventDefault();e.stopPropagation();
+  const u=await imgURL(im.dataset.imgview).catch(()=>"");if(!u)return;
+  const ov=document.createElement("div");ov.className="imgview";ov.setAttribute("role","dialog");ov.setAttribute("aria-label","Picture");
+  ov.innerHTML=`<img src="${u}" alt="Question picture"><button class="btn small" type="button">Close</button>`;
+  const close=()=>{ov.remove();document.removeEventListener("keydown",esc1);};const esc1=k=>{if(k.key==="Escape")close();};
+  ov.onclick=close;document.addEventListener("keydown",esc1);document.body.appendChild(ov);ov.querySelector("button").focus();},true);
+const imgRefs=()=>new Set([...S.items,...S.cq].flatMap(x=>x.imgs||[]));
+/* remove stored pictures that no record uses (older than a day, so an unsaved form's pictures survive) */
+async function sweepImgs(){try{const keep=imgRefs(),old=Date.now()-864e5;for(const r of await IDB.all())if(!keep.has(r.id)&&r.created<old)await IDB.del(r.id);}catch(e){}}
+async function imgDump(){const out={},keep=imgRefs();if(!keep.size)return out;
+  for(const r of await IDB.all()){if(!keep.has(r.id))continue;out[r.id]=await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.readAsDataURL(r.blob);});}return out;}
+async function imgRestore(map){let n=0;for(const [id,du] of Object.entries(map||{})){try{const blob=await (await fetch(du)).blob();await IDB.put({id,blob,name:"",created:Date.now()});delete IMGURL[id];n++;}catch(e){}}return n;}
+
 /* ================= LOG (science) ================= */
 let F=null;
-function freshForm(){return {subject:"",topic:"",result:"",source:"",outline:"",outManual:false,reasons:[],thought:"",nextTime:"",rq:"",ra:""};}
+function freshForm(){return {subject:"",topic:"",result:"",source:"",outline:"",outManual:false,reasons:[],thought:"",nextTime:"",rq:"",ra:"",imgs:[]};}
 function vLog(v){
   const arg=viewArg||{}; const mode=arg.mode||"q";
   if(mode==="win") return vWin(v,arg.topicId);
@@ -544,7 +602,7 @@ function vLog(v){
   if(arg.editId){editing=S.items.find(i=>i.id===arg.editId);}
   if(!F||F._for!==(arg.editId||"new")){
     F=freshForm();F._for=arg.editId||"new";
-    if(editing)Object.assign(F,{subject:editing.subject,topic:tname(editing.topicId),result:editing.result,source:editing.source,qref:editing.qref,doneDate:editing.doneDate,reasons:[...(editing.reasons||[])],thought:editing.thought,nextTime:editing.nextTime,outline:(topicById(editing.topicId)||{}).outline||"",outManual:true});
+    if(editing)Object.assign(F,{subject:editing.subject,topic:tname(editing.topicId),result:editing.result,source:editing.source,qref:editing.qref,doneDate:editing.doneDate,reasons:[...(editing.reasons||[])],thought:editing.thought,nextTime:editing.nextTime,outline:(topicById(editing.topicId)||{}).outline||"",outManual:true,imgs:(editing.imgs||[]).slice()});
   }
   const full=S.settings.style==="full";
   const recentSubj=S.items.length?S.items[S.items.length-1].subject:"";
@@ -564,6 +622,7 @@ function vLog(v){
         <label class="f">What I was thinking<textarea id="l-thought" placeholder="e.g. Thought a negative protein sticks to a negative resin">${esc(F.thought)}</textarea></label>
         <label class="f">How to tell next time<textarea id="l-next" placeholder="e.g. First compare pH and pI to get net charge, then pick the opposite-charge resin">${esc(F.nextTime)}</textarea></label>
       </div></details>
+    ${picsField(F.imgs)}
     ${editing?"":`<details id="l-rt" ${full?"open":""}><summary>Retest question</summary>
       <div class="stack" style="margin-top:10px">        <label class="f">Question<textarea id="l-rq" placeholder="e.g. Buffer pH 8.5, protein pI 6.0. Does it bind a DEAE column?">${esc(F.rq)}</textarea></label>
         <label class="f">Answer and short explanation<textarea id="l-ra" placeholder="e.g. Yes. pH > pI, so it's negative and binds the positive DEAE resin.">${esc(F.ra)}</textarea></label></div></details>`}
@@ -592,6 +651,7 @@ function vLog(v){
   const cl=$("#l-clear");if(cl)cl.onclick=()=>{F=null;vLog(v);};
   const cc=$("#l-cancel");if(cc)cc.onclick=()=>{F=null;go("topic",editing.topicId);};
   $("#l-save").onclick=()=>saveItem(editing);
+  bindPics(v,()=>F.imgs,a=>F.imgs=a);
 }
 let logFilter="all";
 function sciLogList(){
@@ -601,7 +661,7 @@ function sciLogList(){
   return `<section class="panel stack" style="margin-top:16px"><div class="sec-title"><h2>Logged questions</h2>
     <div class="seg" id="lf">${[["all",`All (${all.length})`],["practice",`Practice (${all.length-nfl})`],["fl",`Full length (${nfl})`]].map(([k,l])=>`<button type="button" data-lf="${k}" aria-pressed="${logFilter===k}">${l}</button>`).join("")}</div></div>
     ${list.length?`<ul class="list">${list.slice(0,40).map(i=>`<li><div class="main"><button class="btn link" data-topic="${i.topicId}" style="font-weight:700;text-align:left">${esc(tname(i.topicId))}</button>
-      <div class="muted" style="font-size:.82rem">${shortD(i.doneDate)} · ${esc(i.subject)} · ${i.result==="wrong"?"wrong":"guessed"}${(i.reasons||[]).length?" · "+i.reasons.map(r=>REASONS[r]).join(", "):""}</div>${i.thought?`<div class="sub">${esc(i.thought)}</div>`:""}</div>
+      <div class="muted" style="font-size:.82rem">${shortD(i.doneDate)} · ${esc(i.subject)} · ${i.result==="wrong"?"wrong":"guessed"}${(i.reasons||[]).length?" · "+i.reasons.map(r=>REASONS[r]).join(", "):""}</div>${i.thought?`<div class="sub">${esc(i.thought)}</div>`:""}${thumbs(i.imgs,true)}</div>
       <div class="stack tight" style="align-items:flex-end">${i.flId?`<button class="status acc" data-flid="${i.flId}" style="border:0;cursor:pointer">Full length · ${esc(i.source)}${i.qn?" Q"+esc(i.qn):""}</button>`:i.source?`<span class="status plain">${esc(i.source)}</span>`:""}<button class="btn small" data-edit="${i.id}">Edit</button></div></li>`).join("")}</ul>${list.length>40?`<p class="muted">Showing 40 of ${list.length}. See Records for all.</p>`:""}`:`<p class="muted">Nothing logged yet.</p>`}
   </section>`;
 }
@@ -621,9 +681,9 @@ function saveItem(editing){
   if((F.rq.trim()&&!F.ra.trim())||(!F.rq.trim()&&F.ra.trim())) return toast("A retest needs both a question and an answer.");
   if(S.sample&&!editing) leaveSample();
   const topicId=findOrCreateTopic(F.topic,F.subject,F.outline,F.outManual); const t=todayS();
-  if(editing){Object.assign(editing,{subject:F.subject,topicId,result:F.result,source:F.source,reasons:F.reasons,thought:F.thought.trim(),nextTime:F.nextTime.trim(),updated:t});
+  if(editing){Object.assign(editing,{subject:F.subject,topicId,result:F.result,source:F.source,reasons:F.reasons,thought:F.thought.trim(),nextTime:F.nextTime.trim(),imgs:F.imgs.slice(),updated:t});
     save();F=null;toast("Record updated.");go("topic",topicId);return;}
-  const it={id:uid(),subject:F.subject,topicId,result:F.result,source:F.source,reasons:F.reasons,thought:F.thought.trim(),nextTime:F.nextTime.trim(),doneDate:t,reviewDate:t,created:t,cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[]};
+  const it={id:uid(),subject:F.subject,topicId,result:F.result,source:F.source,reasons:F.reasons,thought:F.thought.trim(),nextTime:F.nextTime.trim(),imgs:F.imgs.slice(),doneDate:t,reviewDate:t,created:t,cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[]};
   if(F.rq.trim()) addCard(it,F.rq,F.ra);
   S.items.push(it);save();F=null;
   toast(it.due?`Saved. First retest ${relDue(it.due)}.`:"Saved. Add a retest question any time to queue it.");
@@ -743,7 +803,7 @@ function itemCard(it,open){
   const status=it.cards.length&&it.due&&!it.needsNewQ?`<span class="status acc">Card check ${relDue(it.due)}</span>`:"";
   return `<div class="panel stack">
     <div class="sec-title"><div><b>${resultLabel(it.result)}</b> <span class="muted">· ${esc(srcLabel(it)||"no source")} · done ${shortD(it.doneDate)} · reviewed ${shortD(it.reviewDate)}</span></div>${status}</div>
-    <dl class="kv">${(it.reasons||[]).length?`<dt>Why</dt><dd>${it.reasons.map(r=>REASONS[r]).join(", ")}</dd>`:""}${it.thought?`<dt>I thought</dt><dd>${esc(it.thought)}</dd>`:""}${it.nextTime?`<dt>Next time</dt><dd>${esc(it.nextTime)}</dd>`:""}</dl>
+    <dl class="kv">${(it.reasons||[]).length?`<dt>Why</dt><dd>${it.reasons.map(r=>REASONS[r]).join(", ")}</dd>`:""}${it.thought?`<dt>I thought</dt><dd>${esc(it.thought)}</dd>`:""}${it.nextTime?`<dt>Next time</dt><dd>${esc(it.nextTime)}</dd>`:""}${it.review?`<dt>What I missed</dt><dd>${esc(it.review)}</dd>`:""}</dl>${thumbs(it.imgs)}
     ${it.cards.length||it.attempts.length?`<details><summary>Retest history (${it.attempts.length})</summary><div class="stack" style="margin-top:8px">
       ${it.cards.map((c,i)=>`<div class="qcard"><span class="label">Q${i+1}${i===it.cardIdx&&!it.needsNewQ?" · current":""}</span><br>${esc(c.q)}<br><span class="muted">Answer: ${esc(c.a)}</span></div>`).join("")}
       ${it.attempts.length?`<div class="tablewrap"><table><thead><tr><th>Retest date</th><th>Result</th><th>Next due</th></tr></thead><tbody>${it.attempts.map(a=>`<tr><td class="num">${shortD(a.date)}</td><td><span class="status ${SELF_CLS[a.self]}">${a.newq?"Missed a new question":SELF[a.self]}</span></td><td class="num">${a.next?shortD(a.next):"—"}</td></tr>`).join("")}</tbody></table></div>`:""}</div></details>`:""}
@@ -1269,7 +1329,7 @@ function vFLQuestions(body,f){
     $("#qr-list").innerHTML=ms.length?`<div class="clist">${ms.map(m=>{const r=m.r,p=QR.pend[r.id]||{};
       const cur=m.kind==="sci"?(p.err??errOf(r)):(p.trap??((r.traps||[])[0]||""));
       return `<div class="crow"><div class="qrow"><span class="main"><span>${r.qn?`<span class="muted num">Q${esc(r.qn)}</span> `:""}<b>${esc(m.kind==="sci"?tname(r.topicId):(r.qtype||"CARS question"))}</b> <span class="muted small">· ${SEC_NAME[m.sec]}${m.kind==="sci"?(()=>{const t=topicById(r.topicId),o=t&&OUT[t.outline];return o?` · ${esc(o.code)} ${esc(o.cat)}`:"";})():(r.disc?" · "+esc(r.disc):"")}</span></span>
-        <span class="pw">${m.kind==="sci"?esc(evidOf(r)):((r.traps||[]).length?"Trap: "+esc(r.traps.map(t=>CARS_TRAPS[t]).join(", ")):(r.review?"Reviewed":"Tested skill · cause not reviewed"))}${r.review?` · <span style="color:var(--ink-2)">${esc(r.review)}</span>`:""}</span></span>
+        <span class="pw">${m.kind==="sci"?esc(evidOf(r)):((r.traps||[]).length?"Trap: "+esc(r.traps.map(t=>CARS_TRAPS[t]).join(", ")):(r.review?"Reviewed":"Tested skill · cause not reviewed"))}${r.review?` · <span style="color:var(--ink-2)">${esc(r.review)}</span>`:""}</span>${thumbs(r.imgs,true)}</span>
         <button class="btn small ${isUn(m)?"primary":""}" data-fmedit="${r.id}">${isUn(m)?"Review":"Edit"}</button></div></div>`;}).join("")}</div>`:`<p class="muted">${flMisses(id).length?"No matches.":"No missed questions yet. Import the review page below."}</p>`;};
   draw();
   $("#qr-q").oninput=e=>{QR.q=e.target.value;draw();};
@@ -1290,10 +1350,10 @@ function vFLQuestions(body,f){
 }
 function fmLoad(f,rid){
   const it=S.items.find(i=>i.id===rid), q=S.cq.find(x=>x.id===rid);
-  if(it){const t=topicById(it.topicId);FM={sec:it.flSec||"CP",subject:it.subject||"",topic:t?t.name:"",outline:t?t.outline||"":"",outManual:true,result:it.result||"wrong",reasons:(it.reasons||[]).slice(),note:it.review||"",qn:it.qn||"",disc:"",qtype:"",traps:[],editId:rid};}
-  else if(q){FM={sec:"CARS",subject:"",topic:"",outline:"",outManual:false,result:q.result||"wrong",reasons:[],note:q.review||"",qn:q.qn||"",disc:q.disc||"",qtype:q.qtype||"",traps:(q.traps||[]).slice(),editId:rid};}
+  if(it){const t=topicById(it.topicId);FM={sec:it.flSec||"CP",subject:it.subject||"",topic:t?t.name:"",outline:t?t.outline||"":"",outManual:true,result:it.result||"wrong",reasons:(it.reasons||[]).slice(),note:it.review||"",qn:it.qn||"",disc:"",qtype:"",traps:[],imgs:(it.imgs||[]).slice(),editId:rid};}
+  else if(q){FM={sec:"CARS",subject:"",topic:"",outline:"",outManual:false,result:q.result||"wrong",reasons:[],note:q.review||"",qn:q.qn||"",disc:q.disc||"",qtype:q.qtype||"",traps:(q.traps||[]).slice(),imgs:(q.imgs||[]).slice(),editId:rid};}
 }
-const fmFresh=sec=>({sec:sec||"CP",subject:"",topic:"",outline:"",outManual:false,result:"wrong",reasons:[],note:"",qn:"",disc:"",qtype:"",traps:[]});
+const fmFresh=sec=>({sec:sec||"CP",subject:"",topic:"",outline:"",outManual:false,result:"wrong",reasons:[],note:"",qn:"",disc:"",qtype:"",traps:[],imgs:[]});
 function fmBody(f){const id=f.id;
     const el=$("#fm-body"), ed=FM.editId?(S.items.find(i=>i.id===FM.editId)||S.cq.find(x=>x.id===FM.editId)):null;
     if(FM.editId&&!ed) FM=fmFresh(FM.sec);
@@ -1309,6 +1369,7 @@ function fmBody(f){const id=f.id;
         <div class="stack tight"><span class="label">Result</span>${chips("result",[["wrong","Wrong"],["guess","Guessed right"]],FM.result)}</div>
         <div class="stack tight"><span class="label">Trap</span>${chips("traps",Object.entries(CARS_TRAPS),FM.traps,true)}</div>
         <label class="f">What happened<input id="fm-note" value="${esc(FM.note)}" placeholder="e.g. picked the critic's view"></label>
+        ${picsField(FM.imgs||[])}
         ${btns}</div>`;
     } else {
       el.innerHTML=`<div class="stack">${head}
@@ -1320,6 +1381,7 @@ function fmBody(f){const id=f.id;
         <div class="stack tight"><span class="label">Result</span>${chips("result",[["wrong","Wrong"],["guess","Guessed right"]],FM.result)}</div>
         <div class="stack tight"><span class="label">Why</span>${chips("reasons",Object.entries(REASONS),FM.reasons,true)}</div>
         <label class="f">What I missed<input id="fm-note" value="${esc(FM.note)}" placeholder="e.g. forgot that pH > pI means negative charge"></label>
+        ${picsField(FM.imgs||[])}
         ${btns}</div>`;
       const auto=()=>{if(FM.outManual)return;const ex=S.topics.find(t=>norm(t.name)===norm(FM.topic));FM.outline=ex&&ex.outline?ex.outline:matchOutline(FM.topic,FM.subject);$("#fm-out").value=FM.outline;};
       $("#fm-topic").oninput=e=>{FM.topic=e.target.value;if(FM.editId)FM.outManual=false;auto();};
@@ -1330,6 +1392,7 @@ function fmBody(f){const id=f.id;
     $("#fm-qn").onchange=()=>{if(FM.editId||!FM.qn)return;const m=flMisses(id).find(m=>m.sec===FM.sec&&String(m.r.qn)===String(FM.qn));
       if(m){fmLoad(f,m.r.id);const q=FM.qn;render();toast(`Q${q} is already logged. Opened it so you can review it.`);}};
     $("#fm-note").oninput=e=>FM.note=e.target.value;
+    if(!el._pics){el._pics=1;bindPics(el,()=>FM.imgs||[],a=>FM.imgs=a);}
     const d=$("#fm-disc");if(d)d.onchange=e=>FM.disc=e.target.value;
     const cn=$("#fm-cancel");if(cn)cn.onclick=()=>{FM=fmFresh(FM.sec);render();};
     const rm=$("#fm-rm");if(rm)rm.onclick=()=>{if(!rm.dataset.sure){rm.dataset.sure="1";rm.textContent="Remove this question";return;}
@@ -1341,17 +1404,17 @@ function fmBody(f){const id=f.id;
     $("#fm-add").onclick=()=>{
       const t=todayS();
       if(FM.sec==="CARS"){ if(!FM.qtype)return toast("Pick the question type.");
-        if(ed){Object.assign(ed,{disc:FM.disc,qn:FM.qn,qtype:FM.qtype,result:FM.result,traps:FM.traps,review:FM.note.trim()});}
-        else S.cq.push({id:uid(),flId:id,passageId:"",disc:FM.disc,qn:FM.qn,qtype:FM.qtype,result:FM.result,traps:FM.traps,evidence:"",lure:"",review:FM.note.trim(),date:f.date});
+        if(ed){Object.assign(ed,{disc:FM.disc,qn:FM.qn,qtype:FM.qtype,result:FM.result,traps:FM.traps,review:FM.note.trim(),imgs:(FM.imgs||[]).slice()});}
+        else S.cq.push({id:uid(),flId:id,passageId:"",disc:FM.disc,qn:FM.qn,qtype:FM.qtype,result:FM.result,traps:FM.traps,evidence:"",lure:"",review:FM.note.trim(),imgs:(FM.imgs||[]).slice(),date:f.date});
       } else { if(!FM.subject)return toast("Pick a subject.");if(!FM.topic.trim())return toast("Add the concept.");
         if(ed){const cur=topicById(ed.topicId);
           if(!cur||norm(cur.name)!==norm(FM.topic)) ed.topicId=findOrCreateTopic(FM.topic,FM.subject,FM.outline,true);
           else if((cur.outline||"")!==FM.outline){ if(S.items.some(i=>i!==ed&&i.topicId===cur.id)){const nt={id:uid(),name:cur.name,subject:FM.subject,created:t,outline:FM.outline};
               /* same name, different category: keep the other questions where they were */ nt.name=cur.name+(FM.outline&&OUT[FM.outline]?` (${OUT[FM.outline].code})`:"");if(norm(nt.name)===norm(cur.name))nt.name+=" ";
               ed.topicId=findOrCreateTopic(nt.name,FM.subject,FM.outline,true);} else cur.outline=FM.outline; }
-          Object.assign(ed,{flSec:FM.sec,qn:FM.qn,qref:FM.qn?"Q"+FM.qn:"",subject:FM.subject,result:FM.result,reasons:FM.reasons,review:FM.note.trim()});}
+          Object.assign(ed,{flSec:FM.sec,qn:FM.qn,qref:FM.qn?"Q"+FM.qn:"",subject:FM.subject,result:FM.result,reasons:FM.reasons,review:FM.note.trim(),imgs:(FM.imgs||[]).slice()});}
         else{const tid=findOrCreateTopic(FM.topic,FM.subject,FM.outline,FM.outManual);
-          S.items.push({id:uid(),flId:id,flSec:FM.sec,qn:FM.qn,subject:FM.subject,topicId:tid,result:FM.result,source:f.name,qref:FM.qn?"Q"+FM.qn:"",reasons:FM.reasons,thought:"",review:FM.note.trim(),nextTime:"",doneDate:f.date,reviewDate:t,created:t,cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[]});}
+          S.items.push({id:uid(),flId:id,flSec:FM.sec,qn:FM.qn,subject:FM.subject,topicId:tid,result:FM.result,source:f.name,qref:FM.qn?"Q"+FM.qn:"",reasons:FM.reasons,thought:"",review:FM.note.trim(),nextTime:"",imgs:(FM.imgs||[]).slice(),doneDate:f.date,reviewDate:t,created:t,cards:[],cardIdx:0,due:null,needsNewQ:false,attempts:[]});}
       }
       const wasEdit=!!ed, qn=FM.qn;
       FM={...fmFresh(FM.sec),qn:!wasEdit&&qn&&/^\d+$/.test(qn)?String(+qn+1):""};
@@ -1366,11 +1429,12 @@ function backupHTML(){return `<details class="panel"><summary>Backup and restore
   <label class="f">Restore from file<input type="file" id="s-file" accept=".json,application/json"></label>
   <label class="f">Or paste backup text<textarea id="s-paste"></textarea></label><button class="btn small" id="s-import" style="align-self:flex-start">Restore</button></div></details>`;}
 function bindBackup(){
-  const data=()=>JSON.stringify({app:"mcat-tracker",version:2,exported:new Date().toISOString(),...S});
-  $("#s-export").onclick=()=>{try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data()],{type:"application/json"}));a.download="mcat-tracker-backup-"+todayS()+".json";document.body.appendChild(a);a.click();a.remove();toast("If no file appeared, use Copy backup text.");}catch(e){toast("Download was blocked. Use Copy backup text.");}};
-  $("#s-copy").onclick=()=>copy(data(),"Backup copied.");
+  let dump=null;imgDump().then(d=>dump=d).catch(()=>dump={});
+  const data=()=>{if(!dump&&imgRefs().size){toast("Pictures are still loading. Try again in a second.");throw "wait";}return JSON.stringify({app:"mcat-tracker",version:2,exported:new Date().toISOString(),...S,images:dump||{}});};
+  $("#s-export").onclick=()=>{try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data()],{type:"application/json"}));a.download="mcat-tracker-backup-"+todayS()+".json";document.body.appendChild(a);a.click();a.remove();toast("If no file appeared, use Copy backup text.");}catch(e){if(e!=="wait")toast("Download was blocked. Use Copy backup text.");}};
+  $("#s-copy").onclick=()=>{let d;try{d=data();}catch(e){return;}copy(d,"Backup copied.");};
   const restore=txt=>{try{const o=JSON.parse(txt);
-      if(o.version===2||o.items){S=Object.assign(blank(),o);delete S.app;delete S.exported;delete S.version;S.settings=Object.assign(blank().settings,{outlineV:0},o.settings||{});if(!(S.settings.outlineV>=2))remapOutline();}
+      if(o.version===2||o.items){S=Object.assign(blank(),o);delete S.app;delete S.exported;delete S.version;delete S.images;if(o.images)imgRestore(o.images).then(n=>{if(n)render();});S.settings=Object.assign(blank().settings,{outlineV:0},o.settings||{});if(!(S.settings.outlineV>=2))remapOutline();}
       else if(Array.isArray(o.blocks)){S.legacy.blocks=o.blocks.filter(b=>!b.sample);S.legacy.reads=o.reads||{};}
       else throw 0; S.v=2; save();render();toast("Backup restored.");}catch(e){toast("That doesn't look like a tracker backup.");}};
   $("#s-file").onchange=e=>{const fl=e.target.files[0];if(!fl)return;const r=new FileReader();r.onload=()=>restore(r.result);r.readAsText(fl);};
@@ -1527,11 +1591,12 @@ function vSettings(v){
   <section class="panel stack"><h2>Start fresh</h2>
     ${confirmReset?`<div class="row"><button class="btn danger" id="s-yes2">Yes, delete everything</button><button class="btn" id="s-no2">Cancel</button></div>`:`<button class="btn danger" id="s-reset" style="align-self:flex-start">Delete all data…</button>`}</section></div>`;
   $("#s-save").onclick=()=>{S.settings.testDate=$("#s-date").value||"2027-02-12";S.settings.target=$("#s-target").value?Math.min(528,Math.max(472,+$("#s-target").value)):"";S.settings.iv={no:Math.max(1,+$("#s-no").value||1),partial:Math.max(1,+$("#s-part").value||2),yes:Math.max(1,+$("#s-yes").value||5)};save();render();toast("Saved.");};
-  const data=()=>JSON.stringify({app:"mcat-tracker",version:2,exported:new Date().toISOString(),...S});
-  $("#s-export").onclick=()=>{try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data()],{type:"application/json"}));a.download="mcat-tracker-backup-"+todayS()+".json";document.body.appendChild(a);a.click();a.remove();toast("If no file appeared, use Copy backup text instead.");}catch(e){toast("Download was blocked. Use Copy backup text.");}};
-  $("#s-copy").onclick=()=>copy(data(),"Backup copied. Paste it into a note or email to yourself.");
+  let dump=null;imgDump().then(d=>dump=d).catch(()=>dump={});
+  const data=()=>{if(!dump&&imgRefs().size){toast("Pictures are still loading. Try again in a second.");throw "wait";}return JSON.stringify({app:"mcat-tracker",version:2,exported:new Date().toISOString(),...S,images:dump||{}});};
+  $("#s-export").onclick=()=>{try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data()],{type:"application/json"}));a.download="mcat-tracker-backup-"+todayS()+".json";document.body.appendChild(a);a.click();a.remove();toast("If no file appeared, use Copy backup text instead.");}catch(e){if(e!=="wait")toast("Download was blocked. Use Copy backup text.");}};
+  $("#s-copy").onclick=()=>{let d;try{d=data();}catch(e){return;}copy(d,"Backup copied. Paste it into a note or email to yourself.");};
   const restore=txt=>{try{const o=JSON.parse(txt);
-      if(o.version===2||o.items){S=Object.assign(blank(),o);delete S.app;delete S.exported;delete S.version;S.settings=Object.assign(blank().settings,{outlineV:0},o.settings||{});if(!(S.settings.outlineV>=2))remapOutline();}
+      if(o.version===2||o.items){S=Object.assign(blank(),o);delete S.app;delete S.exported;delete S.version;delete S.images;if(o.images)imgRestore(o.images).then(n=>{if(n)render();});S.settings=Object.assign(blank().settings,{outlineV:0},o.settings||{});if(!(S.settings.outlineV>=2))remapOutline();}
       else if(Array.isArray(o.blocks)){S.legacy.blocks=o.blocks.filter(b=>!b.sample);S.legacy.reads=o.reads||{};}
       else throw 0; S.v=2; save();render();toast("Backup restored.");}catch(e){toast("That doesn't look like a tracker backup. Check you copied all of it.");}};
   $("#s-file").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>restore(r.result);r.readAsText(f);};
@@ -1840,7 +1905,7 @@ function vHub(v){
 }
 
 /* ================= boot ================= */
-load(); KNOWN=new Set([...S.items,...S.wins].map(x=>x.id));
+load(); setTimeout(sweepImgs,3000); KNOWN=new Set([...S.items,...S.wins].map(x=>x.id));
 const h0=(location.hash||"").slice(1); if(ROUTES.includes(h0)) view=h0;
 window.addEventListener("hashchange",()=>{const k=location.hash.slice(1);if(ROUTES.includes(k)&&k!==view)go(k);});
 if(view==="retest") R=null;
